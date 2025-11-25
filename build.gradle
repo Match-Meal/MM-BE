@@ -40,6 +40,30 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
+// 단위 테스트만 돌리도록 설정 (develop 용)
 tasks.named('test') {
     useJUnitPlatform()
+    // 'IntegrationTest'로 끝나는 통합테스트 파일은 제외
+    exclude '**/*IntegrationTest.class'
+}
+
+// 통합테스트 태스크 (Main branch용)
+tasks.register('integrationTest', Test) {
+    useJUnitPlatform()
+
+    // src/test/java에 있는 코드들을 가져와서 실행
+    testClassesDirs = sourceSets.test.output.classesDirs
+    classpath = sourceSets.test.runtimeClasspath
+
+    // IntegrationTest로 끝나는 것만 '포함'
+    include '**/*IntegrationTest.class'
+
+    // 단위 테스트 먼저 돌고, 통합테스크가 돌도록 순서 지정
+    shouldRunAfter tasks.named('test')
+}
+
+// /gradlew build 하면 통합 테스트도 포함되도록 설정
+// main 브랜치에서 build 할 때 통합 테스트까지 꼼꼼하게 챙기기 위해서 진행
+tasks.named('check') {
+    dependsOn tasks.named('integrationTest')
 }
