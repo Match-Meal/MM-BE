@@ -12,7 +12,7 @@ public class CalculatorController {
     private final CalculatorService calculatorService;
 
     @GetMapping("/add")
-    public int add(@RequestParam int a, @RequestParam int b) {
+    public int add(@RequestParam("a") int a, @RequestParam("b") int b) {
         return calculatorService.add(a, b);
     }
 }
