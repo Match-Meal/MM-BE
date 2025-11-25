@@ -1,5 +1,6 @@
 package com.pagoda.matchmeal.common.util;
 
+import com.pagoda.matchmeal.common.exception.ErrorResponseCode;
 import com.pagoda.matchmeal.common.response.CommonResponse;
 import org.springframework.http.HttpStatus;
 
@@ -67,6 +68,28 @@ public class ApiResponseUtil {
      */
     public static <T> CommonResponse<T> created(String message, T data) {
         return new CommonResponse<>(CreatedStatus, message, data);
+    }
+    // ------------------ 실패 코드 ---------------------------------------
+
+    /**
+     *
+     * @param errorCode HTTP 상태 코드
+     * @return          정의된 상태 코드와 메시지가 담긴 CommonResponse
+     * @param <T>       데이터의 타입
+     */
+    public static <T>CommonResponse<T> failure(ErrorResponseCode errorCode) {
+        return new CommonResponse<>(errorCode.getStatus().value(), errorCode.getMessage());
+    }
+
+    /**
+     *
+     * @param statusCode    HTTP 상태 코드
+     * @param message       에러 상세 메세지
+     * @return              직접 지정한 코드와 메시지가 담긴 CommonResponse
+     * @param <T>           데이터의 타입
+     */
+    public static <T>CommonResponse<T> failure(Integer statusCode, String message) {
+        return new CommonResponse<>(statusCode, message);
     }
 
     // ------------------ 커스텀 코드 --------------------------------------
