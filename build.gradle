@@ -56,7 +56,7 @@ tasks.register('integrationTest', Test) {
     classpath = sourceSets.test.runtimeClasspath
 
     // IntegrationTest로 끝나는 것만 '포함'
-    includ '**/*IntegrationTest.class'
+    include '**/*IntegrationTest.class'
 
     // 단위 테스트 먼저 돌고, 통합테스크가 돌도록 순서 지정
     shouldRunAfter tasks.named('test')
