@@ -8,10 +8,20 @@ import java.time.LocalDateTime;
 @Getter
 public class Diet {
 
-    private long id;
-    private LocalDateTime date;     // 섭취 날짜
-    private MealType mealType;      // 식사 구분
-    private String memo;            // 메모
-    private LocalDateTime createdAt;// 생성일자
-    private LocalDateTime updatedAt;// 수정일자
+    private Long dietId;        // PK
+    private Long userId;        // 사용자 ID
+
+    private LocalDateTime date; // 식사 날짜
+
+    private MealType mealType;  // 아침/점심/저녁/간식
+
+    // ★ 통계용 합계 필드 (DB에 저장해두면 조회 성능 10배 향상)
+    private double totalCalories;
+    private double totalCarbo;    // 총 탄수
+    private double totalProtein;  // 총 단백
+    private double totalFat;      // 총 지방
+
+    private String memo;        // 식사 메모 (사진 등은 추후 확장)
+
+    private List<DietDetail> dietDetails; // 포함된 음식들
 }
