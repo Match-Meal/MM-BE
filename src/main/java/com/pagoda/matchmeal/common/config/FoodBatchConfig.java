@@ -1,6 +1,6 @@
 package com.pagoda.matchmeal.common.config;
 
-import com.pagoda.matchmeal.model.Entity.Food;
+import com.pagoda.matchmeal.model.entity.Food;
 import com.pagoda.matchmeal.model.dto.FoodCsvDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

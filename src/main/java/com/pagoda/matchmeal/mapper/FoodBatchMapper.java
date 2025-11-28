@@ -1,6 +1,6 @@
 package com.pagoda.matchmeal.mapper;
 
-import com.pagoda.matchmeal.model.Entity.Food;
+import com.pagoda.matchmeal.model.entity.Food;
 
 import java.util.List;
 

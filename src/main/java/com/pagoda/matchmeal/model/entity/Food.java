@@ -1,4 +1,4 @@
-package com.pagoda.matchmeal.model.Entity;
+package com.pagoda.matchmeal.model.entity;
 
 import lombok.Builder;
 import lombok.Getter;
