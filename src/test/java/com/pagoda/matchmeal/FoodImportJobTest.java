@@ -1,8 +1,7 @@
 package com.pagoda.matchmeal;
 
 import com.pagoda.matchmeal.mapper.FoodBatchMapper;
-import com.pagoda.matchmeal.model.Entity.Food;
-import org.junit.jupiter.api.Assertions;
+import com.pagoda.matchmeal.model.entity.Food;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.batch.core.Job;
@@ -11,7 +10,6 @@ import org.springframework.batch.core.JobParameters;
 import org.springframework.batch.core.JobParametersBuilder;
 import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
