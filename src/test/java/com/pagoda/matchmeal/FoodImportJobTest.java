@@ -18,8 +18,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest(
-        webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT,
-        properties = "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration") // 스프링 컨텍스트 전체 로드 (통합 테스트)
+        webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT) // 스프링 컨텍스트 전체 로드 (통합 테스트)
 @ActiveProfiles("test") // application-test.yml 설정을 사용
 class FoodImportJobTest {
 
