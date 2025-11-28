@@ -1,0 +1,53 @@
+name: PR Review Notification
+
+# PR이 '생성(opened)'되거나, '다시 열림(reopened)',
+# 혹은 초안에서 '리뷰 가능(ready_for_review)' 상태로 바뀌었을 때만 실행
+on:
+  pull_request:
+    types: [opened, reopened, ready_for_review]
+    branches: [ "develop", "main" ] # 두 브랜치 모두 감시
+
+jobs:
+  notify-mattermost:
+    # Draft(초안) 상태인 PR은 알림을 보내지 않음
+    if: github.event.pull_request.draft == false
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Send Review Request to Mattermost
+        run: |
+          curl -i -X POST \
+          -H 'Content-Type: application/json' \
+          -d '{
+            "username": "Pagoda-Bot",
+            "icon_url": "https://cdn-icons-png.flaticon.com/512/1055/1055687.png",
+            "text": "#### :loudspeaker: 리뷰 요청이 도착했습니다!",
+            "attachments": [
+              {
+                "color": "#2f81f7", 
+                "pretext": "새로운 PR이 **${{ github.base_ref }}** 브랜치로 요청되었습니다.",
+                "title": "${{ github.event.pull_request.title }} (#${{ github.event.number }})",
+                "title_link": "${{ github.event.pull_request.html_url }}",
+                "fields": [
+                  {
+                    "short": true,
+                    "title": "작성자",
+                    "value": "${{ github.event.pull_request.user.login }}"
+                  },
+                  {
+                    "short": true,
+                    "title": "타겟 브랜치",
+                    "value": "`${{ github.event.pull_request.base.ref }}`"
+                  },
+                  {
+                    "short": false,
+                    "title": "변경 사항 요약",
+                    "value": "클릭하여 GitHub에서 상세 내용을 확인해주세요."
+                  }
+                ],
+                "footer": "GitHub Actions",
+                "footer_icon": "https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
+              }
+            ]
+          }' \
+          ${{ secrets.MATTERMOST_WEBHOOK_URL }}
