@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pagoda.matchmeal.mapper.FoodBatchMapper">
+    <insert id="insertFood" parameterType="com.pagoda.matchmeal.model.entity.Food">
+        INSERT INTO foods (food_code,
+                           food_name,
+                           category,
+                           serving_size,
+                           unit,
+                           calories,
+                           protein,
+                           fat,
+                           carbohydrate,
+                           created_at)
+        VALUES (#{foodCode},
+                #{foodName},
+                #{category},
+                #{servingSize},
+                #{unit},
+                #{calories},
+                #{protein},
+                #{fat},
+                #{carbohydrate},
+                NOW()) ON DUPLICATE KEY
+        UPDATE
+            food_name =
+        VALUES (food_name), category =
+        VALUES (category), serving_size =
+        VALUES (serving_size), calories =
+        VALUES (calories), unit =
+        VALUES (unit), protein =
+        VALUES (protein), fat =
+        VALUES (fat), carbohydrate =
+        VALUES (carbohydrate), updated_at = NOW()
+    </insert>
+
+    <select id="countAll" resultType="int">
+        SELECT COUNT(*) FROM foods
+    </select>
+
+    <select id="findAll" resultType="com.pagoda.matchmeal.model.entity.Food">
+        SELECT * FROM foods LIMIT 50  </select>
+</mapper>
