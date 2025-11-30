@@ -41,4 +41,10 @@ public class UserServiceImpl implements UserService {
                     return newUser;
                 });
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public User findBySocialId(String socialId) {
+        return userMapper.findBySocialId(socialId).orElse(null);
+    }
 }
