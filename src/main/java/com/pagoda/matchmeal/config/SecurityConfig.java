@@ -24,6 +24,8 @@ public class SecurityConfig {
                 // CSRF, HTTP Basic 비활성화
                 .csrf(csrf -> csrf.disable())
                 .httpBasic(basic -> basic.disable())
+                .headers(headers -> headers.frameOptions(frame -> frame.disable()))
+
                 // 세션 사용 x
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 
