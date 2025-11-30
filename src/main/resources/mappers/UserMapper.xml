@@ -27,7 +27,7 @@
     </select>
 
     <update id="update">
-        UPDATE users
+        UPDATE user
         SET user_name = #{userName}, updated_at = NOW()
         WHERE social_id = #{socialId}
     </update>
