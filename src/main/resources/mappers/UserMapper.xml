@@ -15,7 +15,7 @@
     </resultMap>
 
     <insert id="save" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO user (
+        INSERT INTO users (
             email, platform, social_id, user_name, role, status, created_at
         ) VALUES (
              #{email}, #{platform}, #{socialId}, #{userName}, #{role}, #{status}, NOW()
@@ -23,11 +23,11 @@
     </insert>
 
     <select id="findBySocialId" resultMap="UserResultMap">
-        SELECT * FROM user WHERE social_id = #{socialId}
+        SELECT * FROM users WHERE social_id = #{socialId}
     </select>
 
     <update id="update">
-        UPDATE user
+        UPDATE users
         SET user_name = #{userName}, updated_at = NOW()
         WHERE social_id = #{socialId}
     </update>

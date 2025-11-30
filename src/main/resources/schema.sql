@@ -19,9 +19,9 @@ CREATE TABLE IF NOT EXISTS foods (
        UNIQUE INDEX idx_food_code (food_code)  -- ★ 핵심: 코드로 조회할 때 빠르게!
 );
 
-DROP TABLE IF EXISTS user;
+DROP TABLE IF EXISTS users;
 
-CREATE TABLE user (
+CREATE TABLE users (
                        user_id       BIGINT AUTO_INCREMENT PRIMARY KEY,
                        email         VARCHAR(100) NOT NULL,
                        platform      VARCHAR(50),
