@@ -4,6 +4,7 @@ import com.pagoda.matchmeal.model.enums.MealType;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 public class Diet {
