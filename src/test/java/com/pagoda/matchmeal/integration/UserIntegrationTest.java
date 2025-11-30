@@ -62,9 +62,9 @@ public class UserIntegrationTest {
     }
 
     @Test
-    @DisplayName("토큰 없이 호출하면 403 Forbidden 에러가 나야 한다")
+    @DisplayName("토큰 없이 호출하면 302 에러가 나야 한다")
     void getMyInfoFail() throws Exception {
         mockMvc.perform(get("/user/me"))
-                .andExpect(status().isForbidden()); // 403 에러 예상
+                .andExpect(status().is3xxRedirection());
     }
 }

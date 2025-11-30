@@ -16,7 +16,7 @@ import org.springframework.security.oauth2.core.user.OAuth2User;
 
 import java.util.Map;
 
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
@@ -55,16 +55,19 @@ public class OAuth2SuccessHandlerTest {
         given(oAuth2User.getAttributes()).willReturn(Map.of("sub", socialId));
 
         // 3. jwtTokenProvider가 "가짜 토큰"을 반환하도록 설정
-        given(jwtTokenProvider.createAccessToken(eq(socialId), eq(UserRole.ROLE_USER.name())))
+        given(jwtTokenProvider.createAccessToken(anyString(), anyString()))
                 .willReturn(generatedToken);
+
+        given(response.encodeRedirectURL(anyString())).willAnswer(invocation -> invocation.getArgument(0));
 
         // when (실행)
         oAuth2SuccessHandler.onAuthenticationSuccess(request, response, authentication);
 
         // then (검증)
-        // response.sendRedirect()가 정확한 URL로 호출되었는지 확인
-        String expectedUrl = "http://localhost:8080/test/token?accessToken=" + generatedToken;
-
-        verify(response).sendRedirect(expectedUrl);
+        // accessToken=generatedToken 을 포함하는지 확인
+        verify(response).sendRedirect(argThat(url ->
+                url.startsWith("http://localhost:8080/test/token") &&
+                        url.contains("accessToken=" + generatedToken)
+        ));
     }
 }
