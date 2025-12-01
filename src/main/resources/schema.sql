@@ -2,22 +2,26 @@
 -- 현재는 테이블 생성 쿼리가 없어서 주석만 남겨둡니다.
 
 ------------- 음식 DB 테스트 스키마 -----------------------------
-CREATE TABLE IF NOT EXISTS foods (
-       food_id      BIGINT AUTO_INCREMENT PRIMARY KEY,  -- 내부 관리용 PK (고속)
-       food_code    VARCHAR(50) NOT NULL,               -- 비즈니스 식별자
-       food_name    VARCHAR(255) NOT NULL,
-       category     VARCHAR(100),
-       serving_size DOUBLE,
-       unit         VARCHAR(10) DEFAULT 'g',
-       calories     DOUBLE,
-       protein      DOUBLE,
-       fat          DOUBLE,
-       carbohydrate DOUBLE,
-       created_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
-       updated_at   DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+DROP TABLE IF EXISTS foods;
 
-       UNIQUE INDEX idx_food_code (food_code)  -- ★ 핵심: 코드로 조회할 때 빠르게!
+CREATE TABLE foods (
+                       food_id      BIGINT AUTO_INCREMENT PRIMARY KEY,
+                       user_id      BIGINT,
+                       food_code    VARCHAR(50) NOT NULL,
+                       food_name    VARCHAR(255) NOT NULL,
+                       category     VARCHAR(100),
+                       serving_size DOUBLE,
+                       unit         VARCHAR(10) DEFAULT 'g',
+                       calories     DOUBLE,
+                       protein      DOUBLE,
+                       fat          DOUBLE,
+                       carbohydrate DOUBLE,
+                       created_at   TIMESTAMP DEFAULT NOW(),
+                       updated_at   TIMESTAMP DEFAULT NOW() -- ON UPDATE CURRENT_TIMESTAMP 삭제
 );
+
+-- 인덱스는 테이블 생성 후 따로 만드는 것이 H2에서 가장 안전합니다.
+CREATE UNIQUE INDEX idx_food_code ON foods(food_code);
 
 DROP TABLE IF EXISTS users;
 
