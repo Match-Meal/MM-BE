@@ -108,6 +108,7 @@ public class FoodBatchConfig {
 
             // Builder 패턴을 사용하여 Food 엔티티 생성
             return Food.builder()
+                    .userId(null)
                     .foodCode(item.getFoodCode())
                     .foodName(item.getFoodName().replace("_", " ")) // foodName의 언더바(_) 공백 치환
                     .category(item.getCategory())
