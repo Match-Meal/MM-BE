@@ -29,7 +29,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         String accessToken = jwtTokenProvider.createAccessToken(socialId, UserRole.ROLE_USER.name());
 
         // redirect
-        String targetUrl = UriComponentsBuilder.fromUriString("http://localhost:8080/test/token")
+        String targetUrl = UriComponentsBuilder.fromUriString("http://localhost:5173/oauth/callback")
                 .queryParam("accessToken", accessToken)
                 .build().toUriString();
 
