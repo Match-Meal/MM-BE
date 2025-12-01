@@ -17,12 +17,10 @@ public class Food extends BaseEntity {
     private String foodCode;
     private String foodName;
     private String category;
-    private double servingSize;
+    private Double servingSize;
     private String unit;
-    private double calories;
-    private double carbohydrate;
-    private double protein;
-    private double fat;
-    private LocalDateTime createdAt; // 데이터 생성일시
-    private LocalDateTime updatedAt; // 데이터 수정일시
+    private Double calories;
+    private Double carbohydrate;
+    private Double protein;
+    private Double fat;
 }
