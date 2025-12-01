@@ -66,7 +66,7 @@ public class OAuth2SuccessHandlerTest {
         // then (검증)
         // accessToken=generatedToken 을 포함하는지 확인
         verify(response).sendRedirect(argThat(url ->
-                url.startsWith("http://localhost:8080/test/token") &&
+                url.startsWith("http://localhost:5173/oauth/callback") &&
                         url.contains("accessToken=" + generatedToken)
         ));
     }
