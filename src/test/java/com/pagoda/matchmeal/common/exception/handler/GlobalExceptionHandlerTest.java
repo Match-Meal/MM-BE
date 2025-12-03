@@ -21,6 +21,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -41,16 +42,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class GlobalExceptionHandlerTest {
 
     // SecurityConfig가 필요로 하는 빈들을 껍데기(Mock)로 등록
-    @MockBean
+    @MockitoBean
     private CustomOAuth2UserService customOAuth2UserService;
 
-    @MockBean
+    @MockitoBean
     private OAuth2SuccessHandler oAuth2SuccessHandler;
 
-    @MockBean
+    @MockitoBean
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
-    @MockBean
+    @MockitoBean
     private JwtTokenProvider jwtTokenProvider; // 필터 내부에서 쓰일 수 있음
 
     @Autowired

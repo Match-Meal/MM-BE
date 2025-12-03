@@ -1,12 +1,15 @@
 package com.pagoda.matchmeal.model.entity;
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 import java.time.LocalDateTime;
 
 @Getter
 @Setter
+@SuperBuilder
+@NoArgsConstructor
+@AllArgsConstructor
 public class BaseEntity {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;

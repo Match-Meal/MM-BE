@@ -65,7 +65,7 @@ public class JwtTokenProvider {
         return UserDto.builder()
                 .socialId(claims.getSubject())
                 .id(claims.get("id", Long.class))
-                .userName(claims.get("user", String.class))
+                .userName(claims.get("userName", String.class))
                 .role(claims.get("role", String.class))
                 .createdAt(claims.get("createdAt", String.class))
                 .build();
