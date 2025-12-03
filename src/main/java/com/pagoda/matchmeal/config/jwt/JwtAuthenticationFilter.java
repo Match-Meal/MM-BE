@@ -1,11 +1,13 @@
 package com.pagoda.matchmeal.config.jwt;
 
+import com.pagoda.matchmeal.model.dto.UserDto;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
@@ -29,11 +31,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         // validationToken으로 토큰 유효성 검사
         if (StringUtils.hasText(token) && jwtTokenProvider.validateToken(token)) {
             // 토큰에서 socialId 가져오기
-            String socialId = jwtTokenProvider.getSocialId(token);
+            UserDto userDto = jwtTokenProvider.getUserDto(token);
 
             // SecurityContext에 인증 정보 저장
             UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(socialId, null, Collections.emptyList());
+                    new UsernamePasswordAuthenticationToken(
+                            userDto,
+                            null,
+                            Collections.singleton(new SimpleGrantedAuthority(userDto.getRole()))
+                    );
 
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
             SecurityContextHolder.getContext().setAuthentication(authentication);
