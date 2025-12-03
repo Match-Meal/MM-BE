@@ -1,5 +1,6 @@
 package com.pagoda.matchmeal.controller;
 
+import com.pagoda.matchmeal.model.dto.UserDto;
 import com.pagoda.matchmeal.model.entity.User;
 import com.pagoda.matchmeal.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -18,28 +19,20 @@ public class UserController {
 
     /**
      * 내 정보 조회
-     * @param socialId
-     * @return
+     * @param userDto
+     * @return UserDto
      */
     @GetMapping("/me")
-    public ResponseEntity<User> getMyInfo(@AuthenticationPrincipal String socialId) {
+    public ResponseEntity<UserDto> getMyInfo(@AuthenticationPrincipal UserDto userDto) {
         // @AuthenticationPrincipal
-        // JwtAuthenticationFilter에서 SecurityContext에 넣어둔
-        // UsernamePasswordAuthenticationToken의 첫 번째 인자(Principal)를 가져옴
-        // socialId을 가져움
+        // JwtAuthenticationFilter에서 토큰을 파싱하여 만든 UserDto 객체가 주입
+        // DB 조회 없이 메모리 상의 객체를 바로 반환
 
-        if (socialId == null) {
+        if (userDto == null) {
             return ResponseEntity.status(401).build(); // 인증 실패
         }
 
-        // Service를 통해 DB에서 유저 정보 조회
-        User user = userService.findBySocialId(socialId);
-
-        if (user != null) {
-            return ResponseEntity.ok(user);
-        } else {
-            return ResponseEntity.notFound().build();
-        }
+        return ResponseEntity.ok(userDto);
     }
 
 }
