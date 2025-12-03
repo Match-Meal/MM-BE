@@ -2,6 +2,7 @@ package com.pagoda.matchmeal.integration;
 
 import com.pagoda.matchmeal.config.jwt.JwtTokenProvider;
 import com.pagoda.matchmeal.mapper.UserMapper;
+import com.pagoda.matchmeal.model.dto.UserDto;
 import com.pagoda.matchmeal.model.entity.User;
 import com.pagoda.matchmeal.model.enums.UserRole;
 import com.pagoda.matchmeal.model.enums.UserStatus;
@@ -13,6 +14,8 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -33,32 +36,50 @@ public class UserIntegrationTest {
     @Autowired
     private JwtTokenProvider jwtTokenProvider;
 
+    private User savedUser;
+
     @BeforeEach
     void setUp() {
-        // 테스트 시작 전 DB에 데이터 1개 저장
-        User user = User.builder()
+        // [중요] ID는 직접 넣지 않고(null), DB가 Auto Increment로 생성하게 둡니다.
+        savedUser = User.builder()
                 .socialId("google_12345")
                 .email("test@test.com")
                 .userName("테스트유저")
                 .role(UserRole.ROLE_USER)
                 .status(UserStatus.ACTIVE)
+                .createdAt(LocalDateTime.now())
                 .build();
-        userMapper.save(user);
+
+        // save가 실행되면 MyBatis가 생성된 ID를 savedUser 객체에 채워줍니다. (useGeneratedKeys 덕분)
+        userMapper.save(savedUser);
     }
 
     @Test
     @DisplayName("유효한 토큰으로 내 정보 조회 시 성공해야 한다")
     void getMyInfoSuccess() throws Exception {
-        // 1. 토큰 생성 (socialId가 DB에 있는 것과 일치해야 함)
-        String token = jwtTokenProvider.createAccessToken("google_12345", "ROLE_USER");
+        // given
+        UserDto userDto = UserDto.builder()
+                .id(savedUser.getId()) // DB에서 생성된 실제 ID 사용 (1, 2, 3...)
+                .socialId(savedUser.getSocialId())
+                .userName(savedUser.getUserName())
+                .role(savedUser.getRole().name())
+                .createdAt(savedUser.getCreatedAt().toString())
+                .build();
 
-        // 2. API 호출
+        String token = jwtTokenProvider.createAccessToken(userDto);
+
+        // when & then
         mockMvc.perform(get("/user/me")
-                        .header("Authorization", "Bearer " + token)) // 헤더에 토큰 주입
-                .andDo(print()) // 콘솔에 결과 출력
-                .andExpect(status().isOk()) // 200 OK 인가?
-                .andExpect(jsonPath("$.userName").value("테스트유저")) // 이름이 맞는가?
-                .andExpect(jsonPath("$.email").value("test@test.com"));
+                        .header("Authorization", "Bearer " + token))
+                .andDo(print())
+                .andExpect(status().isOk())
+                // ★ [수정] 1L 이라고 박지 말고, 실제 저장된 ID와 같은지 비교합니다.
+                // .intValue()를 붙여주는 이유는 JSON 응답이 Integer로 올 수 있기 때문입니다.
+                .andExpect(jsonPath("$.id").value(savedUser.getId().intValue()))
+                .andExpect(jsonPath("$.socialId").value("google_12345"))
+                .andExpect(jsonPath("$.userName").value("테스트유저"))
+                .andExpect(jsonPath("$.role").value("ROLE_USER"))
+                .andExpect(jsonPath("$.createdAt").exists());
     }
 
     @Test

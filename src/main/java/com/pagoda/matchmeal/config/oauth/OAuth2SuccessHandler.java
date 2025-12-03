@@ -1,6 +1,9 @@
 package com.pagoda.matchmeal.config.oauth;
 
 import com.pagoda.matchmeal.config.jwt.JwtTokenProvider;
+import com.pagoda.matchmeal.mapper.UserMapper;
+import com.pagoda.matchmeal.model.dto.UserDto;
+import com.pagoda.matchmeal.model.entity.User;
 import com.pagoda.matchmeal.model.enums.UserRole;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -19,14 +22,27 @@ import java.io.IOException;
 public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
     private final JwtTokenProvider jwtTokenProvider;
+    private final UserMapper userMapper;
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
         OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
         String socialId = (String) oAuth2User.getAttributes().get("sub");
 
+        // 1. DB에서 최신 유저 정보 조회
+        User user = userMapper.findBySocialId(socialId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        // 2. DTO 변환
+        UserDto userDto = UserDto.builder()
+                .socialId(user.getSocialId())
+                .userName(user.getUserName())
+                .role(user.getRole().name())
+                .createdAt(user.getCreatedAt() != null ? user.getCreatedAt().toString() : null)
+                .build();
+
         // 토큰 생성 (socialId와 Role)
-        String accessToken = jwtTokenProvider.createAccessToken(socialId, UserRole.ROLE_USER.name());
+        String accessToken = jwtTokenProvider.createAccessToken(userDto);
 
         // redirect
         String targetUrl = UriComponentsBuilder.fromUriString("http://localhost:5173/oauth/callback")
