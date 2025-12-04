@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pagoda.matchmeal.mapper.FoodMapper">
+    <insert id="saveFood" parameterType="com.pagoda.matchmeal.model.entity.Food"
+            useGeneratedKeys="true" keyProperty="foodId">
+        INSERT INTO foods (user_id,
+                           food_code,
+                           food_name,
+                           category,
+                           serving_size,
+                           unit,
+                           calories,
+                           carbohydrate,
+                           protein,
+                           fat,
+                           created_at,
+                           updated_at)
+        VALUES (#{userId},
+                #{foodCode},
+                #{foodName},
+                #{category},
+                #{servingSize},
+                #{unit},
+                #{calories},
+                #{carbohydrate},
+                #{protein},
+                #{fat},
+                NOW(),
+                NOW())
+    </insert>
+
+    <sql id="searchConditions">
+        <where>
+            <choose>
+                <when test="userOnly == true">
+                    AND f.user_id = #{userId}
+                </when>
+                <otherwise>
+                    AND (f.user_id IS NULL OR f.user_id = #{userId})
+                </otherwise>
+            </choose>
+
+            <if test="keyword != null and keyword != ''">
+                AND f.food_name LIKE CONCAT('%', #{keyword}, '%')
+            </if>
+
+            <if test="category != null and category != ''">
+                AND f.category = #{category}
+            </if>
+        </where>
+    </sql>
+
+    <select id="findFoodList" resultType="com.pagoda.matchmeal.model.dto.response.FoodListResponseDto">
+        SELECT f.food_id AS foodId,
+        f.food_name AS foodName,
+        f.category AS category,
+        f.serving_size AS servingSize,
+        f.unit AS unit,
+        f.calories AS calories
+        FROM foods f
+
+        <include refid="searchConditions"/>
+
+        ORDER BY f.created_at DESC
+        LIMIT #{limit}
+        OFFSET #{offset}
+    </select>
+
+    <select id="countFoodList" resultType="int">
+        SELECT COUNT(*)
+        FROM foods f
+        <include refid="searchConditions"/>
+    </select>
+
+    <select id="findFoodDetail" resultType="com.pagoda.matchmeal.model.dto.response.FoodDetailResponseDto">
+        SELECT food_id      AS foodId,
+               food_code    AS foodCode,
+               food_name    AS foodName,
+               category     AS category,
+               serving_size AS servingSize,
+               unit         AS unit,
+               calories     AS calories,
+               carbohydrate AS carbohydrate,
+               protein      AS protein,
+               fat          AS fat,
+               user_id      AS userId,
+               created_at   AS createdAt,
+               updated_at   AS updatedAt
+        FROM foods
+        WHERE food_id = #{foodId}
+    </select>
+
+    <update id="updateFood" parameterType="com.pagoda.matchmeal.model.entity.Food">
+        UPDATE foods
+        <set>
+            <if test="foodName != null">food_name = #{foodName},</if>
+            <if test="category != null">category = #{category},</if>
+            <if test="servingSize != null">serving_size = #{servingSize},</if>
+            <if test="unit != null">unit = #{unit},</if>
+            <if test="calories != null">calories = #{calories},</if>
+            <if test="carbohydrate != null">carbohydrate = #{carbohydrate},</if>
+            <if test="protein != null">protein = #{protein},</if>
+            <if test="fat != null">fat = #{fat},</if>
+            updated_at = NOW()
+        </set>
+        WHERE food_id = #{foodId}
+    </update>
+
+    <delete id="deleteFood" parameterType="long">
+        DELETE
+        FROM foods
+        WHERE food_id = #{foodId}
+    </delete>
+</mapper>

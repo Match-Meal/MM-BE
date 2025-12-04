@@ -1,27 +1,28 @@
 package com.pagoda.matchmeal.model.entity;
 
-import lombok.Builder;
-import lombok.Getter;
-
-import java.time.LocalDateTime;
+import lombok.*;
+import lombok.experimental.SuperBuilder;
 
 /**
  * 음식(Food) 도메인 엔티티
  * - 데이터베이스의 'foods' 테이블과 매핑됩니다.
  */
 @Getter
-@Builder
-public class Food {
-    private long foodId;
+@Setter
+@SuperBuilder
+@ToString
+@NoArgsConstructor
+@AllArgsConstructor
+public class Food extends BaseEntity {
+    private Long foodId;
+    private Long userId;
     private String foodCode;
     private String foodName;
     private String category;
-    private double servingSize;
+    private Double servingSize;
     private String unit;
-    private double calories;
-    private double carbohydrate;
-    private double protein;
-    private double fat;
-    private LocalDateTime createdAt; // 데이터 생성일시
-    private LocalDateTime updatedAt; // 데이터 수정일시
+    private Double calories;
+    private Double carbohydrate;
+    private Double protein;
+    private Double fat;
 }

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pagoda.matchmeal.mapper.UserMapper">
+    <resultMap id="UserResultMap" type="User">
+        <id property="id" column="user_id"/>
+        <result property="email" column="email"/>
+        <result property="platform" column="platform"/>
+        <result property="socialId" column="social_id"/>
+        <result property="userName" column="user_name"/>
+        <result property="role" column="role"/>
+        <result property="status" column="status"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <insert id="save" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO users (
+            email, platform, social_id, user_name, role, status, created_at
+        ) VALUES (
+             #{email}, #{platform}, #{socialId}, #{userName}, #{role}, #{status}, NOW()
+         )
+    </insert>
+
+    <select id="findBySocialId" resultMap="UserResultMap">
+        SELECT * FROM users WHERE social_id = #{socialId}
+    </select>
+
+    <update id="update">
+        UPDATE users
+        SET user_name = #{userName}, updated_at = NOW()
+        WHERE social_id = #{socialId}
+    </update>
+
+</mapper>

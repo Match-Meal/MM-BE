@@ -4,10 +4,7 @@ import com.pagoda.matchmeal.mapper.FoodBatchMapper;
 import com.pagoda.matchmeal.model.entity.Food;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.batch.core.Job;
-import org.springframework.batch.core.JobExecution;
-import org.springframework.batch.core.JobParameters;
-import org.springframework.batch.core.JobParametersBuilder;
+import org.springframework.batch.core.*;
 import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -43,6 +40,14 @@ class FoodImportJobTest {
         // when
         // 배치 잡 실행!
         JobExecution jobExecution = jobLauncher.run(foodJob, jobParameters);
+
+        // ★ [디버깅 코드 추가] 배치가 실패했다면 에러 내용을 콘솔에 출력!
+        if (jobExecution.getStatus() != BatchStatus.COMPLETED) {
+            System.err.println("🚨 배치 실패! 원인 분석 🚨");
+            for (Throwable t : jobExecution.getAllFailureExceptions()) {
+                t.printStackTrace(); // 여기에 "Table not found" 또는 "File not found"가 뜹니다.
+            }
+        }
 
         // then
         // 1. 배치가 성공적으로 끝났는지 확인 (COMPLETED)
