@@ -46,6 +46,7 @@ CREATE TABLE users (
 
 
 ------------- 식단 테스트 스키마 -----------------------------
+DROP TABLE IF EXISTS diet_details;
 DROP TABLE IF EXISTS diet_records;
 
 CREATE TABLE diet_records (
@@ -68,9 +69,6 @@ CREATE TABLE diet_records (
 );
 
 CREATE INDEX idx_diet_user_date ON diet_records(user_id, eat_date);
-
-
-DROP TABLE IF EXISTS diet_details;
 
 CREATE TABLE diet_details (
                               diet_detail_id     BIGINT AUTO_INCREMENT PRIMARY KEY,
