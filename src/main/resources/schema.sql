@@ -1,6 +1,3 @@
--- H2 DB 초기화용 스키마 파일입니다.
--- 현재는 테이블 생성 쿼리가 없어서 주석만 남겨둡니다.
-
 ------------- 음식 DB 테스트 스키마 -----------------------------
 DROP TABLE IF EXISTS foods;
 
@@ -16,12 +13,14 @@ CREATE TABLE foods (
                        protein      DOUBLE,
                        fat          DOUBLE,
                        carbohydrate DOUBLE,
-                       created_at   TIMESTAMP DEFAULT NOW(),
-                       updated_at   TIMESTAMP DEFAULT NOW() -- ON UPDATE CURRENT_TIMESTAMP 삭제
+                       created_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
+                       updated_at   DATETIME DEFAULT CURRENT_TIMESTAMP
+    -- ON UPDATE CURRENT_TIMESTAMP 삭제됨 (H2 호환성 위해)
 );
 
--- 인덱스는 테이블 생성 후 따로 만드는 것이 H2에서 가장 안전합니다.
+-- 인덱스는 테이블 밖에서 생성
 CREATE UNIQUE INDEX idx_food_code ON foods(food_code);
+
 
 DROP TABLE IF EXISTS users;
 
@@ -40,15 +39,18 @@ CREATE TABLE users (
                        status_message VARCHAR(255),
                        allergies     TEXT,
                        diseases      TEXT,
-                       created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                       updated_at    TIMESTAMP,
-                       deleted_at    TIMESTAMP
+                       created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
+                       updated_at    DATETIME,
+                       deleted_at    DATETIME
 );
+
 
 ------------- 식단 테스트 스키마 -----------------------------
 -- ==========================================
 -- 1. 식단 기록 (부모 테이블)
 -- ==========================================
+DROP TABLE IF EXISTS diet_records;
+
 CREATE TABLE diet_records (
                               diet_id            BIGINT AUTO_INCREMENT PRIMARY KEY,
                               user_id            BIGINT NOT NULL,
@@ -58,7 +60,8 @@ CREATE TABLE diet_records (
                               meal_type          VARCHAR(20) NOT NULL,
                               memo               TEXT,
 
-                              diet_img_url       VARCHAR(500) COMMENT '식단 사진 URL', -- ★ 추가됨
+    -- COMMENT 문법 제거 (테스트용이므로 불필요)
+                              diet_img_url       VARCHAR(500),
 
     -- 합계 컬럼
                               total_calories     DOUBLE DEFAULT 0,
@@ -67,12 +70,19 @@ CREATE TABLE diet_records (
                               total_fat          DOUBLE DEFAULT 0,
 
                               created_at         DATETIME DEFAULT CURRENT_TIMESTAMP,
-                              updated_at         DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-
-                              INDEX idx_diet_user_date (user_id, eat_date)
+                              updated_at         DATETIME DEFAULT CURRENT_TIMESTAMP
+    -- ON UPDATE CURRENT_TIMESTAMP 삭제됨 (여기가 에러 원인이었음!)
 );
 
+-- 인라인 인덱스 제거 -> 별도 생성 구문으로 변경
+CREATE INDEX idx_diet_user_date ON diet_records(user_id, eat_date);
+
+
+-- ==========================================
 -- 2. 식단 상세 (자식)
+-- ==========================================
+DROP TABLE IF EXISTS diet_details;
+
 CREATE TABLE diet_details (
                               diet_detail_id     BIGINT AUTO_INCREMENT PRIMARY KEY,
                               diet_id            BIGINT NOT NULL,
