@@ -10,8 +10,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.Map;
 import java.util.Optional;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.times;
@@ -36,9 +38,12 @@ public class UserServiceTest {
         given(userMapper.findBySocialId(socialId)).willReturn(Optional.empty());
 
         // when
-        userService.saveOrUpdate(socialId, email, "테스트유저", "google");
+        Map<String, Object> result = userService.processLoginOrRegister(socialId, email, "테스트유저", "google");
 
         // then
         verify(userMapper, times(1)).save(any(User.class));
+
+        assertThat(result.get("isNew")).isEqualTo(true);
+        assertThat(((User)result.get("user")).getSocialId()).isEqualTo(socialId);
     }
 }

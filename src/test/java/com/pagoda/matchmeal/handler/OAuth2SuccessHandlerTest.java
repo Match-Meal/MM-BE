@@ -65,10 +65,11 @@ public class OAuth2SuccessHandlerTest {
         // --- Given (상황 설정) ---
         String socialId = "google_12345";
         String generatedToken = "eyJhbGciOiJIUzI1NiJ9.testToken";
+        boolean isNewUser = true;
 
         // 1. Authentication에서 OAuth2User 추출 설정
         given(authentication.getPrincipal()).willReturn(oAuth2User);
-        given(oAuth2User.getAttributes()).willReturn(Map.of("sub", socialId));
+        given(oAuth2User.getAttributes()).willReturn(Map.of("sub", socialId, "isNew", isNewUser));
 
         // 2. DB 조회 Mocking (User -> DTO 변환을 위해 필수)
         // @SuperBuilder를 사용했으므로 부모 필드(createdAt)도 빌더로 설정 가능
@@ -89,9 +90,9 @@ public class OAuth2SuccessHandlerTest {
         given(jwtTokenProvider.createAccessToken(any(UserDto.class)))
                 .willReturn(generatedToken);
 
-        // 4. 리다이렉트 URL 생성 과정 Mocking (NPE 방지)
-        // request.getContextPath() 가 null을 반환하면 에러가 날 수 있음
-        given(request.getContextPath()).willReturn("");
+//        // 4. 리다이렉트 URL 생성 과정 Mocking (NPE 방지)
+//        // request.getContextPath() 가 null을 반환하면 에러가 날 수 있음
+//        given(request.getContextPath()).willReturn("");
 
         // response.encodeRedirectURL() 이 null을 반환하면 에러가 남 -> 들어온 URL 그대로 반환하게 설정
         given(response.encodeRedirectURL(anyString()))
@@ -110,7 +111,8 @@ public class OAuth2SuccessHandlerTest {
         // 3. 최종적으로 프론트엔드 URL로 리다이렉트 되는지 확인
         verify(response).sendRedirect(argThat(url ->
                 url.startsWith("http://localhost:5173/oauth/callback") &&
-                        url.contains("accessToken=" + generatedToken)
+                url.contains("accessToken=" + generatedToken) &&
+                url.contains("isNew=" + isNewUser)
         ));
     }
 }
