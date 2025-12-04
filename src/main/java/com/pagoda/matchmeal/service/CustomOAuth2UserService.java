@@ -12,6 +12,7 @@ import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 
 @Service
@@ -39,12 +40,18 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
         String name = (String) attributes.get("name");
 
         // 핵심 비즈니스 로직
-        User user = userService.saveOrUpdate(socialId, email, name, registrationId);
+        Map<String, Object> result = userService.processLoginOrRegister(socialId, email, name, registrationId);
+
+        User user = (User) result.get("user");
+        boolean isNew = (boolean) result.get("isNew");
+
+        Map<String, Object> newAttributes = new HashMap<>(attributes);
+        newAttributes.put("isNew", isNew);
 
         // 결과 반환
         return new DefaultOAuth2User(
                 Collections.singleton(new SimpleGrantedAuthority(user.getRole().name())),
-                        attributes,
+                        newAttributes,
                         userNameAttributeName
         );
 
