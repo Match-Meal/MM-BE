@@ -28,7 +28,7 @@ public class UserServiceImpl implements UserService {
                 .map(entity -> {
                     // 이미 존재하는 회원인 경우 -> 이름 업데이트
                     entity.setUserName(name);
-                    userMapper.update(entity);
+                    userMapper.updateUserName(entity);
                     return entity;
                 })
                 .orElseGet(() -> {
@@ -56,15 +56,15 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public void updateProfile(Long userId, UserProfileDto profileDto) {
         // 기존 유저 조회
-        User user = User.builder()
-                .id(userId)
-                .gender(profileDto.getGender())
-                .birthDate(profileDto.getBirthDate())
-                .heightCm(profileDto.getHeightCm())
-                .weightKg(profileDto.getWeightKg())
-                .build();
-
-        userMapper.update(user);
+//        User user = User.builder()
+//                .id(userId)
+//                .gender(profileDto.getGender())
+//                .birthDate(profileDto.getBirthDate())
+//                .heightCm(profileDto.getHeightCm())
+//                .weightKg(profileDto.getWeightKg())
+//                .build();
+//
+//        userMapper.updateUserName(user);
     }
 
 

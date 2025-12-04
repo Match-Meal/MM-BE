@@ -10,6 +10,7 @@ import lombok.*;
 public class UserDto {
     private long id;
     private String socialId;
+    private String email;
     private String userName;
     private String role;
     private String createdAt;

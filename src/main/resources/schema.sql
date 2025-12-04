@@ -31,7 +31,6 @@ CREATE TABLE users (
                        platform      VARCHAR(50),
                        social_id     VARCHAR(255),
                        user_name     VARCHAR(50),
-                       phone_number  VARCHAR(20),
                        gender        VARCHAR(10),
                        birth_date    DATE,
                        height_cm     DOUBLE,

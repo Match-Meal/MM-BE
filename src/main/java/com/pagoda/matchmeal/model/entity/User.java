@@ -26,6 +26,7 @@ public class User extends BaseEntity {
     private Double heightCm;
     private Double weightKg;
     private UserRole role;
+    private String statusMessage;
 
     // 질병과 알레르기 목록 (콤마 구분)
     private String allergies;

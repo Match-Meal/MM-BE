@@ -26,7 +26,7 @@
         SELECT * FROM users WHERE social_id = #{socialId}
     </select>
 
-    <update id="update">
+    <update id="updateUserName">
         UPDATE users
         SET user_name = #{userName}, updated_at = NOW()
         WHERE social_id = #{socialId}
