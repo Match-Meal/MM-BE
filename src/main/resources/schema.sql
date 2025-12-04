@@ -37,6 +37,9 @@ CREATE TABLE users (
                        weight_kg     DOUBLE,
                        role          VARCHAR(20),
                        status        VARCHAR(20),
+                       status_message VARCHAR(255),
+                       allergies     TEXT,
+                       diseases      TEXT,
                        created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                        updated_at    TIMESTAMP,
                        deleted_at    TIMESTAMP
