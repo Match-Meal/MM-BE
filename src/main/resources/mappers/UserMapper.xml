@@ -10,7 +10,12 @@
         <result property="userName" column="user_name"/>
         <result property="role" column="role"/>
         <result property="status" column="status"/>
-        <result property="createdAt" column="created_at"/>
+        <result property="gender" column="gender"/>
+        <result property="birthDate" column="birth_date"/>
+        <result property="heightCm" column="height_cm"/>
+        <result property="weightKg" column="weight_kg"/>
+        <result property="statusMessage" column="status_message"/>
+        <result property="allergies" column="allergies"/> <result property="diseases" column="diseases"/>   <result property="createdAt" column="created_at"/>
         <result property="updatedAt" column="updated_at"/>
     </resultMap>
 
@@ -26,10 +31,28 @@
         SELECT * FROM users WHERE social_id = #{socialId}
     </select>
 
-    <update id="update">
+    <select id="findById" resultMap="UserResultMap">
+        SELECT * FROM users WHERE user_id = #{id}
+    </select>
+
+    <update id="updateUserName">
         UPDATE users
         SET user_name = #{userName}, updated_at = NOW()
         WHERE social_id = #{socialId}
+    </update>
+
+    <update id="updateProfile" parameterType="User">
+        UPDATE users
+        SET
+            gender = #{gender},
+            birth_date = #{birthDate},
+            height_cm = #{heightCm},
+            weight_kg = #{weightKg},
+            status_message = #{statusMessage},
+            allergies = #{allergies},
+            diseases = #{diseases},
+            updated_at = NOW()
+        WHERE user_id = #{id}
     </update>
 
 </mapper>

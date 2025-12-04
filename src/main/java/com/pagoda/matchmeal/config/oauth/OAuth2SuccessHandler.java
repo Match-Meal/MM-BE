@@ -27,6 +27,9 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
         OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
+
+        // CustomOAuth2UserService에서 넘긴 isNew 값 추출
+        boolean isNew = Boolean.TRUE.equals(oAuth2User.getAttributes().get("isNew"));
         String socialId = (String) oAuth2User.getAttributes().get("sub");
 
         // 1. DB에서 최신 유저 정보 조회
@@ -35,6 +38,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
         // 2. DTO 변환
         UserDto userDto = UserDto.builder()
+                .id(user.getId())
                 .socialId(user.getSocialId())
                 .userName(user.getUserName())
                 .role(user.getRole().name())
@@ -47,6 +51,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         // redirect
         String targetUrl = UriComponentsBuilder.fromUriString("http://localhost:5173/oauth/callback")
                 .queryParam("accessToken", accessToken)
+                .queryParam("isNew", isNew)
                 .build().toUriString();
 
         getRedirectStrategy().sendRedirect(request, response, targetUrl);

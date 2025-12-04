@@ -21,12 +21,16 @@ public class User extends BaseEntity {
     private String email;
     private UserStatus status;
     private String userName;
-    private String phoneNumber;
     private Gender gender;
     private LocalDate birthDate;
     private Double heightCm;
     private Double weightKg;
     private UserRole role;
+    private String statusMessage;
+
+    // 질병과 알레르기 목록 (콤마 구분)
+    private String allergies;
+    private String diseases;
 
     private LocalDateTime deletedAt;
 
