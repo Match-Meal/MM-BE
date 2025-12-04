@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pagoda.matchmeal.mapper.DietMapper">
+    <resultMap id="DietResponseMap" type="com.pagoda.matchmeal.model.dto.response.DietResponseDto">
+        <id property="dietId" column="diet_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="eatDate" column="eat_date"/>
+        <result property="eatTime" column="eat_time"/>
+        <result property="mealType" column="meal_type"/>
+        <result property="memo" column="memo"/>
+        <result property="dietImgUrl" column="diet_img_url"/>
+        <result property="totalCalories" column="total_calories"/>
+        <result property="totalCarbohydrate" column="total_carbohydrate"/>
+        <result property="totalProtein" column="total_protein"/>
+        <result property="totalFat" column="total_fat"/>
+
+        <collection property="details"
+                    ofType="com.pagoda.matchmeal.model.dto.response.DietResponseDto$DietDetailResponseDto">
+            <id property="dietDetailId" column="diet_detail_id"/>
+            <result property="foodId" column="food_id"/>
+            <result property="foodName" column="food_name"/>
+            <result property="quantity" column="quantity"/>
+            <result property="unit" column="unit"/>
+            <result property="calories" column="d_calories"/>
+            <result property="carbohydrate" column="d_carbohydrate"/>
+            <result property="protein" column="d_protein"/>
+            <result property="fat" column="d_fat"/>
+        </collection>
+    </resultMap>
+
+    <insert id="insertDiet" parameterType="com.pagoda.matchmeal.model.entity.Diet"
+            useGeneratedKeys="true" keyProperty="dietId">
+        INSERT INTO diet_records (user_id, eat_date, eat_time, meal_type, memo, diet_img_url,
+                                  total_calories, total_carbohydrate, total_protein, total_fat)
+        VALUES (#{userId}, #{eatDate}, #{eatTime}, #{mealType}, #{memo}, #{dietImgUrl},
+                #{totalCalories}, #{totalCarbohydrate}, #{totalProtein}, #{totalFat})
+    </insert>
+
+    <insert id="insertDietDetails" parameterType="java.util.List">
+        INSERT INTO diet_details (
+        diet_id, food_id, food_name, quantity, unit,
+        calories, carbohydrate, protein, fat
+        ) VALUES
+        <foreach collection="list" item="item" separator=",">
+            (
+            #{item.dietId}, #{item.foodId}, #{item.foodName}, #{item.quantity}, #{item.unit},
+            #{item.calories}, #{item.carbohydrate}, #{item.protein}, #{item.fat}
+            )
+        </foreach>
+    </insert>
+
+    <select id="findAllByDate" resultMap="DietResponseMap">
+        SELECT d.*,
+               dd.diet_detail_id,
+               dd.food_id,
+               dd.food_name,
+               dd.quantity,
+               dd.unit,
+               dd.calories     AS d_calories,
+               dd.carbohydrate AS d_carbohydrate,
+               dd.protein      AS d_protein,
+               dd.fat          AS d_fat
+        FROM diet_records d
+                 LEFT JOIN diet_details dd ON d.diet_id = dd.diet_id
+        WHERE d.user_id = #{userId}
+          AND d.eat_date = #{eatDate}
+        ORDER BY d.eat_time ASC
+    </select>
+
+    <select id="findDietByDietId" resultMap="DietResponseMap">
+        SELECT d.*,
+               dd.diet_detail_id,
+               dd.food_id,
+               dd.food_name,
+               dd.quantity,
+               dd.unit,
+               dd.calories     AS d_calories,
+               dd.carbohydrate AS d_carbohydrate,
+               dd.protein      AS d_protein,
+               dd.fat          AS d_fat
+        FROM diet_records d
+                 LEFT JOIN diet_details dd ON d.diet_id = dd.diet_id
+        WHERE d.diet_id = #{dietId}
+    </select>
+
+    <update id="updateDiet" parameterType="com.pagoda.matchmeal.model.entity.Diet">
+        UPDATE diet_records
+        SET eat_time           = #{eatTime},
+            meal_type          = #{mealType},
+            memo               = #{memo},
+            diet_img_url       = #{dietImgUrl},
+            total_calories     = #{totalCalories},
+            total_carbohydrate = #{totalCarbohydrate},
+            total_protein      = #{totalProtein},
+            total_fat          = #{totalFat},
+            updated_at         = NOW()
+        WHERE diet_id = #{dietId}
+    </update>
+
+    <delete id="deleteDietDetailByDietId">
+        DELETE
+        FROM diet_details
+        WHERE diet_id = #{dietId}
+    </delete>
+
+    <delete id="deleteDietByDietId">
+        DELETE
+        FROM diet_records
+        WHERE diet_id = #{dietId}
+    </delete>
+</mapper>
