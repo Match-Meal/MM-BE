@@ -1,6 +1,9 @@
 package com.pagoda.matchmeal.service;
 
+import com.pagoda.matchmeal.model.dto.UserProfileDto;
 import com.pagoda.matchmeal.model.entity.User;
+
+import java.util.Map;
 
 public interface UserService {
 
@@ -9,4 +12,7 @@ public interface UserService {
 
     // socialId로 회원 조회
     User findBySocialId(String socialId);
+
+    // 프로필 업데이트
+    void updateProfile(Long userId, UserProfileDto profileDto);
 }

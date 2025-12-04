@@ -1,6 +1,7 @@
 package com.pagoda.matchmeal.service.impl;
 
 import com.pagoda.matchmeal.mapper.UserMapper;
+import com.pagoda.matchmeal.model.dto.UserProfileDto;
 import com.pagoda.matchmeal.model.entity.User;
 import com.pagoda.matchmeal.model.enums.UserRole;
 import com.pagoda.matchmeal.model.enums.UserStatus;
@@ -8,6 +9,9 @@ import com.pagoda.matchmeal.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -47,4 +51,21 @@ public class UserServiceImpl implements UserService {
     public User findBySocialId(String socialId) {
         return userMapper.findBySocialId(socialId).orElse(null);
     }
+
+    @Override
+    @Transactional
+    public void updateProfile(Long userId, UserProfileDto profileDto) {
+        // 기존 유저 조회
+        User user = User.builder()
+                .id(userId)
+                .gender(profileDto.getGender())
+                .birthDate(profileDto.getBirthDate())
+                .heightCm(profileDto.getHeightCm())
+                .weightKg(profileDto.getWeightKg())
+                .build();
+
+        userMapper.update(user);
+    }
+
+
 }
