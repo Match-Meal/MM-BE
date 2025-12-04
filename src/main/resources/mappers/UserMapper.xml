@@ -44,6 +44,7 @@
     <update id="updateProfile" parameterType="User">
         UPDATE users
         SET
+            user_name = #{userName},
             gender = #{gender},
             birth_date = #{birthDate},
             height_cm = #{heightCm},
