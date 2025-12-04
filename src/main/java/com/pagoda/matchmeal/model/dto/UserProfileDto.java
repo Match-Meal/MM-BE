@@ -10,6 +10,7 @@ import java.util.List;
 @Getter
 @Setter
 public class UserProfileDto {
+    private String userName;
     private Gender gender;
     private LocalDate birthDate;
     private Double heightCm;

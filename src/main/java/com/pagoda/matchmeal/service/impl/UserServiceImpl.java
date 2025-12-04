@@ -47,6 +47,32 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public Map<String, Object> processLoginOrRegister(String socialId, String email, String name, String platform) {
+        Map<String, Object> result = new HashMap<>();
+
+        User user = userMapper.findBySocialId(socialId).orElse(null);
+        boolean isNew = false;
+
+        if (user == null) {
+            // 신규 회원
+            isNew = true;
+            user = User.builder()
+                    .socialId(socialId)
+                    .email(email)
+                    .userName(name) // 최초 가입시 소셜 이름으로 기본값 설정
+                    .platform(platform)
+                    .role(UserRole.ROLE_USER)
+                    .status(UserStatus.ACTIVE)
+                    .build();
+            userMapper.save(user);
+        }
+        result.put("user", user);
+        result.put("isNew", isNew);
+
+        return result;
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public User findBySocialId(String socialId) {
         return userMapper.findBySocialId(socialId).orElse(null);
