@@ -1,16 +1,18 @@
 package com.pagoda.matchmeal.model.entity;
 
-import lombok.Getter;
-
-import java.time.LocalDateTime;
+import lombok.*;
 
 @Getter
+@Setter
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class DietDetail {
 
     private Long dietDetailId; // PK
     private Long dietId;       // FK (부모 식사 ID)
 
-    private long foodId;   // 음식 id (FK 역할)
+    private Long foodId;   // 음식 id (FK 역할)
     private String foodName;   // 음식 이름 (스냅샷: 원본 음식이름이 바뀌어도 기록은 유지)
 
     private double quantity;   // 섭취량 (사용자가 입력한 값)
