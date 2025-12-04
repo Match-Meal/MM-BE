@@ -35,6 +35,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
         // 2. DTO 변환
         UserDto userDto = UserDto.builder()
+                .id(user.getId())
                 .socialId(user.getSocialId())
                 .userName(user.getUserName())
                 .role(user.getRole().name())
