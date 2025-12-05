@@ -1,5 +1,7 @@
 package com.pagoda.matchmeal.service.impl;
 
+import com.pagoda.matchmeal.common.exception.CustomException;
+import com.pagoda.matchmeal.common.exception.ErrorResponseCode;
 import com.pagoda.matchmeal.mapper.UserMapper;
 import com.pagoda.matchmeal.model.dto.UserDto;
 import com.pagoda.matchmeal.model.dto.UserProfileDto;
@@ -82,7 +84,7 @@ public class UserServiceImpl implements UserService {
 
     public UserDto getUserProfile(Long targetUserId) {
         User targetUser = userMapper.findById(targetUserId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
+                .orElseThrow(() -> new CustomException(ErrorResponseCode.USER_NOT_FOUND));
 
         if (!targetUser.getIsPublic()) {
             return UserDto.builder()

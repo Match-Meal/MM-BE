@@ -1,5 +1,7 @@
 package com.pagoda.matchmeal.config.oauth;
 
+import com.pagoda.matchmeal.common.exception.CustomException;
+import com.pagoda.matchmeal.common.exception.ErrorResponseCode;
 import com.pagoda.matchmeal.config.jwt.JwtTokenProvider;
 import com.pagoda.matchmeal.mapper.UserMapper;
 import com.pagoda.matchmeal.model.dto.UserDto;
@@ -34,7 +36,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
         // 1. DB에서 최신 유저 정보 조회
         User user = userMapper.findBySocialId(socialId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new CustomException(ErrorResponseCode.USER_NOT_FOUND));
 
         // 2. DTO 변환
         UserDto userDto = UserDto.builder()
