@@ -40,6 +40,7 @@ public class UserServiceImpl implements UserService {
                     .platform(platform)
                     .role(UserRole.ROLE_USER)
                     .status(UserStatus.ACTIVE)
+                    .isPublic(true)
                     .build();
             userMapper.save(user);
         }
