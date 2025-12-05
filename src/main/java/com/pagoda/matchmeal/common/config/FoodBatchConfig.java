@@ -1,7 +1,7 @@
 package com.pagoda.matchmeal.common.config;
 
-import com.pagoda.matchmeal.model.entity.Food;
 import com.pagoda.matchmeal.model.dto.FoodCsvDto;
+import com.pagoda.matchmeal.model.entity.Food;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.ibatis.session.SqlSessionFactory;
@@ -14,11 +14,14 @@ import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.file.FlatFileItemReader;
+import org.springframework.batch.item.file.FlatFileParseException;
 import org.springframework.batch.item.file.builder.FlatFileItemReaderBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.transaction.PlatformTransactionManager;
+
+import java.util.UUID;
 
 /**
  * [음식 데이터 대량 등록 배치 설정]
@@ -30,14 +33,21 @@ import org.springframework.transaction.PlatformTransactionManager;
 @RequiredArgsConstructor
 public class FoodBatchConfig {
 
-    /** 배치의 상태(시작, 종료, 실패 등)를 저장하고 관리하는 저장소 */
+    /**
+     * 배치의 상태(시작, 종료, 실패 등)를 저장하고 관리하는 저장소
+     */
     private final JobRepository jobRepository;
-    /** 데이터베이스 트랜잭션 관리자 (Chunk 단위로 커밋/롤백 처리) */
+    /**
+     * 데이터베이스 트랜잭션 관리자 (Chunk 단위로 커밋/롤백 처리)
+     */
     private final PlatformTransactionManager transactionManager;
-    /** MyBatis와 DB를 연결해주는 핵심 객체 */
+    /**
+     * MyBatis와 DB를 연결해주는 핵심 객체
+     */
     private final SqlSessionFactory sqlSessionFactory;
 
     // --- 1. Job & Step ---
+
     /**
      * 배치 작업(Job)을 생성합니다.
      * - Job 이름: "foodJob"
@@ -46,7 +56,8 @@ public class FoodBatchConfig {
     @Bean
     public Job foodJob() {
         return new JobBuilder("foodJob", jobRepository)
-                .start(foodStep())
+                .start(foodStepA())
+                .next(foodStepB())
                 .build();
     }
 
@@ -56,62 +67,102 @@ public class FoodBatchConfig {
      * - <FoodCsvDto, Food>: 입력(CSV)은 DTO로 받고, 출력(DB)은 Entity로 나갑니다.
      */
     @Bean
-    public Step foodStep() {
-        return new StepBuilder("foodStep", jobRepository)
+    public Step foodStepA() {
+        return new StepBuilder("foodStepA", jobRepository)
                 // [Chunk 설정]
                 // 데이터를 1,000개씩 끊어서 처리합니다.
                 // 즉, 1000개를 읽고 가공한 뒤 한 번에 DB에 커밋(Insert)합니다. (성능 최적화 핵심)
-                .<FoodCsvDto, Food>chunk(1000, transactionManager) // 1000개씩 처리
-                .reader(foodReader()) // 1. 읽기
-                .processor(foodProcessor()) // 2. 가공
+                .<FoodCsvDto, Food>chunk(200, transactionManager) // 1000개씩 처리
+                .reader(foodReaderA()) // 1. 읽기
+                .processor(foodProcessorA()) // 2. 가공
                 .writer(foodWriter()) // 3. 쓰기
                 .build();
     }
 
+    @Bean
+    public Step foodStepB() {
+        return new StepBuilder("foodStepB", jobRepository)
+                // [Chunk 설정]
+                // 데이터를 1,000개씩 끊어서 처리합니다.
+                // 즉, 1000개를 읽고 가공한 뒤 한 번에 DB에 커밋(Insert)합니다. (성능 최적화 핵심)
+                .<FoodCsvDto, Food>chunk(1000, transactionManager) // 1000개씩 처리
+                .reader(foodReaderB()) // 1. 읽기
+                .processor(foodProcessorB()) // 2. 가공
+                .writer(foodWriter()) // 3. 쓰기
+                .faultTolerant() // "나 이제부터 관대해질 거야"
+                .skip(FlatFileParseException.class) // "파싱 에러는 봐줄게"
+                .skipLimit(100) // "하지만 100개 넘게 에러 나면 그땐 멈춰"
+                .build();
+    }
+
     // --- 2. Reader (CSV 읽기) ---
+
     /**
      * CSV 파일을 한 줄씩 읽어와서 FoodCsvDto 객체로 변환합니다.
      */
     @Bean
-    public FlatFileItemReader<FoodCsvDto> foodReader() {
+    public FlatFileItemReader<FoodCsvDto> foodReaderA() {
         return new FlatFileItemReaderBuilder<FoodCsvDto>()
                 .name("foodReader")
-                .resource(new ClassPathResource("data/20250408_FoodDB.csv"))
+                .resource(new ClassPathResource("data/400_Food_DB.csv"))
                 .encoding("UTF-8") // 한글 깨짐 방지
                 .linesToSkip(1) // 첫 번째 줄(헤더)은 데이터가 아니므로 건너뜀
                 .delimited() // 쉼표(,)로 구분된 파일임
-                // 0:코드, 1:이름, 7:대분류, 16:기준량, 17:에너지, 19:단백질, 20:지방, 22:탄수화물
-                .includedFields(0, 1, 7, 16, 17, 19, 20, 22)
+                // 0:이름, 1:중량, 2:칼로리, 3:탄수, 5:지방, 6:단백질
+                .includedFields(0, 1, 2, 3, 5, 6)
 
                 // 위에서 뽑은 순서대로 DTO의 어떤 변수에 넣을지 지정합니다.
-                .names("foodCode", "foodName", "category", "servingSize", "calories", "protein", "fat", "carbohydrate")
+                .names("foodName", "servingSize", "calories", "carbohydrate", "fat", "protein")
+
+                .targetType(FoodCsvDto.class)
+                .build();
+    }
+
+    // 1. Reader B (새로운 파일용)
+    @Bean
+    public FlatFileItemReader<FoodCsvDto> foodReaderB() {
+        return new FlatFileItemReaderBuilder<FoodCsvDto>()
+                .name("readerB")
+                .resource(new ClassPathResource("data/50000_Food_DB.csv"))
+                .encoding("UTF-8")
+
+                // ★ 중요: 1,2,3줄은 공백/메타데이터, 4줄은 헤더 -> 총 4줄 스킵
+                .linesToSkip(4)
+                .delimited()
+                .includedFields(2, 5, 9, 11, 12, 15, 19, 20, 21)
+
+                // DTO 필드 매핑
+                .names("foodCode", "foodName", "category", "servingSize", "unit", "calories", "protein", "fat", "carbohydrate")
 
                 .targetType(FoodCsvDto.class)
                 .build();
     }
 
     // --- Processor: 변환 및 로직 처리 ---
+
     /**
      * 읽어온 CSV 데이터(문자열 위주)를 DB 엔티티(올바른 타입)로 변환합니다.
      * - "N/A", "-", 공백 등 더러운 데이터를 0.0으로 정제하는 로직이 포함됩니다.
      */
     @Bean
-    public ItemProcessor<FoodCsvDto, Food> foodProcessor() {
+    public ItemProcessor<FoodCsvDto, Food> foodProcessorA() {
         return item -> {
+
+            String generatedCode = "FOOD_" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
 
             String rawServingSize = item.getServingSize(); // 예: "200ml", "100g"
             // 단위 판별 로직
             String unit = "g"; // 기본값
             if (rawServingSize != null && rawServingSize.toLowerCase().contains("ml")) {
-                 unit = "ml";
+                unit = "ml";
             }
 
             // Builder 패턴을 사용하여 Food 엔티티 생성
             return Food.builder()
                     .userId(null)
-                    .foodCode(item.getFoodCode())
+                    .foodCode(generatedCode)
                     .foodName(item.getFoodName().replace("_", " ")) // foodName의 언더바(_) 공백 치환
-                    .category(item.getCategory())
+                    .category("외식류")
                     // [데이터 정제]
                     // CSV에는 "1,200"(쉼표), "N/A"(문자), ""(공백) 등이 섞여 있습니다.
                     // 이를 안전하게 Double(숫자)로 바꾸는 헬퍼 메소드를 사용합니다.
@@ -125,7 +176,34 @@ public class FoodBatchConfig {
         };
     }
 
+    // 2. Processor B (DTO -> Entity 변환)
+    @Bean
+    public ItemProcessor<FoodCsvDto, Food> foodProcessorB() {
+        return item -> {
+            // 단위 처리: 데이터에 "g"라고 적혀있으면 그대로 쓰고, 없으면 기본값
+            String unit = (item.getUnit() != null && !item.getUnit().isEmpty()) ? item.getUnit() : "g";
+
+            return Food.builder()
+                    // 파일에 있는 코드 그대로 사용
+                    .foodCode(item.getFoodCode())
+
+                    // 이름 정제 (필요하다면)
+                    .foodName(item.getFoodName().replace("_", " "))
+                    .category(item.getCategory())
+
+                    // 숫자 변환 (헬퍼 메소드 사용)
+                    .servingSize(parseDoubleSafe(item.getServingSize()))
+                    .unit(unit)
+                    .calories(parseDoubleSafe(item.getCalories()))
+                    .protein(parseDoubleSafe(item.getProtein()))
+                    .fat(parseDoubleSafe(item.getFat()))
+                    .carbohydrate(parseDoubleSafe(item.getCarbohydrate()))
+                    .build();
+        };
+    }
+
     // --- 4. Writer (MyBatis Insert) ---
+
     /**
      * 가공된 Food 데이터를 MyBatis를 통해 DB에 저장합니다.
      * - 실제 쿼리는 resources/mappers/FoodBatchMapper.xml 에 있습니다.
@@ -142,6 +220,7 @@ public class FoodBatchConfig {
      * [안전한 숫자 변환기]
      * 공공데이터 특성상 숫자 컬럼에 문자나 특수문자가 섞여 있는 경우가 많습니다.
      * 이를 에러 없이 0.0으로 처리해주는 메소드입니다.
+     *
      * @param value CSV에서 읽은 문자열 값 (예: "1,500", "N/A", "-")
      * @return 변환된 double 값 (변환 불가 시 0.0 반환)
      */
