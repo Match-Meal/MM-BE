@@ -20,4 +20,6 @@ public interface UserMapper {
 
     void updateProfile(User user);
 
+    void updateVisibility(User user);
+
 }

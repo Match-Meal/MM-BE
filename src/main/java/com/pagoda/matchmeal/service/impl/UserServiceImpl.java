@@ -82,6 +82,20 @@ public class UserServiceImpl implements UserService {
         userMapper.updateProfile(user);
     }
 
+    @Override
+    @Transactional
+    public void updateVisibility(Long userId, boolean isPublic) {
+        User user = User.builder()
+                .id(userId)
+                .isPublic(isPublic)
+                .build();
+
+        userMapper.updateVisibility(user);
+    }
+
+
+    @Override
+    @Transactional
     public UserDto getUserProfile(Long targetUserId) {
         User targetUser = userMapper.findById(targetUserId)
                 .orElseThrow(() -> new CustomException(ErrorResponseCode.USER_NOT_FOUND));
@@ -125,6 +139,7 @@ public class UserServiceImpl implements UserService {
                 // 문자열(DB) -> 리스트(DTO) 변환 헬퍼 사용
                 .allergies(convertToList(user.getAllergies()))
                 .diseases(convertToList(user.getDiseases()))
+                .isPublic(user.getIsPublic())
                 .build();
     }
 

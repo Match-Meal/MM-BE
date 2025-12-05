@@ -20,4 +20,6 @@ public interface UserService {
 
     // 프로필 공개여부 설정
     UserDto getUserProfile(Long targetUserId);
+
+    void updateVisibility(Long userId, boolean isPublic);
 }
