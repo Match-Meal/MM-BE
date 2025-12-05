@@ -1,9 +1,11 @@
 package com.pagoda.matchmeal.mapper;
 
 import com.pagoda.matchmeal.model.entity.Food;
+import org.apache.ibatis.annotations.Mapper;
 
 import java.util.List;
 
+@Mapper
 public interface FoodBatchMapper {
     /**
      * 음식 데이터를 DB에 저장하거나 업데이트합니다.
@@ -12,7 +14,7 @@ public interface FoodBatchMapper {
      *
      * @param food 저장할 음식 엔티티
      */
-    void insertFoods(Food food);
+    void insertFood(Food food);
 
     /**
      * (테스트용) 저장된 모든 음식 데이터를 조회합니다.
