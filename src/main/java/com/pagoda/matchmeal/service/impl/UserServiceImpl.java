@@ -1,6 +1,9 @@
 package com.pagoda.matchmeal.service.impl;
 
+import com.pagoda.matchmeal.common.exception.CustomException;
+import com.pagoda.matchmeal.common.exception.ErrorResponseCode;
 import com.pagoda.matchmeal.mapper.UserMapper;
+import com.pagoda.matchmeal.model.dto.UserDto;
 import com.pagoda.matchmeal.model.dto.UserProfileDto;
 import com.pagoda.matchmeal.model.entity.User;
 import com.pagoda.matchmeal.model.enums.UserRole;
@@ -9,9 +12,10 @@ import com.pagoda.matchmeal.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -47,23 +51,96 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional(readOnly = true)
-    public User findBySocialId(String socialId) {
-        return userMapper.findBySocialId(socialId).orElse(null);
+    public UserDto getMyProfile(Long userId) {
+        // DB 조회
+        User user = userMapper.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
+
+        // Entity -> DTO 변환 (Service 내부에서 처리)
+        return convertToDto(user);
     }
 
     @Override
     @Transactional
     public void updateProfile(Long userId, UserProfileDto profileDto) {
+        String allergyStr = convertToString(profileDto.getAllergies());
+        String diseaseStr = convertToString(profileDto.getDiseases());
+
         // 기존 유저 조회
-//        User user = User.builder()
-//                .id(userId)
-//                .gender(profileDto.getGender())
-//                .birthDate(profileDto.getBirthDate())
-//                .heightCm(profileDto.getHeightCm())
-//                .weightKg(profileDto.getWeightKg())
-//                .build();
-//
-//        userMapper.updateUserName(user);
+        User user = User.builder()
+                .id(userId)
+                .userName(profileDto.getUserName())
+                .gender(profileDto.getGender())
+                .birthDate(profileDto.getBirthDate())
+                .heightCm(profileDto.getHeightCm())
+                .weightKg(profileDto.getWeightKg())
+                .statusMessage(profileDto.getStatusMessage())
+                .allergies(allergyStr)
+                .diseases(diseaseStr)
+                .build();
+
+        userMapper.updateProfile(user);
+    }
+
+    @Override
+    @Transactional
+    public void updateVisibility(Long userId, boolean isPublic) {
+        User user = User.builder()
+                .id(userId)
+                .isPublic(isPublic)
+                .build();
+
+        userMapper.updateVisibility(user);
+    }
+
+
+    @Override
+    @Transactional
+    public UserDto getUserProfile(Long targetUserId) {
+        User targetUser = userMapper.findById(targetUserId)
+                .orElseThrow(() -> new CustomException(ErrorResponseCode.USER_NOT_FOUND));
+
+        if (!targetUser.getIsPublic()) {
+            return UserDto.builder()
+                    .userName(targetUser.getUserName())
+                    .statusMessage("비공개 프로필입니다.")
+                    .build();
+        }
+
+        return convertToDto(targetUser);
+    }
+
+    private List<String> convertToList(String str) {
+        if (!StringUtils.hasText(str)) return Collections.emptyList();
+        return Arrays.stream(str.split(","))
+                .map(String::trim)
+                .collect(Collectors.toList());
+    }
+
+    // List["땅콩", "우유"] -> DB의 "땅콩,우유"
+    private String convertToString(List<String> list) {
+        if (list == null || list.isEmpty()) return "";
+        return String.join(",", list);
+    }
+
+    private UserDto convertToDto(User user) {
+        return UserDto.builder()
+                .id(user.getId())
+                .userName(user.getUserName())
+                .socialId(user.getSocialId())
+                .email(user.getEmail())
+                .role(user.getRole() != null ? user.getRole().name() : null)
+                .createdAt(user.getCreatedAt() != null ? user.getCreatedAt().toString() : null)
+                .statusMessage(user.getStatusMessage())
+                .gender(user.getGender())
+                .birthDate(user.getBirthDate())
+                .heightCm(user.getHeightCm())
+                .weightKg(user.getWeightKg())
+                // 문자열(DB) -> 리스트(DTO) 변환 헬퍼 사용
+                .allergies(convertToList(user.getAllergies()))
+                .diseases(convertToList(user.getDiseases()))
+                .isPublic(user.getIsPublic())
+                .build();
     }
 
 

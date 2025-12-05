@@ -16,5 +16,10 @@ public interface UserMapper {
     // 조회(소셜ID)
     Optional<User> findBySocialId(String socialId);
 
+    Optional<User> findById(Long userId);
+
+    void updateProfile(User user);
+
+    void updateVisibility(User user);
 
 }
