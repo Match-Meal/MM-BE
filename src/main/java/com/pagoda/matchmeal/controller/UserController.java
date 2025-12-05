@@ -34,6 +34,12 @@ public class UserController {
         return ResponseEntity.ok(myProfile);
     }
 
+    @GetMapping("/{userId}")
+    public ResponseEntity<UserDto> getUserProfile(@PathVariable Long userId) {
+        UserDto userProfile = userService.getUserProfile(userId);
+        return ResponseEntity.ok(userProfile);
+    }
+
     /**
      * 프로필 업데이트
      * @param userDto
@@ -49,6 +55,12 @@ public class UserController {
         return ResponseEntity.ok().build();
     }
 
+    /**
+     * 프로필 공개 여부 설정
+     * @param userDto
+     * @param request
+     * @return
+     */
     @PatchMapping("/visibility")
     public ResponseEntity<Void> updateVisibility(
             @AuthenticationPrincipal UserDto userDto,
