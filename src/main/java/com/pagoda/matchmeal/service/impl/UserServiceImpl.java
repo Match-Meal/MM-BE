@@ -55,21 +55,7 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
 
         // Entity -> DTO 변환 (Service 내부에서 처리)
-        return UserDto.builder()
-                .id(user.getId())
-                .socialId(user.getSocialId())
-                .email(user.getEmail())
-                .role(user.getRole().name())
-                .createdAt(user.getCreatedAt() != null ? user.getCreatedAt().toString() : null)
-                .statusMessage(user.getStatusMessage())
-                .gender(user.getGender())
-                .birthDate(user.getBirthDate())
-                .heightCm(user.getHeightCm())
-                .weightKg(user.getWeightKg())
-                // 문자열(DB) -> 리스트(DTO) 변환
-                .allergies(convertToList(user.getAllergies()))
-                .diseases(convertToList(user.getDiseases()))
-                .build();
+        return convertToDto(user);
     }
 
     @Override
@@ -81,6 +67,7 @@ public class UserServiceImpl implements UserService {
         // 기존 유저 조회
         User user = User.builder()
                 .id(userId)
+                .userName(profileDto.getUserName())
                 .gender(profileDto.getGender())
                 .birthDate(profileDto.getBirthDate())
                 .heightCm(profileDto.getHeightCm())
@@ -91,6 +78,20 @@ public class UserServiceImpl implements UserService {
                 .build();
 
         userMapper.updateProfile(user);
+    }
+
+    public UserDto getUserProfile(Long targetUserId) {
+        User targetUser = userMapper.findById(targetUserId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
+
+        if (!targetUser.getIsPublic()) {
+            return UserDto.builder()
+                    .userName(targetUser.getUserName())
+                    .statusMessage("비공개 프로필입니다.")
+                    .build();
+        }
+
+        return convertToDto(targetUser);
     }
 
     private List<String> convertToList(String str) {
@@ -104,6 +105,25 @@ public class UserServiceImpl implements UserService {
     private String convertToString(List<String> list) {
         if (list == null || list.isEmpty()) return "";
         return String.join(",", list);
+    }
+
+    private UserDto convertToDto(User user) {
+        return UserDto.builder()
+                .id(user.getId())
+                .userName(user.getUserName())
+                .socialId(user.getSocialId())
+                .email(user.getEmail())
+                .role(user.getRole() != null ? user.getRole().name() : null)
+                .createdAt(user.getCreatedAt() != null ? user.getCreatedAt().toString() : null)
+                .statusMessage(user.getStatusMessage())
+                .gender(user.getGender())
+                .birthDate(user.getBirthDate())
+                .heightCm(user.getHeightCm())
+                .weightKg(user.getWeightKg())
+                // 문자열(DB) -> 리스트(DTO) 변환 헬퍼 사용
+                .allergies(convertToList(user.getAllergies()))
+                .diseases(convertToList(user.getDiseases()))
+                .build();
     }
 
 

@@ -40,6 +40,7 @@ CREATE TABLE users (
                        status_message VARCHAR(255),
                        allergies     TEXT,
                        diseases      TEXT,
+                       is_public    BOOLEAN DEFAULT TRUE,
                        created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                        updated_at    TIMESTAMP,
                        deleted_at    TIMESTAMP

@@ -17,4 +17,7 @@ public interface UserService {
 
     // 프로필 업데이트
     void updateProfile(Long userId, UserProfileDto profileDto);
+
+    // 프로필 공개여부 설정
+    UserDto getUserProfile(Long targetUserId);
 }

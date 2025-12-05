@@ -26,6 +26,8 @@ public class UserDto {
     private Double heightCm;
     private Double weightKg;
 
+    private Boolean isPublic;
+
     // 콤마로 구분된 문자열을 리스트로 변환하여 전달
     private List<String> allergies;
     private List<String> diseases;

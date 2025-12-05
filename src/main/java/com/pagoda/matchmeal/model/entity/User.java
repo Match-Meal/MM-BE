@@ -32,6 +32,9 @@ public class User extends BaseEntity {
     private String allergies;
     private String diseases;
 
+    // 프로필 공개여부 설정
+    private Boolean isPublic;
+
     private LocalDateTime deletedAt;
 
     private String platform;

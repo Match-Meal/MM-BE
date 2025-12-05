@@ -7,10 +7,9 @@ import com.pagoda.matchmeal.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 @RestController
 @RequestMapping("/user")
@@ -41,11 +40,22 @@ public class UserController {
      * @param profileDto
      * @return
      */
+    @PutMapping("/profile")
     public ResponseEntity<Void> updateProfile(
             @AuthenticationPrincipal UserDto userDto,
             @RequestBody UserProfileDto profileDto
     ) {
         userService.updateProfile(userDto.getId(), profileDto);
+        return ResponseEntity.ok().build();
+    }
+
+    @PatchMapping("/visibility")
+    public ResponseEntity<Void> updateVisibility(
+            @AuthenticationPrincipal UserDto userDto,
+            @RequestBody Map<String, Boolean> request
+            ) {
+        boolean isPublic = request.get("isPublic");
+        userService.updateVisibility(userDto.getId(), isPublic);
         return ResponseEntity.ok().build();
     }
 
