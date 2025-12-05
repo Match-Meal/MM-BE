@@ -16,8 +16,10 @@ public enum ErrorResponseCode {
     FOOD_NOT_FOUND(HttpStatus.NOT_FOUND, "음식 데이터를 찾을 수 없습니다."),
 
     //---------------------------- 유저 에러코드----------------------------
-    USER_NOT_FOUND(HttpStatus.NOT_FOUND, "회원 정보를 찾을 수 없습니다.");
+    USER_NOT_FOUND(HttpStatus.NOT_FOUND, "회원 정보를 찾을 수 없습니다."),
 
+    //----------------------------식단 에러코드----------------------------
+    DIET_NOT_FOUND(HttpStatus.NOT_FOUND, "식단 데이터를 찾을 수 없습니다.");
 
     private final HttpStatus status; // 에러 HTTP 상태 코드
     private final String message; // 에러 메세지

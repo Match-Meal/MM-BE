@@ -112,4 +112,10 @@
         FROM foods
         WHERE food_id = #{foodId}
     </delete>
+
+    <select id="findById" resultType="com.pagoda.matchmeal.model.entity.Food">
+        SELECT *
+        FROM foods
+        WHERE food_id = #{foodId}
+    </select>
 </mapper>

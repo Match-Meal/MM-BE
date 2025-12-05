@@ -62,4 +62,7 @@ public interface FoodMapper {
      * @param foodId 삭제할 음식의 PK
      */
     void deleteFood(Long foodId);
+
+    // [추가] 서비스 내부 로직 계산용
+    Food findById(Long foodId);
 }
