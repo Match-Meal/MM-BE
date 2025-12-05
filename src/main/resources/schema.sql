@@ -45,3 +45,47 @@ CREATE TABLE users (
                        updated_at    TIMESTAMP,
                        deleted_at    TIMESTAMP
 );
+
+-- 1. 모든 정보가 입력된 표준 남성 유저 (공개 프로필)
+INSERT INTO users (
+    email, platform, social_id, user_name, gender, birth_date,
+    height_cm, weight_kg, role, status, status_message,
+    allergies, diseases, is_public, created_at, updated_at
+) VALUES (
+             'kim_chulsoo@gmail.com', 'google', 'google_123456789', '헬스보이철수', 'MALE', '1992-05-15',
+             178.5, 76.0, 'ROLE_USER', 'ACTIVE', '3대 500 치는 그날까지! 💪',
+             '땅콩,호두', NULL, TRUE, NOW(), NOW()
+         );
+
+-- 2. 질병 정보가 있는 여성 유저 (비공개 프로필)
+INSERT INTO users (
+    email, platform, social_id, user_name, gender, birth_date,
+    height_cm, weight_kg, role, status, status_message,
+    allergies, diseases, is_public, created_at, updated_at
+) VALUES (
+             'lee_younghee@gmail.com', 'google', 'google_987654321', '샐러드조아', 'FEMALE', '1995-10-20',
+             162.0, 48.5, 'ROLE_USER', 'ACTIVE', '건강하게 다이어트 하기 🌱',
+             '복숭아,우유', '당뇨', FALSE, NOW(), NOW()
+         );
+
+-- 3. 알레르기와 질병이 없는 건강한 유저 (소셜ID만 있는 상태, 프로필 작성 전 가정)
+INSERT INTO users (
+    email, platform, social_id, user_name, gender, birth_date,
+    height_cm, weight_kg, role, status, status_message,
+    allergies, diseases, is_public, created_at, updated_at
+) VALUES (
+             'new_user@gmail.com', 'google', 'google_99887766', '뉴비', NULL, NULL,
+             NULL, NULL, 'ROLE_USER', 'ACTIVE', NULL,
+             NULL, NULL, TRUE, NOW(), NOW()
+         );
+
+-- 4. 관리자 계정 (ROLE_ADMIN)
+INSERT INTO users (
+    email, platform, social_id, user_name, gender, birth_date,
+    height_cm, weight_kg, role, status, status_message,
+    allergies, diseases, is_public, created_at, updated_at
+) VALUES (
+             'admin@matchmeal.com', 'google', 'google_admin_001', '관리자', 'MALE', '1990-01-01',
+             180.0, 80.0, 'ROLE_ADMIN', 'ACTIVE', '관리자 계정입니다.',
+             NULL, NULL, FALSE, NOW(), NOW()
+         );

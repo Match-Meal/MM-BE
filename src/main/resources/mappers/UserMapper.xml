@@ -22,10 +22,14 @@
     <!-- 회원가입 -->
     <insert id="save" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO users (
-            email, platform, social_id, user_name, role, status, created_at
+           email, platform, social_id, user_name, role, status,
+           gender, birth_date, height_cm, weight_kg, status_message,
+           allergies, diseases, is_public, created_at
         ) VALUES (
-             #{email}, #{platform}, #{socialId}, #{userName}, #{role}, #{status}, NOW()
-         )
+           #{email}, #{platform}, #{socialId}, #{userName}, #{role},
+           #{status}, #{gender}, #{birthDate}, #{heightCm}, #{weightKg},
+           #{statusMessage}, #{allergies}, #{diseases}, #{isPublic}, NOW()
+        )
     </insert>
 
     <!-- socialId 값으로 유저 검색 -->

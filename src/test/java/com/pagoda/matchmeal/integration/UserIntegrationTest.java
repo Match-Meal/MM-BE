@@ -1,5 +1,6 @@
 package com.pagoda.matchmeal.integration;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pagoda.matchmeal.config.jwt.JwtTokenProvider;
 import com.pagoda.matchmeal.mapper.UserMapper;
 import com.pagoda.matchmeal.model.dto.UserDto;
@@ -12,12 +13,15 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -36,7 +40,11 @@ public class UserIntegrationTest {
     @Autowired
     private JwtTokenProvider jwtTokenProvider;
 
+    @Autowired
+    private ObjectMapper objectMapper;
+
     private User savedUser;
+    private String token;
 
     @BeforeEach
     void setUp() {
@@ -49,23 +57,25 @@ public class UserIntegrationTest {
                 .createdAt(LocalDateTime.now())
                 .allergies("복숭아,갑각류") // 테스트용 알레르기 데이터 추가
                 .statusMessage("화이팅")
+                .isPublic(true)
                 .build();
 
         userMapper.save(savedUser);
+
+        // 토큰 생성
+        UserDto tokenDto = UserDto.builder()
+                .id(savedUser.getId())
+                .socialId(savedUser.getSocialId())
+                .role(savedUser.getRole().name())
+                .build();
+        token = jwtTokenProvider.createAccessToken(tokenDto);
     }
 
     @Test
     @DisplayName("유효한 토큰으로 내 정보 조회 시 DB의 최신 정보를 반환해야 한다")
     void getMyInfoSuccess() throws Exception {
         // given
-        // 토큰 생성에는 ID와 Role만 있으면 됨 (변경된 JwtTokenProvider 로직 반영)
-        UserDto tokenDto = UserDto.builder()
-                .id(savedUser.getId())
-                .socialId(savedUser.getSocialId()) // Subject
-                .role(savedUser.getRole().name())
-                .build();
-
-        String token = jwtTokenProvider.createAccessToken(tokenDto);
+        // token 생성 로직을 setUp으로 옮김
 
         // when & then
         mockMvc.perform(get("/user/me")
@@ -88,5 +98,38 @@ public class UserIntegrationTest {
         // oauth2Login()이 활성화되어 있으면 보통 302로 리다이렉트 됨
         mockMvc.perform(get("/user/me"))
                 .andExpect(status().is3xxRedirection());
+    }
+
+    @Test
+    @DisplayName("공개 설정 변경 API 호출 시 DB 값이 변경되어야 한다.")
+    void updateVisibilitySuccess() throws Exception {
+        // given
+        Map<String, Boolean> request = Map.of("isPublic", false);
+
+        // when
+        mockMvc.perform(patch("/user/visibility")
+                .header("Authorization", "Bearer " + token)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andDo(print())
+                .andExpect(status().isOk());
+
+        // thend
+        User updatedUser = userMapper.findById(savedUser.getId()).orElseThrow();
+
+        if (updatedUser.getIsPublic()) {
+            throw new AssertionError("Visibility should be updated to false");
+        }
+    }
+
+    @Test
+    @DisplayName("타인 프로필 조회 API 호출 성공")
+    void getUserProfileSuccess() throws Exception {
+        // when & then
+        mockMvc.perform(get("/user/" + savedUser.getId())
+                        .header("Authorization", "Bearer " + token))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.userName").value("테스트유저"));
     }
 }
