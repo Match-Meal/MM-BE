@@ -14,6 +14,8 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequiredArgsConstructor
 public class FoodController {
@@ -56,5 +58,10 @@ public class FoodController {
     public CommonResponse<Void> deleteFood(@AuthenticationPrincipal UserDto userDto, @PathVariable("foodId") Long foodId) {
         foodService.deleteFood(userDto.getId(), foodId);
         return ApiResponseUtil.success(foodId + "번 음식 데이터가 삭제되었습니다.", null);
+    }
+
+    @GetMapping("/foods/categories")
+    public CommonResponse<List<String>> getCategories() {
+        return ApiResponseUtil.success(foodService.getFoodCategories());
     }
 }

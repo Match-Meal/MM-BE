@@ -118,4 +118,12 @@
         FROM foods
         WHERE food_id = #{foodId}
     </select>
+
+    <select id="findAllCategories" resultType="string">
+        SELECT DISTINCT category
+        FROM foods
+        WHERE category IS NOT NULL
+          AND category != ''
+        ORDER BY category ASC
+    </select>
 </mapper>

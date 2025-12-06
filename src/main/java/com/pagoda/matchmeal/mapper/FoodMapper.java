@@ -65,4 +65,6 @@ public interface FoodMapper {
 
     // [추가] 서비스 내부 로직 계산용
     Food findById(Long foodId);
+
+    List<String> findAllCategories();
 }
