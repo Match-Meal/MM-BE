@@ -11,6 +11,7 @@ import com.pagoda.matchmeal.model.dto.response.FoodListResponseDto;
 import com.pagoda.matchmeal.model.entity.Food;
 import com.pagoda.matchmeal.service.FoodService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -168,5 +169,13 @@ public class FoodServiceImpl implements FoodService {
             throw new CustomException(ErrorResponseCode.UNAUTHORIZED);
         }
         foodMapper.deleteFood(foodId);
+    }
+
+    // "categories"라는 이름으로 캐시 저장 (메모리에 저장됨)
+    // 이 메소드는 최초 1회만 DB를 조회하고, 그 뒤론 메모리에서 꺼내줌
+    @Override
+    @Cacheable(value = "foodCategories")
+    public List<String> getFoodCategories() {
+        return foodMapper.findAllCategories();
     }
 }

@@ -6,6 +6,8 @@ import com.pagoda.matchmeal.model.dto.response.FoodDetailResponseDto;
 import com.pagoda.matchmeal.model.dto.response.FoodListResponseDto;
 import org.springframework.data.domain.Pageable;
 
+import java.util.List;
+
 public interface FoodService {
 
     Long addFood(Long userId, FoodRequestDto foodRequestDto);
@@ -17,4 +19,6 @@ public interface FoodService {
     Long updateFood(Long userId, Long foodId, FoodRequestDto foodRequestDto);
 
     void deleteFood(Long userId, Long foodId);
+
+    List<String> getFoodCategories();
 }
