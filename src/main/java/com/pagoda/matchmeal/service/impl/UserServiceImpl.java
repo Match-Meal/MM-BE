@@ -8,11 +8,13 @@ import com.pagoda.matchmeal.model.dto.UserProfileDto;
 import com.pagoda.matchmeal.model.entity.User;
 import com.pagoda.matchmeal.model.enums.UserRole;
 import com.pagoda.matchmeal.model.enums.UserStatus;
+import com.pagoda.matchmeal.service.S3Service;
 import com.pagoda.matchmeal.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -22,6 +24,7 @@ import java.util.stream.Collectors;
 public class UserServiceImpl implements UserService {
 
     private final UserMapper userMapper;
+    private final S3Service s3Service;
 
     @Override
     public Map<String, Object> processLoginOrRegister(String socialId, String email, String name, String platform) {
@@ -38,6 +41,7 @@ public class UserServiceImpl implements UserService {
                     .email(email)
                     .userName(name) // 최초 가입시 소셜 이름으로 기본값 설정
                     .platform(platform)
+                    .profileImage(picture)
                     .role(UserRole.ROLE_USER)
                     .status(UserStatus.ACTIVE)
                     .isPublic(true)
@@ -63,7 +67,17 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public void updateProfile(Long userId, UserProfileDto profileDto) {
+    public void updateProfile(Long userId, UserProfileDto profileDto, MultipartFile imageFile) {
+
+        User existUser = userMapper.findById(userId).orElseThrow(() -> new CustomException(ErrorResponseCode.USER_NOT_FOUND));
+
+        String profileImageUrl = existUser.getProfileImage();
+
+        // 새 이미지 업로드된경우 S3 업로드 및 URL 교체
+        if (imageFile != null && !imageFile.isEmpty()) {
+            profileImageUrl = s3Service.uploadFile(imageFile);
+        }
+
         String allergyStr = convertToString(profileDto.getAllergies());
         String diseaseStr = convertToString(profileDto.getDiseases());
 
