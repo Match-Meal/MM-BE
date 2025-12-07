@@ -11,6 +11,7 @@ public enum ErrorResponseCode {
     //----------------------------공통코드----------------------------
     SERVER_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "서버 에러"),
     UNAUTHORIZED(HttpStatus.UNAUTHORIZED, "접근 권한이 없습니다."),
+//    INVALID_FILE(HttpStatus.)
 
     //----------------------------음식DB 에러코드----------------------------
     FOOD_NOT_FOUND(HttpStatus.NOT_FOUND, "음식 데이터를 찾을 수 없습니다."),
