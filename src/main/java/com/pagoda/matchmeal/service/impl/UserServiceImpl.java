@@ -27,7 +27,8 @@ public class UserServiceImpl implements UserService {
     private final S3Service s3Service;
 
     @Override
-    public Map<String, Object> processLoginOrRegister(String socialId, String email, String name, String platform) {
+    @Transactional
+    public Map<String, Object> processLoginOrRegister(String socialId, String email, String name, String platform, String picture) {
         Map<String, Object> result = new HashMap<>();
 
         User user = userMapper.findBySocialId(socialId).orElse(null);
@@ -90,6 +91,7 @@ public class UserServiceImpl implements UserService {
                 .heightCm(profileDto.getHeightCm())
                 .weightKg(profileDto.getWeightKg())
                 .statusMessage(profileDto.getStatusMessage())
+                .profileImage(profileImageUrl)
                 .allergies(allergyStr)
                 .diseases(diseaseStr)
                 .build();
@@ -118,6 +120,7 @@ public class UserServiceImpl implements UserService {
         if (!targetUser.getIsPublic()) {
             return UserDto.builder()
                     .userName(targetUser.getUserName())
+                    .profileImage(targetUser.getProfileImage())
                     .statusMessage("비공개 프로필입니다.")
                     .build();
         }
@@ -144,6 +147,7 @@ public class UserServiceImpl implements UserService {
                 .userName(user.getUserName())
                 .socialId(user.getSocialId())
                 .email(user.getEmail())
+                .profileImage(user.getProfileImage())
                 .role(user.getRole() != null ? user.getRole().name() : null)
                 .createdAt(user.getCreatedAt() != null ? user.getCreatedAt().toString() : null)
                 .statusMessage(user.getStatusMessage())

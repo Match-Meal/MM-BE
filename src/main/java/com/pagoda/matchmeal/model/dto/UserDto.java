@@ -25,6 +25,7 @@ public class UserDto {
     private LocalDate birthDate;
     private Double heightCm;
     private Double weightKg;
+    private String profileImage;
 
     private Boolean isPublic;
 
