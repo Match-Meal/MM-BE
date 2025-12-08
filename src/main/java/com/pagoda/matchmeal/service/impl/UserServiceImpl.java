@@ -77,8 +77,8 @@ public class UserServiceImpl implements UserService {
         // 새 이미지가 업로드된 경우
         if (imageFile != null && !imageFile.isEmpty()) {
             // (선택) 기존 이미지가 있다면 S3에서 삭제 (구글 기본 이미지가 아닐 경우만)
-            if (StringUtils.hasText(profileImageUrl) && !profileImageUrl.startsWith("http")) {
-                // s3Service.deleteFile(profileImageUrl); // 삭제 메서드 구현 필요
+            if (StringUtils.hasText(profileImageUrl) && !profileImageUrl.startsWith("amazonaws.com")) {
+                s3Service.deleteFile(profileImageUrl); // 삭제 메서드 구현 필요
             }
 
             // 새 파일 업로드

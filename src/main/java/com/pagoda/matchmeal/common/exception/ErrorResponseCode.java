@@ -25,6 +25,7 @@ public enum ErrorResponseCode {
     //----------------------------식단 에러코드----------------------------
     INVALID_FILE(HttpStatus.BAD_REQUEST, "유효하지 않은 파일입니다."),
     FILE_UPLOAD_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "파일 업로드 중 오류가 발생했습니다."),
+    FILE_DELETE_ERROR(HttpStatus.INTERNAL_SERVER_ERROR, "파일 삭제 중 오류가 발생했습니다."),
     INVALID_FILE_EXTENSION(HttpStatus.BAD_REQUEST, "지원하지 않는 파일 형식입니다.");
 
     private final HttpStatus status; // 에러 HTTP 상태 코드
