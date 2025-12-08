@@ -15,6 +15,7 @@
         <result property="heightCm" column="height_cm"/>
         <result property="weightKg" column="weight_kg"/>
         <result property="statusMessage" column="status_message"/>
+        <result property="profileImage" column="profile_image" />
         <result property="allergies" column="allergies"/> <result property="diseases" column="diseases"/>   <result property="createdAt" column="created_at"/>
         <result property="updatedAt" column="updated_at"/>
     </resultMap>
@@ -23,12 +24,12 @@
     <insert id="save" useGeneratedKeys="true" keyProperty="id">
         INSERT INTO users (
            email, platform, social_id, user_name, role, status,
-           gender, birth_date, height_cm, weight_kg, status_message,
+           gender, birth_date, height_cm, weight_kg, status_message, profile_image,
            allergies, diseases, is_public, created_at
         ) VALUES (
            #{email}, #{platform}, #{socialId}, #{userName}, #{role},
            #{status}, #{gender}, #{birthDate}, #{heightCm}, #{weightKg},
-           #{statusMessage}, #{allergies}, #{diseases}, #{isPublic}, NOW()
+           #{statusMessage}, #{profileImage}, #{allergies}, #{diseases}, #{isPublic}, NOW()
         )
     </insert>
 
@@ -59,6 +60,7 @@
             height_cm = #{heightCm},
             weight_kg = #{weightKg},
             status_message = #{statusMessage},
+            profile_image = #{profileImage},
             allergies = #{allergies},
             diseases = #{diseases},
             updated_at = NOW()

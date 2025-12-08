@@ -25,6 +25,7 @@ public class User extends BaseEntity {
     private LocalDate birthDate;
     private Double heightCm;
     private Double weightKg;
+    private String profileImage;
     private UserRole role;
     private String statusMessage;
 

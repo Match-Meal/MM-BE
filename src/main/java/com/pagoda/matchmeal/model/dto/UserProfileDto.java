@@ -11,6 +11,7 @@ import java.util.List;
 @Setter
 public class UserProfileDto {
     private String userName;
+    private String profileImage;
     private Gender gender;
     private LocalDate birthDate;
     private Double heightCm;

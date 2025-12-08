@@ -8,11 +8,13 @@ import com.pagoda.matchmeal.model.dto.UserProfileDto;
 import com.pagoda.matchmeal.model.entity.User;
 import com.pagoda.matchmeal.model.enums.UserRole;
 import com.pagoda.matchmeal.model.enums.UserStatus;
+import com.pagoda.matchmeal.service.S3Service;
 import com.pagoda.matchmeal.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -22,9 +24,11 @@ import java.util.stream.Collectors;
 public class UserServiceImpl implements UserService {
 
     private final UserMapper userMapper;
+    private final S3Service s3Service;
 
     @Override
-    public Map<String, Object> processLoginOrRegister(String socialId, String email, String name, String platform) {
+    @Transactional
+    public Map<String, Object> processLoginOrRegister(String socialId, String email, String name, String platform, String picture) {
         Map<String, Object> result = new HashMap<>();
 
         User user = userMapper.findBySocialId(socialId).orElse(null);
@@ -38,8 +42,10 @@ public class UserServiceImpl implements UserService {
                     .email(email)
                     .userName(name) // 최초 가입시 소셜 이름으로 기본값 설정
                     .platform(platform)
+                    .profileImage(picture)
                     .role(UserRole.ROLE_USER)
                     .status(UserStatus.ACTIVE)
+                    .isPublic(true)
                     .build();
             userMapper.save(user);
         }
@@ -62,7 +68,23 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public void updateProfile(Long userId, UserProfileDto profileDto) {
+    public void updateProfile(Long userId, UserProfileDto profileDto, MultipartFile imageFile) {
+
+        User existUser = userMapper.findById(userId).orElseThrow(() -> new CustomException(ErrorResponseCode.USER_NOT_FOUND));
+
+        String profileImageUrl = existUser.getProfileImage();
+
+        // 새 이미지가 업로드된 경우
+        if (imageFile != null && !imageFile.isEmpty()) {
+            // (선택) 기존 이미지가 있다면 S3에서 삭제 (구글 기본 이미지가 아닐 경우만)
+            if (StringUtils.hasText(profileImageUrl) && !profileImageUrl.startsWith("amazonaws.com")) {
+                s3Service.deleteFile(profileImageUrl); // 삭제 메서드 구현 필요
+            }
+
+            // 새 파일 업로드
+            profileImageUrl = s3Service.uploadFile(imageFile);
+        }
+
         String allergyStr = convertToString(profileDto.getAllergies());
         String diseaseStr = convertToString(profileDto.getDiseases());
 
@@ -75,6 +97,7 @@ public class UserServiceImpl implements UserService {
                 .heightCm(profileDto.getHeightCm())
                 .weightKg(profileDto.getWeightKg())
                 .statusMessage(profileDto.getStatusMessage())
+                .profileImage(profileImageUrl)
                 .allergies(allergyStr)
                 .diseases(diseaseStr)
                 .build();
@@ -103,6 +126,7 @@ public class UserServiceImpl implements UserService {
         if (!targetUser.getIsPublic()) {
             return UserDto.builder()
                     .userName(targetUser.getUserName())
+                    .profileImage(targetUser.getProfileImage())
                     .statusMessage("비공개 프로필입니다.")
                     .build();
         }
@@ -129,6 +153,7 @@ public class UserServiceImpl implements UserService {
                 .userName(user.getUserName())
                 .socialId(user.getSocialId())
                 .email(user.getEmail())
+                .profileImage(user.getProfileImage())
                 .role(user.getRole() != null ? user.getRole().name() : null)
                 .createdAt(user.getCreatedAt() != null ? user.getCreatedAt().toString() : null)
                 .statusMessage(user.getStatusMessage())

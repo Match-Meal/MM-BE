@@ -5,9 +5,11 @@ import com.pagoda.matchmeal.model.dto.UserProfileDto;
 import com.pagoda.matchmeal.model.entity.User;
 import com.pagoda.matchmeal.service.UserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
 
@@ -42,16 +44,19 @@ public class UserController {
 
     /**
      * 프로필 업데이트
+     * Content-Type: multipart/form-data
      * @param userDto
      * @param profileDto
+     * @param file
      * @return
      */
-    @PutMapping("/profile")
+    @PutMapping(value = "/profile", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Void> updateProfile(
             @AuthenticationPrincipal UserDto userDto,
-            @RequestBody UserProfileDto profileDto
+            @RequestPart(value = "data") UserProfileDto profileDto,
+            @RequestPart(value = "file", required = false) MultipartFile file
     ) {
-        userService.updateProfile(userDto.getId(), profileDto);
+        userService.updateProfile(userDto.getId(), profileDto, file);
         return ResponseEntity.ok().build();
     }
 

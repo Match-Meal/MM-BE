@@ -38,9 +38,10 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
         String socialId = (String) attributes.get("sub");
         String email = (String) attributes.get("email");
         String name = (String) attributes.get("name");
+        String picture = (String) attributes.get("picture");
 
         // 핵심 비즈니스 로직
-        Map<String, Object> result = userService.processLoginOrRegister(socialId, email, name, registrationId);
+        Map<String, Object> result = userService.processLoginOrRegister(socialId, email, name, registrationId, picture);
 
         User user = (User) result.get("user");
         boolean isNew = (boolean) result.get("isNew");
