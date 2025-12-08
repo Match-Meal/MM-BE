@@ -35,7 +35,7 @@ public class S3ServiceImpl implements S3Service {
 
         // 파일명 중복 방지 (uuid)
         String originalFilename = file.getOriginalFilename();
-        String fileName = UUID.randomUUID() + "_" + originalFilename.replaceAll("\\s","_");
+        String fileName = "profile/" + UUID.randomUUID() + "_" + originalFilename.replaceAll("\\s","_");
 
         // 메타 데이터 설정
         ObjectMetadata objectMetadata = new ObjectMetadata();
@@ -44,8 +44,7 @@ public class S3ServiceImpl implements S3Service {
 
         // 4. S3 업로드 실행
         try (InputStream inputStream = file.getInputStream()) {
-            amazonS3.putObject(new PutObjectRequest(bucket, fileName, inputStream, objectMetadata)
-                    .withCannedAcl(CannedAccessControlList.PublicRead));
+            amazonS3.putObject(new PutObjectRequest(bucket, fileName, inputStream, objectMetadata));
         } catch (IOException e) {
             throw new CustomException(ErrorResponseCode.FILE_UPLOAD_ERROR);
         }

@@ -44,7 +44,7 @@ public class UserController {
 
     /**
      * 프로필 업데이트
-     * Content-Type: multypart/form-data
+     * Content-Type: multipart/form-data
      * @param userDto
      * @param profileDto
      * @param file

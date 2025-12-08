@@ -4,6 +4,7 @@ import com.pagoda.matchmeal.common.exception.CustomException;
 import com.pagoda.matchmeal.common.exception.ErrorResponseCode;
 import com.pagoda.matchmeal.mapper.UserMapper;
 import com.pagoda.matchmeal.model.dto.UserDto;
+import com.pagoda.matchmeal.model.dto.UserProfileDto;
 import com.pagoda.matchmeal.model.entity.User;
 import com.pagoda.matchmeal.model.enums.UserRole;
 import com.pagoda.matchmeal.service.impl.UserServiceImpl;
@@ -13,22 +14,27 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.mock.web.MockMultipartFile;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 public class UserServiceTest {
 
     @Mock
     private UserMapper userMapper;
+
+    @Mock
+    private S3Service s3Service;
 
     @InjectMocks
     private UserServiceImpl userService;
@@ -39,14 +45,17 @@ public class UserServiceTest {
         // given
         String socialId = "12345";
         String email = "test@gmail.com";
+        String pictureUrl = "https://google.com/picture.jpg";
 
         given(userMapper.findBySocialId(socialId)).willReturn(Optional.empty());
 
         // when
-        Map<String, Object> result = userService.processLoginOrRegister(socialId, email, "테스트유저", "google");
+        Map<String, Object> result = userService.processLoginOrRegister(socialId, email, "테스트유저", "google", pictureUrl);
 
         // then
-        verify(userMapper, times(1)).save(any(User.class));
+        verify(userMapper, times(1)).save(argThat(user ->
+                user.getProfileImage().equals(pictureUrl) // 이미지가 잘 들어갔는지 확인
+        ));
 
         assertThat(result.get("isNew")).isEqualTo(true);
         assertThat(((User)result.get("user")).getSocialId()).isEqualTo(socialId);
@@ -143,6 +152,63 @@ public class UserServiceTest {
         userService.updateVisibility(userId, isPublic);
 
         verify(userMapper, times(1)).updateVisibility(any(User.class));
+    }
+
+    @Test
+    @DisplayName("프로필 업데이트 - 이미지 파일이 있을 경우 S3 업로드 후 URL 갱신")
+    void updateProfile_WithImage() {
+        //given
+        Long userId = 1L;
+        UserProfileDto dto = new UserProfileDto();
+        dto.setUserName("수정된 이름");
+        dto.setAllergies(List.of("오이"));
+
+        // Mock 파일
+        MockMultipartFile file = new MockMultipartFile("file", "test.jpg", "image/jpeg", "test image content".getBytes());
+        String s3Url = "https://s3.aws.com/profile/uuid_test.jpg";
+
+        User existingUser = User.builder()
+                .id(userId)
+                .profileImage("old_url")
+                .build();
+
+        given(userMapper.findById(userId)).willReturn(Optional.of(existingUser));
+        given(s3Service.uploadFile(file)).willReturn(s3Url);
+
+        // when
+        userService.updateProfile(userId, dto, file);
+
+        // then
+        verify(s3Service, times(1)).uploadFile(file); // 업로드 호출 확인
+        verify(userMapper).updateProfile(argThat(user ->
+                user.getProfileImage().equals(s3Url) && // URL이 새것으로 바뀌었는지
+                        user.getUserName().equals("수정된이름")
+        ));
+    }
+
+    @Test
+    @DisplayName("프로필 업데이트 - 이미지 파일이 없으면 기존 이미지 유지")
+    void updateProfile_NoImage() {
+        // given
+        Long userId = 1L;
+        UserProfileDto dto = new UserProfileDto();
+        dto.setUserName("이름만수정");
+
+        User existingUser = User.builder()
+                .id(userId)
+                .profileImage("original_url.jpg")
+                .build();
+
+        given(userMapper.findById(userId)).willReturn(Optional.of(existingUser));
+
+        // when
+        userService.updateProfile(userId, dto, null); // 파일 null 전달
+
+        // then
+        verify(s3Service, never()).uploadFile(any()); // S3 호출되면 안 됨
+        verify(userMapper).updateProfile(argThat(user ->
+                user.getProfileImage().equals("original_url.jpg") // 기존 URL 유지 확인
+        ));
     }
 
 }

@@ -40,7 +40,7 @@ CREATE TABLE users (
                        role          VARCHAR(20),
                        status        VARCHAR(20),
                        status_message VARCHAR(255),
-                       profile_image VARCHAR(255),
+                       profile_image VARCHAR(1000),
                        allergies     TEXT,
                        diseases      TEXT,
                        is_public    BOOLEAN DEFAULT TRUE,
@@ -102,7 +102,7 @@ INSERT INTO users (
     allergies, diseases, is_public, created_at, updated_at
 ) VALUES (
              'kim_chulsoo@gmail.com', 'google', 'google_123456789', '헬스보이철수', 'MALE', '1992-05-15',
-             178.5, 76.0, 'ROLE_USER', 'ACTIVE', '3대 500 치는 그날까지! 💪', NULL
+             178.5, 76.0, 'ROLE_USER', 'ACTIVE', '3대 500 치는 그날까지! 💪', NULL,
              '땅콩,호두', NULL, TRUE, NOW(), NOW()
          );
 
