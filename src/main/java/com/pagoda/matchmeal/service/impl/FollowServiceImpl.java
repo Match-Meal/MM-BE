@@ -1,0 +1,44 @@
+package com.pagoda.matchmeal.service.impl;
+
+import com.pagoda.matchmeal.common.exception.CustomException;
+import com.pagoda.matchmeal.common.exception.ErrorResponseCode;
+import com.pagoda.matchmeal.mapper.FollowMapper;
+import com.pagoda.matchmeal.mapper.UserMapper;
+import com.pagoda.matchmeal.service.FollowService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+@Service
+@RequiredArgsConstructor
+public class FollowServiceImpl implements FollowService {
+    
+    private final FollowMapper followMapper;
+    private final UserMapper userMapper;
+
+    /**
+     * 팔로우 토글(이미 팔로우 중이면 취소, 아니면 팔로우
+     * @param followerId
+     * @param followingId
+     */
+    @Override
+    @Transactional
+    public void toggleFollow(Long followerId, Long followingId) {
+        if (followerId.equals(followingId)) {
+            throw new CustomException(ErrorResponseCode.SELF_FOLLOW_NOT_ALLOWED);
+        }
+
+        // 대상 확인
+        userMapper.findById(followingId)
+                .orElseThrow(() -> new CustomException(ErrorResponseCode.USER_NOT_FOUND));
+        
+        // 이미 팔로우 중인지 확인
+        boolean exists = followMapper.existsByFollowerAndFollowing(followerId, followingId);
+
+        if (exists) {
+            followMapper.deleteFollow(followerId, followingId); // 언팔로우
+        } else {
+            followMapper.insertFollow(followerId, followingId); // 팔로우
+        }
+    }
+}
