@@ -160,7 +160,7 @@ public class UserServiceTest {
         //given
         Long userId = 1L;
         UserProfileDto dto = new UserProfileDto();
-        dto.setUserName("수정된 이름");
+        dto.setUserName("수정된이름");
         dto.setAllergies(List.of("오이"));
 
         // Mock 파일
