@@ -26,6 +26,8 @@ CREATE TABLE foods (
 -- 인덱스는 테이블 생성 후 따로 만드는 것이 H2에서 가장 안전합니다.
 CREATE UNIQUE INDEX idx_food_code ON foods(food_code);
 
+DROP TABLE IF EXISTS follows;
+
 DROP TABLE IF EXISTS users;
 
 CREATE TABLE users (
@@ -44,12 +46,26 @@ CREATE TABLE users (
                        profile_image VARCHAR(1000),
                        allergies     TEXT,
                        diseases      TEXT,
-                       is_public    BOOLEAN DEFAULT TRUE,
+                       is_public    BOOLEAN DEFAULT 1,
                        created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                        updated_at    TIMESTAMP,
                        deleted_at    TIMESTAMP
 );
 
+-- 팔로우 스키마
+CREATE TABLE follows (
+                         id           BIGINT AUTO_INCREMENT PRIMARY KEY,
+                         follower_id  BIGINT NOT NULL, -- 팔로우 하는 사람 (나)
+                         following_id BIGINT NOT NULL, -- 팔로우 당하는 사람 (상대방)
+                         created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    -- 중복 팔로우 방지 (A가 B를 두 번 팔로우할 수 없음)
+                         UNIQUE (follower_id, following_id),
+
+    -- 외래키 설정 (유저 삭제 시 팔로우 관계도 삭제)
+                         CONSTRAINT fk_follower FOREIGN KEY (follower_id) REFERENCES users (user_id) ON DELETE CASCADE,
+                         CONSTRAINT fk_following FOREIGN KEY (following_id) REFERENCES users (user_id) ON DELETE CASCADE
+);
 
 ------------- 식단 테스트 스키마 -----------------------------
 DROP TABLE IF EXISTS diet_details;
@@ -95,21 +111,6 @@ CREATE TABLE diet_details (
                               CONSTRAINT fk_diet_details_diet
                                   FOREIGN KEY (diet_id) REFERENCES diet_records (diet_id)
                                       ON DELETE CASCADE
-);
-
--- 팔로우 스키마
-CREATE TABLE follows (
-                         id           BIGINT AUTO_INCREMENT PRIMARY KEY,
-                         follower_id  BIGINT NOT NULL, -- 팔로우 하는 사람 (나)
-                         following_id BIGINT NOT NULL, -- 팔로우 당하는 사람 (상대방)
-                         created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-
-                         -- 중복 팔로우 방지 (A가 B를 두 번 팔로우할 수 없음)
-                         UNIQUE (follower_id, following_id),
-
-                         -- 외래키 설정 (유저 삭제 시 팔로우 관계도 삭제)
-                         CONSTRAINT fk_follower FOREIGN KEY (follower_id) REFERENCES users (user_id) ON DELETE CASCADE,
-                         CONSTRAINT fk_following FOREIGN KEY (following_id) REFERENCES users (user_id) ON DELETE CASCADE
 );
 
 -- 1. 모든 정보가 입력된 표준 남성 유저 (공개 프로필)
