@@ -36,9 +36,19 @@
     </insert>
 
     <select id="countAll" resultType="int">
-        SELECT COUNT(*) FROM foods
+        SELECT COUNT(*)
+        FROM foods
     </select>
 
     <select id="findAll" resultType="com.pagoda.matchmeal.model.entity.Food">
-        SELECT * FROM foods LIMIT 50  </select>
+        SELECT *
+        FROM foods LIMIT 50  </select>
+
+
+    <delete id="deleteAll">
+        DELETE
+        FROM foods
+    </delete>
+
+
 </mapper>

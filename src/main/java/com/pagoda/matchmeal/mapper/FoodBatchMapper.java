@@ -30,4 +30,6 @@ public interface FoodBatchMapper {
      * @return 전체 행(Row) 개수
      */
     List<Food> findAll();
+
+    void deleteAll();
 }
