@@ -51,9 +51,9 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         String accessToken = jwtTokenProvider.createAccessToken(userDto);
 
         // 개발용
-//        System.out.println("=========================================");
-//        System.out.println("TEST ACCESS TOKEN: " + accessToken);
-//        System.out.println("=========================================");
+        System.out.println("=========================================");
+        System.out.println("TEST ACCESS TOKEN: " + accessToken);
+        System.out.println("=========================================");
 
         // redirect
         String targetUrl = UriComponentsBuilder.fromUriString("http://localhost:5173/oauth/callback")

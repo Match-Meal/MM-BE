@@ -1,5 +1,7 @@
 package com.pagoda.matchmeal.service;
 
+import com.pagoda.matchmeal.model.dto.response.FollowResponseDto;
+
 public interface FollowService {
-    void toggleFollow(Long followerId, Long followingId);
+    FollowResponseDto toggleFollow(Long followerId, Long followingId);
 }

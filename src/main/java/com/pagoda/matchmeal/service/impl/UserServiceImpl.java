@@ -2,6 +2,7 @@ package com.pagoda.matchmeal.service.impl;
 
 import com.pagoda.matchmeal.common.exception.CustomException;
 import com.pagoda.matchmeal.common.exception.ErrorResponseCode;
+import com.pagoda.matchmeal.mapper.FollowMapper;
 import com.pagoda.matchmeal.mapper.UserMapper;
 import com.pagoda.matchmeal.model.dto.UserDto;
 import com.pagoda.matchmeal.model.dto.UserProfileDto;
@@ -25,6 +26,7 @@ public class UserServiceImpl implements UserService {
 
     private final UserMapper userMapper;
     private final S3Service s3Service;
+    private final FollowMapper followMapper;
 
     @Override
     @Transactional
@@ -123,16 +125,24 @@ public class UserServiceImpl implements UserService {
         User targetUser = userMapper.findById(targetUserId)
                 .orElseThrow(() -> new CustomException(ErrorResponseCode.USER_NOT_FOUND));
 
-        if (!targetUser.getIsPublic()) {
+        if (Boolean.FALSE.equals(targetUser.getIsPublic())) {
+            // 비공개여도 이름, 사진, 팔로우 숫자는 보여줘야함
+            Long followerCount = followMapper.countFollowers(targetUserId);
+            Long followingCount = followMapper.countFollowings(targetUserId);
+
             return UserDto.builder()
                     .userName(targetUser.getUserName())
                     .profileImage(targetUser.getProfileImage())
                     .statusMessage("비공개 프로필입니다.")
+                    .followerCount(followerCount)
+                    .followingCount(followingCount)
                     .build();
         }
 
         return convertToDto(targetUser);
     }
+
+    // ---------------- Helper Methods -----------------
 
     private List<String> convertToList(String str) {
         if (!StringUtils.hasText(str)) return Collections.emptyList();
@@ -148,6 +158,10 @@ public class UserServiceImpl implements UserService {
     }
 
     private UserDto convertToDto(User user) {
+        // 팔로우/팔로잉 숫자 조회
+        Long followerCount = followMapper.countFollowers(user.getId());
+        Long followingCount = followMapper.countFollowings(user.getId());
+
         return UserDto.builder()
                 .id(user.getId())
                 .userName(user.getUserName())
@@ -165,6 +179,8 @@ public class UserServiceImpl implements UserService {
                 .allergies(convertToList(user.getAllergies()))
                 .diseases(convertToList(user.getDiseases()))
                 .isPublic(user.getIsPublic())
+                .followerCount(followerCount)
+                .followingCount(followingCount)
                 .build();
     }
 

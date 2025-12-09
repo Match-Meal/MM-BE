@@ -4,6 +4,7 @@ import com.pagoda.matchmeal.common.exception.CustomException;
 import com.pagoda.matchmeal.common.exception.ErrorResponseCode;
 import com.pagoda.matchmeal.mapper.FollowMapper;
 import com.pagoda.matchmeal.mapper.UserMapper;
+import com.pagoda.matchmeal.model.dto.response.FollowResponseDto;
 import com.pagoda.matchmeal.service.FollowService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -23,7 +24,7 @@ public class FollowServiceImpl implements FollowService {
      */
     @Override
     @Transactional
-    public void toggleFollow(Long followerId, Long followingId) {
+    public FollowResponseDto toggleFollow(Long followerId, Long followingId) {
         if (followerId.equals(followingId)) {
             throw new CustomException(ErrorResponseCode.SELF_FOLLOW_NOT_ALLOWED);
         }
@@ -34,11 +35,23 @@ public class FollowServiceImpl implements FollowService {
         
         // 이미 팔로우 중인지 확인
         boolean exists = followMapper.existsByFollowerAndFollowing(followerId, followingId);
+        boolean currentStatus;
 
         if (exists) {
             followMapper.deleteFollow(followerId, followingId); // 언팔로우
+            currentStatus = false;
         } else {
             followMapper.insertFollow(followerId, followingId); // 팔로우
+            currentStatus = true;
         }
+
+        Long targetFollowerCount = followMapper.countFollowers(followingId);
+        Long myFollowingCount = followMapper.countFollowings(followerId);
+
+        return FollowResponseDto.builder()
+                .isFollowing(currentStatus)
+                .followerCount(targetFollowerCount)
+                .followingCount(myFollowingCount)
+                .build();
     }
 }

@@ -1,6 +1,7 @@
 package com.pagoda.matchmeal.controller;
 
 import com.pagoda.matchmeal.model.dto.UserDto;
+import com.pagoda.matchmeal.model.dto.response.FollowResponseDto;
 import com.pagoda.matchmeal.service.FollowService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -23,14 +24,14 @@ public class FollowController {
      * @param targetId
      */
     @PostMapping("/{targetId}/follow")
-    public ResponseEntity<Void> toggleFollow(
+    public ResponseEntity<FollowResponseDto> toggleFollow(
             @AuthenticationPrincipal UserDto userDto,
             @PathVariable Long targetId
     ) {
         if (userDto == null) {
             return ResponseEntity.status(401).build();
         }
-        followService.toggleFollow(userDto.getId(), targetId);
-        return ResponseEntity.ok().build();
+        FollowResponseDto response = followService.toggleFollow(userDto.getId(), targetId);
+        return ResponseEntity.ok(response);
     }
 }
