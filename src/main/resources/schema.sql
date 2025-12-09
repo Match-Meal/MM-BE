@@ -19,7 +19,8 @@ CREATE TABLE foods (
 
     -- [핵심 수정] 복잡한 날짜 설정 제거 -> 그냥 TIMESTAMP
                        created_at   TIMESTAMP,
-                       updated_at   TIMESTAMP
+                       updated_at   TIMESTAMP,
+                       deleted_at   TIMESTAMP DEFAULT NULL
 );
 
 -- 인덱스는 테이블 생성 후 따로 만드는 것이 H2에서 가장 안전합니다.

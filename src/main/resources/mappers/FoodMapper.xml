@@ -31,24 +31,24 @@
     </insert>
 
     <sql id="searchConditions">
-        <where>
-            <choose>
-                <when test="userOnly == true">
-                    AND f.user_id = #{userId}
-                </when>
-                <otherwise>
-                    AND (f.user_id IS NULL OR f.user_id = #{userId})
-                </otherwise>
-            </choose>
 
-            <if test="keyword != null and keyword != ''">
-                AND f.food_name LIKE CONCAT('%', #{keyword}, '%')
-            </if>
+        <choose>
+            <when test="userOnly == true">
+                AND f.user_id = #{userId}
+            </when>
+            <otherwise>
+                AND (f.user_id IS NULL OR f.user_id = #{userId})
+            </otherwise>
+        </choose>
 
-            <if test="category != null and category != ''">
-                AND f.category = #{category}
-            </if>
-        </where>
+        <if test="keyword != null and keyword != ''">
+            AND f.food_name LIKE CONCAT('%', #{keyword}, '%')
+        </if>
+
+        <if test="category != null and category != ''">
+            AND f.category = #{category}
+        </if>
+
     </sql>
 
     <select id="findFoodList" resultType="com.pagoda.matchmeal.model.dto.response.FoodListResponseDto">
@@ -59,9 +59,10 @@
         f.unit AS unit,
         f.calories AS calories
         FROM foods f
-
-        <include refid="searchConditions"/>
-
+        <where>
+            f.deleted_at IS NULL
+            <include refid="searchConditions"/>
+        </where>
         ORDER BY f.created_at DESC
         LIMIT #{limit}
         OFFSET #{offset}
@@ -70,7 +71,10 @@
     <select id="countFoodList" resultType="int">
         SELECT COUNT(*)
         FROM foods f
-        <include refid="searchConditions"/>
+        <where>
+            f.deleted_at IS NULL
+            <include refid="searchConditions"/>
+        </where>
     </select>
 
     <select id="findFoodDetail" resultType="com.pagoda.matchmeal.model.dto.response.FoodDetailResponseDto">
@@ -89,6 +93,7 @@
                updated_at   AS updatedAt
         FROM foods
         WHERE food_id = #{foodId}
+          AND deleted_at IS NULL
     </select>
 
     <update id="updateFood" parameterType="com.pagoda.matchmeal.model.entity.Food">
@@ -107,9 +112,10 @@
         WHERE food_id = #{foodId}
     </update>
 
-    <delete id="deleteFood" parameterType="long">
-        DELETE
-        FROM foods
+    <delete id="deleteFood">
+        UPDATE foods
+        SET deleted_at = NOW(),
+            food_code  = CONCAT(food_code, #{deleteSuffix})
         WHERE food_id = #{foodId}
     </delete>
 
