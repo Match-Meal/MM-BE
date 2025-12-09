@@ -112,12 +112,12 @@
         WHERE food_id = #{foodId}
     </update>
 
-    <delete id="deleteFood">
+    <update id="deleteFood">
         UPDATE foods
         SET deleted_at = NOW(),
             food_code  = CONCAT(food_code, #{deleteSuffix})
         WHERE food_id = #{foodId}
-    </delete>
+    </update>
 
     <select id="findById" resultType="com.pagoda.matchmeal.model.entity.Food">
         SELECT *
