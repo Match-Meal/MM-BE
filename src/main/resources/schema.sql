@@ -95,13 +95,28 @@ CREATE TABLE diet_details (
                                       ON DELETE CASCADE
 );
 
+-- 팔로우 스키마
+CREATE TABLE follows (
+                         id           BIGINT AUTO_INCREMENT PRIMARY KEY,
+                         follower_id  BIGINT NOT NULL, -- 팔로우 하는 사람 (나)
+                         following_id BIGINT NOT NULL, -- 팔로우 당하는 사람 (상대방)
+                         created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+                         -- 중복 팔로우 방지 (A가 B를 두 번 팔로우할 수 없음)
+                         UNIQUE (follower_id, following_id),
+
+                         -- 외래키 설정 (유저 삭제 시 팔로우 관계도 삭제)
+                         CONSTRAINT fk_follower FOREIGN KEY (follower_id) REFERENCES users (user_id) ON DELETE CASCADE,
+                         CONSTRAINT fk_following FOREIGN KEY (following_id) REFERENCES users (user_id) ON DELETE CASCADE
+);
+
 -- 1. 모든 정보가 입력된 표준 남성 유저 (공개 프로필)
 INSERT INTO users (
     email, platform, social_id, user_name, gender, birth_date,
     height_cm, weight_kg, role, status, status_message, profile_image,
     allergies, diseases, is_public, created_at, updated_at
 ) VALUES (
-             'kim_chulsoo@gmail.com', 'google', 'google_123456789', '헬스보이철수', 'MALE', '1992-05-15',
+             'kim_chulsoo@gmail.com', 'google', 'google_123456789', '헬스보이철수', 'M', '1992-05-15',
              178.5, 76.0, 'ROLE_USER', 'ACTIVE', '3대 500 치는 그날까지! 💪', NULL,
              '땅콩,호두', NULL, TRUE, NOW(), NOW()
          );
@@ -112,7 +127,7 @@ INSERT INTO users (
     height_cm, weight_kg, role, status, status_message, profile_image,
     allergies, diseases, is_public, created_at, updated_at
 ) VALUES (
-             'lee_younghee@gmail.com', 'google', 'google_987654321', '샐러드조아', 'FEMALE', '1995-10-20',
+             'lee_younghee@gmail.com', 'google', 'google_987654321', '샐러드조아', 'F', '1995-10-20',
              162.0, 48.5, 'ROLE_USER', 'ACTIVE', '건강하게 다이어트 하기 🌱', NULL,
              '복숭아,우유', '당뇨', FALSE, NOW(), NOW()
          );
@@ -134,7 +149,7 @@ INSERT INTO users (
     height_cm, weight_kg, role, status, status_message, profile_image,
     allergies, diseases, is_public, created_at, updated_at
 ) VALUES (
-             'admin@matchmeal.com', 'google', 'google_admin_001', '관리자', 'MALE', '1990-01-01',
+             'admin@matchmeal.com', 'google', 'google_admin_001', '관리자', 'M', '1990-01-01',
              180.0, 80.0, 'ROLE_ADMIN', 'ACTIVE', '관리자 계정입니다.', NULL,
              NULL, NULL, FALSE, NOW(), NOW()
          );
