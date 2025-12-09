@@ -16,6 +16,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
 
@@ -168,7 +170,10 @@ public class FoodServiceImpl implements FoodService {
         if (!existingFood.getUserId().equals(userId)) {
             throw new CustomException(ErrorResponseCode.UNAUTHORIZED);
         }
-        foodMapper.deleteFood(foodId);
+
+        String suffix = "_DEL_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+
+        foodMapper.deleteFood(foodId, suffix);
     }
 
     // "categories"라는 이름으로 캐시 저장 (메모리에 저장됨)
