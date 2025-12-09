@@ -71,7 +71,8 @@ CREATE TABLE diet_records (
                               total_fat          DOUBLE PRECISION DEFAULT 0,
 
                               created_at         TIMESTAMP,
-                              updated_at         TIMESTAMP
+                              updated_at         TIMESTAMP,
+                              deleted_at         TIMESTAMP DEFAULT NULL
 );
 
 CREATE INDEX idx_diet_user_date ON diet_records(user_id, eat_date);

@@ -32,9 +32,9 @@
     <insert id="insertDiet" parameterType="com.pagoda.matchmeal.model.entity.Diet"
             useGeneratedKeys="true" keyProperty="dietId">
         INSERT INTO diet_records (user_id, eat_date, eat_time, meal_type, memo, diet_img_url,
-                                  total_calories, total_carbohydrate, total_protein, total_fat)
+                                  total_calories, total_carbohydrate, total_protein, total_fat, created_at, updated_at)
         VALUES (#{userId}, #{eatDate}, #{eatTime}, #{mealType}, #{memo}, #{dietImgUrl},
-                #{totalCalories}, #{totalCarbohydrate}, #{totalProtein}, #{totalFat})
+                #{totalCalories}, #{totalCarbohydrate}, #{totalProtein}, #{totalFat}, NOW(), NOW())
     </insert>
 
     <insert id="insertDietDetails" parameterType="java.util.List">
@@ -65,6 +65,7 @@
                  LEFT JOIN diet_details dd ON d.diet_id = dd.diet_id
         WHERE d.user_id = #{userId}
           AND d.eat_date = #{eatDate}
+          AND d.deleted_at IS NULL
         ORDER BY d.eat_time ASC
     </select>
 
@@ -82,6 +83,7 @@
         FROM diet_records d
                  LEFT JOIN diet_details dd ON d.diet_id = dd.diet_id
         WHERE d.diet_id = #{dietId}
+          AND d.deleted_at IS NULL
     </select>
 
     <update id="updateDiet" parameterType="com.pagoda.matchmeal.model.entity.Diet">
@@ -104,9 +106,9 @@
         WHERE diet_id = #{dietId}
     </delete>
 
-    <delete id="deleteDietByDietId">
-        DELETE
-        FROM diet_records
+    <update id="deleteDietByDietId">
+        UPDATE diet_records
+        SET deleted_at = NOW()
         WHERE diet_id = #{dietId}
-    </delete>
+    </update>
 </mapper>
