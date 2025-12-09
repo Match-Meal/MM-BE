@@ -4,6 +4,7 @@ import com.pagoda.matchmeal.common.exception.CustomException;
 import com.pagoda.matchmeal.common.exception.ErrorResponseCode;
 import com.pagoda.matchmeal.mapper.FollowMapper;
 import com.pagoda.matchmeal.mapper.UserMapper;
+import com.pagoda.matchmeal.model.dto.response.FollowResponseDto;
 import com.pagoda.matchmeal.model.entity.User;
 import com.pagoda.matchmeal.service.impl.FollowServiceImpl;
 import org.junit.jupiter.api.DisplayName;
@@ -16,6 +17,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
@@ -44,13 +46,24 @@ public class FollowServiceTset {
         // 팔로우 중이 아님(false)
         given(followMapper.existsByFollowerAndFollowing(followerId, followingId)).willReturn(false);
 
+        long expectedTargetFollowerCount = 10L;
+        long expectedMyFollowingCount = 5L;
+
+        given(followMapper.countFollowers(followingId)).willReturn(expectedTargetFollowerCount);
+        given(followMapper.countFollowings(followerId)).willReturn(expectedMyFollowingCount);
+
         // when
-        followService.toggleFollow(followerId, followingId);
+        FollowResponseDto result = followService.toggleFollow(followerId, followingId);
 
         // then
         // insertFollow 호출
         verify(followMapper, times(1)).insertFollow(followerId, followingId);
         verify(followMapper, never()).deleteFollow(followerId, followingId);
+
+        // 반환된 DTO 값 검증
+        assertThat(result.isFollowing()).isTrue(); // 팔로우 상태여야 함
+        assertThat(result.getFollowerCount()).isEqualTo(expectedTargetFollowerCount);
+        assertThat(result.getFollowingCount()).isEqualTo(expectedMyFollowingCount);
     }
 
     @Test
@@ -65,13 +78,24 @@ public class FollowServiceTset {
         // 현재 팔로우 중임 (true)
         given(followMapper.existsByFollowerAndFollowing(followerId, followingId)).willReturn(true);
 
+        long expectedTargetFollowerCount = 9L;
+        long expectedMyFollowingCount = 4L;
+
+        given(followMapper.countFollowers(followingId)).willReturn(expectedTargetFollowerCount);
+        given(followMapper.countFollowings(followerId)).willReturn(expectedMyFollowingCount);
+
         // when
-        followService.toggleFollow(followerId, followingId);
+        FollowResponseDto result = followService.toggleFollow(followerId, followingId);
 
         // then
         // deleteFollow는 호출되고, insertFollow는 호출되지 않아야 함
         verify(followMapper, times(1)).deleteFollow(followerId, followingId);
         verify(followMapper, never()).insertFollow(followerId, followingId);
+
+        // 반환된 DTO 값 검증
+        assertThat(result.isFollowing()).isFalse(); // 언팔로우 상태여야 함
+        assertThat(result.getFollowerCount()).isEqualTo(expectedTargetFollowerCount);
+        assertThat(result.getFollowingCount()).isEqualTo(expectedMyFollowingCount);
     }
 
     @Test

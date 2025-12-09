@@ -2,6 +2,7 @@ package com.pagoda.matchmeal.service;
 
 import com.pagoda.matchmeal.common.exception.CustomException;
 import com.pagoda.matchmeal.common.exception.ErrorResponseCode;
+import com.pagoda.matchmeal.mapper.FollowMapper;
 import com.pagoda.matchmeal.mapper.UserMapper;
 import com.pagoda.matchmeal.model.dto.UserDto;
 import com.pagoda.matchmeal.model.dto.UserProfileDto;
@@ -35,6 +36,9 @@ public class UserServiceTest {
 
     @Mock
     private S3Service s3Service;
+
+    @Mock
+    private FollowMapper followMapper;
 
     @InjectMocks
     private UserServiceImpl userService;
@@ -74,6 +78,8 @@ public class UserServiceTest {
                 .build();
 
         given(userMapper.findById(userId)).willReturn(Optional.of(user));
+        given(followMapper.countFollowers(userId)).willReturn(10L);
+        given(followMapper.countFollowings(userId)).willReturn(5L);
 
         // when
         UserDto result = userService.getMyProfile(userId);
@@ -83,6 +89,8 @@ public class UserServiceTest {
         assertThat(result.getAllergies()).contains("땅콩", "우유");
         assertThat(result.getRole()).isEqualTo(UserRole.ROLE_USER.name());
         assertThat(result.getIsPublic()).isEqualTo(true);
+        assertThat(result.getFollowerCount()).isEqualTo(10L);
+        assertThat(result.getFollowingCount()).isEqualTo(5L);
     }
     
     @Test
@@ -99,6 +107,8 @@ public class UserServiceTest {
                 .build();
 
         given(userMapper.findById(targetId)).willReturn(Optional.of(targetUser));
+        given(followMapper.countFollowers(targetId)).willReturn(100L);
+        given(followMapper.countFollowings(targetId)).willReturn(50L);
 
         // when
         UserDto result = userService.getUserProfile(targetId);
@@ -106,6 +116,7 @@ public class UserServiceTest {
         // then
         assertThat(result.getUserName()).isEqualTo("공개유저");
         assertThat(result.getHeightCm()).isEqualTo(180.0);
+        assertThat(result.getFollowerCount()).isEqualTo(100L);
     }
 
     @Test
@@ -122,6 +133,8 @@ public class UserServiceTest {
                 .build();
 
         given(userMapper.findById(targetId)).willReturn(Optional.of(targetUser));
+        given(followMapper.countFollowers(targetId)).willReturn(10L);
+        given(followMapper.countFollowings(targetId)).willReturn(2L);
 
         // when
         UserDto result = userService.getUserProfile(targetId);
@@ -130,6 +143,7 @@ public class UserServiceTest {
         assertThat(result.getUserName()).isEqualTo("비공개유저");
         assertThat(result.getStatusMessage()).isEqualTo("비공개 프로필입니다.");
         assertThat(result.getHeightCm()).isNull(); // 민감 정보는 null이어야 함
+        assertThat(result.getFollowerCount()).isEqualTo(10L); // 카운트 확인
     }
 
     @Test
