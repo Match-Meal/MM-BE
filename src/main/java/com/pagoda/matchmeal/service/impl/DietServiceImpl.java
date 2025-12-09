@@ -285,7 +285,7 @@ public class DietServiceImpl implements DietService {
     @Transactional
     public void deleteDiet(Long userId, Long dietId) {
         DietResponseDto diet = dietMapper.findDietByDietId(dietId);
-        if (diet == null) {
+        if (diet == null || diet.getDeletedAt() != null) {
             throw new CustomException(ErrorResponseCode.DIET_NOT_FOUND);
         }
         if (!diet.getUserId().equals(userId)) {

@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 
@@ -30,6 +31,8 @@ public class DietResponseDto {
     private double totalFat;
 
     private List<DietDetailResponseDto> details;
+
+    private LocalDateTime deletedAt;
 
     @Getter
     @Builder

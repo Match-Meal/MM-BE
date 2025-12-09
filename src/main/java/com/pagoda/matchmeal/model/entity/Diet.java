@@ -5,6 +5,7 @@ import lombok.*;
 import lombok.experimental.SuperBuilder;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 
@@ -34,4 +35,6 @@ public class Diet extends BaseEntity {
 
 
     private List<DietDetail> dietDetails; // 포함된 음식들
+
+    private LocalDateTime deletedAt;
 }
