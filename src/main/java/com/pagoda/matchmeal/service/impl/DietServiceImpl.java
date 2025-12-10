@@ -10,9 +10,11 @@ import com.pagoda.matchmeal.model.entity.Diet;
 import com.pagoda.matchmeal.model.entity.DietDetail;
 import com.pagoda.matchmeal.model.entity.Food;
 import com.pagoda.matchmeal.service.DietService;
+import com.pagoda.matchmeal.service.S3Service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -29,6 +31,7 @@ public class DietServiceImpl implements DietService {
 
     private final DietMapper dietMapper;
     private final FoodMapper foodMapper;
+    private final S3Service s3Service;
 
     /**
      * [식단 기록]
@@ -38,7 +41,13 @@ public class DietServiceImpl implements DietService {
      */
     @Override
     @Transactional
-    public Long recordDiet(Long userId, DietRequestDto dietRequestDto) {
+    public Long recordDiet(Long userId, DietRequestDto dietRequestDto, MultipartFile file) {
+        // 1. 이미지 업로드 처리
+        String imgUrl = null;
+        if (file != null && !file.isEmpty()) {
+            imgUrl = s3Service.uploadFile(file, "diet");
+        }
+
         // 1. 합계 변수 초기화 (부모 테이블에 저장할 총합)
         double totalCal = 0;
         double totalCarbohydrate = 0;
@@ -137,6 +146,7 @@ public class DietServiceImpl implements DietService {
                 .eatTime(dietRequestDto.getEatTime())
                 .mealType(dietRequestDto.getMealType())
                 .memo(dietRequestDto.getMemo())
+                .dietImgUrl(imgUrl)
                 // 계산된 총합 저장
                 .totalCalories(totalCal)
                 .totalCarbohydrate(totalCarbohydrate)
@@ -207,7 +217,22 @@ public class DietServiceImpl implements DietService {
      */
     @Override
     @Transactional
-    public void updateDiet(Long userId, Long dietId, DietRequestDto dietRequestDto) {
+    public void updateDiet(Long userId, Long dietId, DietRequestDto dietRequestDto, MultipartFile file) {
+        // 1. 기존 식단 조회
+        DietResponseDto existingDiet = dietMapper.findDietByDietId(dietId); // (null 체크 및 권한 체크 필수)
+
+        String newImgUrl = existingDiet.getDietImgUrl();
+
+        // 2. 새 이미지가 들어왔다면?
+        if (file != null && !file.isEmpty()) {
+            // 2-1. 기존 이미지가 있었다면 S3에서 삭제 (쓰레기 파일 방지)
+            if (existingDiet.getDietImgUrl() != null) {
+                s3Service.deleteFile(existingDiet.getDietImgUrl());
+            }
+            // 2-2. 새 이미지 업로드
+            newImgUrl = s3Service.uploadFile(file, "diet");
+        }
+
         // 1. 합계 변수 초기화
         double totalCal = 0;
         double totalCarbohydrate = 0;
@@ -259,7 +284,7 @@ public class DietServiceImpl implements DietService {
                 .eatTime(dietRequestDto.getEatTime())
                 .mealType(dietRequestDto.getMealType())
                 .memo(dietRequestDto.getMemo())
-                // .dietImgUrl(...) // 이미지 수정 로직이 있다면 추가
+                .dietImgUrl(newImgUrl) // 이미지 수정 로직이 있다면 추가
                 .totalCalories(totalCal)
                 .totalCarbohydrate(totalCarbohydrate)
                 .totalProtein(totalProtein)
