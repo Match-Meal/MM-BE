@@ -1,7 +1,6 @@
 package com.pagoda.matchmeal.service.impl;
 
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.CannedAccessControlList;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.pagoda.matchmeal.common.exception.CustomException;
@@ -11,7 +10,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.ErrorResponse;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
@@ -32,11 +30,12 @@ public class S3ServiceImpl implements S3Service {
 
     /**
      * S3에 파일 업로드
+     *
      * @param file 업로드할 파일
      * @return 업로드된 파일의 전체 URL
      */
     @Override
-    public String uploadFile(MultipartFile file) {
+    public String uploadFile(MultipartFile file, String dirName) {
         // 파일 유효성 검사
         if (file.isEmpty()) {
             throw new CustomException(ErrorResponseCode.INVALID_FILE);
@@ -44,7 +43,7 @@ public class S3ServiceImpl implements S3Service {
 
         // 파일명 중복 방지 (uuid)
         String originalFilename = file.getOriginalFilename();
-        String fileName = "profile/" + UUID.randomUUID() + "_" + originalFilename.replaceAll("\\s","_");
+        String fileName = dirName + "/" + UUID.randomUUID() + "_" + originalFilename.replaceAll("\\s", "_");
 
         // 메타 데이터 설정
         ObjectMetadata objectMetadata = new ObjectMetadata();
@@ -65,6 +64,7 @@ public class S3ServiceImpl implements S3Service {
 
     /**
      * S3 파일 삭제
+     *
      * @param fileUrl 삭제할 파일의 전체 URL
      */
     @Override

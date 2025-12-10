@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -21,8 +22,11 @@ public class DietController {
     private final DietService dietService;
 
     @PostMapping("/diet")
-    public CommonResponse<Long> addDiet(@AuthenticationPrincipal UserDto userDto, @RequestBody DietRequestDto dietRequestDto) {
-        return ApiResponseUtil.created(dietService.recordDiet(userDto.getId(), dietRequestDto));
+    public CommonResponse<Long> addDiet(
+            @AuthenticationPrincipal UserDto userDto,
+            @RequestPart(value = "data") DietRequestDto dietRequestDto,
+            @RequestPart(value = "file") MultipartFile file) {
+        return ApiResponseUtil.created(dietService.recordDiet(userDto.getId(), dietRequestDto, file));
     }
 
     @GetMapping("/diet")
@@ -43,8 +47,9 @@ public class DietController {
     @PutMapping("/diet/{dietId}")
     public CommonResponse<Void> updateDiet(@AuthenticationPrincipal UserDto userDto,
                                            @PathVariable Long dietId,
-                                           @RequestBody DietRequestDto requestDto) {
-        dietService.updateDiet(userDto.getId(), dietId, requestDto);
+                                           @RequestPart(value = "data") DietRequestDto requestDto,
+                                           @RequestPart(value = "file") MultipartFile file) {
+        dietService.updateDiet(userDto.getId(), dietId, requestDto, file);
         return ApiResponseUtil.success();
     }
 

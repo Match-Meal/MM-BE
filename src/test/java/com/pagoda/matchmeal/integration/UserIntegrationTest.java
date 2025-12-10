@@ -120,9 +120,9 @@ public class UserIntegrationTest {
 
         // when
         mockMvc.perform(patch("/user/visibility")
-                .header("Authorization", "Bearer " + token)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
                 .andExpect(status().isOk());
 
@@ -175,7 +175,7 @@ public class UserIntegrationTest {
 
         // 4. S3Service Mocking (실제 업로드 대신 가짜 URL 반환)
         String mockS3Url = "https://s3.amazonaws.com/bucket/new_profile.jpg";
-        given(s3Service.uploadFile(any())).willReturn(mockS3Url);
+        given(s3Service.uploadFile(any(), any(String.class))).willReturn(mockS3Url);
 
         // when & then
         // [주의] multipart 요청은 기본적으로 POST입니다. PUT으로 보내려면 with(...)를 써야 합니다.

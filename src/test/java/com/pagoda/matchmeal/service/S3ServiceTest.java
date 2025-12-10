@@ -59,7 +59,7 @@ public class S3ServiceTest {
         given(amazonS3.getUrl(eq(BUCKET_NAME), any(String.class))).willReturn(new URL(expectedUrl));
 
         // when
-        String resultUrl = s3Service.uploadFile(file);
+        String resultUrl = s3Service.uploadFile(file, "profile");
 
         // then
         // 1. putObject가 호출되었는지 검증 및 인자 캡처
@@ -113,7 +113,7 @@ public class S3ServiceTest {
         given(file.getInputStream()).willThrow(new IOException("S3 Error"));
 
         // when & then
-        assertThatThrownBy(() -> s3Service.uploadFile(file))
+        assertThatThrownBy(() -> s3Service.uploadFile(file, "profile"))
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("code", ErrorResponseCode.FILE_UPLOAD_ERROR);
     }

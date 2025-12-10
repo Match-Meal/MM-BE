@@ -84,7 +84,7 @@ public class UserServiceImpl implements UserService {
             }
 
             // 새 파일 업로드
-            profileImageUrl = s3Service.uploadFile(imageFile);
+            profileImageUrl = s3Service.uploadFile(imageFile, "profile");
         }
 
         String allergyStr = convertToString(profileDto.getAllergies());

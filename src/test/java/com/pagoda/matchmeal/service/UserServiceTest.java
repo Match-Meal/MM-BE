@@ -62,7 +62,7 @@ public class UserServiceTest {
         ));
 
         assertThat(result.get("isNew")).isEqualTo(true);
-        assertThat(((User)result.get("user")).getSocialId()).isEqualTo(socialId);
+        assertThat(((User) result.get("user")).getSocialId()).isEqualTo(socialId);
     }
 
     @Test
@@ -92,7 +92,7 @@ public class UserServiceTest {
         assertThat(result.getFollowerCount()).isEqualTo(10L);
         assertThat(result.getFollowingCount()).isEqualTo(5L);
     }
-    
+
     @Test
     @DisplayName("타인 프로필 조회 - 공개 계정일 경우 모든 정보 반환")
     void getUserProfile_Public() {
@@ -187,13 +187,13 @@ public class UserServiceTest {
                 .build();
 
         given(userMapper.findById(userId)).willReturn(Optional.of(existingUser));
-        given(s3Service.uploadFile(file)).willReturn(s3Url);
+        given(s3Service.uploadFile(file, "profile")).willReturn(s3Url);
 
         // when
         userService.updateProfile(userId, dto, file);
 
         // then
-        verify(s3Service, times(1)).uploadFile(file); // 업로드 호출 확인
+        verify(s3Service, times(1)).uploadFile(file, "profile"); // 업로드 호출 확인
         verify(userMapper).updateProfile(argThat(user ->
                 user.getProfileImage().equals(s3Url) && // URL이 새것으로 바뀌었는지
                         user.getUserName().equals("수정된이름")
@@ -219,7 +219,7 @@ public class UserServiceTest {
         userService.updateProfile(userId, dto, null); // 파일 null 전달
 
         // then
-        verify(s3Service, never()).uploadFile(any()); // S3 호출되면 안 됨
+        verify(s3Service, never()).uploadFile(any(), any(String.class)); // S3 호출되면 안 됨
         verify(userMapper).updateProfile(argThat(user ->
                 user.getProfileImage().equals("original_url.jpg") // 기존 URL 유지 확인
         ));

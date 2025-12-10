@@ -50,5 +50,7 @@ public class DietResponseDto {
         private double carbohydrate;
         private double protein;
         private double fat;
+
+        private String dietImgUrl;
     }
 }
