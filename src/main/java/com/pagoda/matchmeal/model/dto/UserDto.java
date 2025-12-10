@@ -32,4 +32,7 @@ public class UserDto {
     // 콤마로 구분된 문자열을 리스트로 변환하여 전달
     private List<String> allergies;
     private List<String> diseases;
+
+    private Long followerCount; // 나를 팔로우
+    private Long followingCount; // 내가 팔로우
 }
