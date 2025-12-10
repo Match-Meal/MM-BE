@@ -45,7 +45,9 @@ public class FollowController {
             @AuthenticationPrincipal UserDto userDto, // 조회하는 사람
             @PathVariable Long userId
     ) {
+
         Long viewerId = (userDto != null) ? userDto.getId() : null;
+//        System.out.println("====== [Followers] viewerId: " + viewerId + " ======");
         List<FollowListDto> list = followService.getFollowers(userId, viewerId);
         return ResponseEntity.ok(list);
     }
@@ -61,6 +63,7 @@ public class FollowController {
             @PathVariable Long userId
     ) {
         Long viewerId = (userDto != null) ? userDto.getId() : null;
+//        System.out.println("====== [DEBUG] 요청자 ID (viewerId): " + viewerId + " ======");
         List<FollowListDto> list = followService.getFollowings(userId, viewerId);
         return ResponseEntity.ok(list);
     }

@@ -4,6 +4,8 @@ import com.pagoda.matchmeal.common.exception.CustomException;
 import com.pagoda.matchmeal.common.exception.ErrorResponseCode;
 import com.pagoda.matchmeal.mapper.FollowMapper;
 import com.pagoda.matchmeal.mapper.UserMapper;
+import com.pagoda.matchmeal.model.dto.UserDto;
+import com.pagoda.matchmeal.model.dto.response.FollowListDto;
 import com.pagoda.matchmeal.model.dto.response.FollowResponseDto;
 import com.pagoda.matchmeal.model.entity.User;
 import com.pagoda.matchmeal.service.impl.FollowServiceImpl;
@@ -14,6 +16,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -132,6 +135,73 @@ public class FollowServiceTset {
         // 팔로우 로직은 실행되지 않아야 함
         verify(followMapper, never()).insertFollow(anyLong(), anyLong());
         
+    }
+
+    @Test
+    @DisplayName("팔로워 목록 조회 성공")
+    void getFollowers_Success() {
+        // given
+        Long targetId = 2L;
+        Long viewerId = 5L; // 로그인한 사용자
+
+        // 대상 유저가 존재하는지 확인하는 로직 Mocking
+        given(userMapper.findById(targetId))
+                .willReturn(Optional.of(UserDto.builder().id(targetId).build()));
+
+        // Mapper가 반환할 가짜 리스트 생성
+        List<FollowListDto> mockList = List.of(
+                FollowListDto.builder().userId(1L).userName("User1").isFollowing(true).build(),
+                FollowListDto.builder().userId(3L).userName("User3").isFollowing(false).build()
+        );
+
+        given(followMapper.getFollowers(targetId, viewerId)).willReturn(mockList);
+
+        // when
+        List<FollowListDto> result = followService.getFollowers(targetId, viewerId);
+
+        // then
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0).isFollowing()).isTrue(); // 첫번째 유저는 맞팔 상태
+        verify(userMapper).findById(targetId); // 유저 조회 호출 확인
+        verify(followMapper).getFollowers(targetId, viewerId); // 매퍼 호출 확인
+    }
+
+    @Test
+    @DisplayName("팔로워 목록 조회 실패 - 대상 유저 없음")
+    void getFollowers_Fail_UserNotFound() {
+        // given
+        Long targetId = 999L;
+        Long viewerId = 5L;
+
+        // 유저가 없다고 가정 (Optional.empty 반환)
+        given(userMapper.findById(targetId)).willReturn(Optional.empty());
+
+        // when & then
+        assertThatThrownBy(() -> followService.getFollowers(targetId, viewerId))
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue("errorCode", ErrorResponseCode.USER_NOT_FOUND);
+    }
+
+    @Test
+    @DisplayName("팔로잉 목록 조회 성공")
+    void getFollowings_Success() {
+        // given
+        Long targetId = 2L;
+        Long viewerId = 5L;
+
+        // getFollowings는 현재 유저 존재 체크 로직이 없으므로 바로 매퍼 호출 Mocking
+        List<FollowListDto> mockList = List.of(
+                FollowListDto.builder().userId(10L).userName("User10").isFollowing(true).build()
+        );
+
+        given(followMapper.getFollowings(targetId, viewerId)).willReturn(mockList);
+
+        // when
+        List<FollowListDto> result = followService.getFollowings(targetId, viewerId);
+
+        // then
+        assertThat(result).hasSize(1);
+        verify(followMapper).getFollowings(targetId, viewerId);
     }
 
 }
