@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pagoda.matchmeal.mapper.ChallengeMapper">
+
+    <select id="findAllChallenges" resultType="ChallengeResponseDto">
+        SELECT
+            c.challenge_id AS challengeId,
+            c.title,
+            c.description,
+            c.type,
+            c.target_value AS targetValue,
+            uc.user_challenge_id AS userChallengeId,
+            IFNULL(uc.current_progress, 0) AS currentProgress,
+
+        FROM challenges c
+        LEFT JOIN user_challenges uc
+               ON c.challenge_id = uc.challenge_id
+              AND uc.user_id = #{userId}
+    </select>
+
+    <select id="findActiveChallengesByUserId" resultType="ActiveChallengeDto">
+        SELECT
+            uc.user_challenge_id AS userChallengeId,
+            uc.current_progerss AS currentProgress,
+            uc.last_checked_at AS lastCheckedAt,
+            c.challenge_id AS challengeId,
+            c.type AS challengeType,
+            c.target_value AS targetValue
+        FROM user_challenges uc
+        JOIN challenges c ON uc.challenge_id = c.challenge_id
+        WHERE uc.user_id = #{userId}
+          AND uc.status = 'PROGRESS'
+    </select>
+
+    <insert id="insertUserChallenge">
+        INSERT INTO user_challenges (user_id, challenge_id, status, current_progress, created_at)
+        VALUES (#{userId}, #{challengeId}, 'PROGRESS', 0, NOW())
+    </insert>
+
+    <update id="updateProgress">
+        UPDATE user_challenges
+        SET current_progress = current_progress + 1,
+            last_checked_at = CURDATE()
+        WHERE user_challenge_id = #{userChallengeId}
+    </update>
+
+    <update id="updateStatusToSuccess">
+        UPDATE user_challenges
+        SET status = 'SUCCESS'
+        WHERE user_challenge_id = #{userChallengeId}
+    </update>
+
+</mapper>
