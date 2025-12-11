@@ -32,6 +32,8 @@ public class PostServiceImpl implements PostService {
     @Override
     @Transactional
     public Long writePost(Long userId, PostRequestDto postRequestDto, List<MultipartFile> files) {
+        validateUser(userId);
+
         Post post = Post.builder()
                 .userId(userId)
                 .category(postRequestDto.getCategory())
@@ -48,10 +50,19 @@ public class PostServiceImpl implements PostService {
         return post.getPostId();
     }
 
+    private static void validateUser(Long userId) {
+        if (userId == null) {
+            throw new CustomException(ErrorResponseCode.UNAUTHORIZED);
+        }
+    }
+
     @Override
-    public PageInfoResponseDto<PostDetailResponseDto> getPost(String keyword, String searchType, String category, LocalDate startDate, LocalDate endDate, String sortType, Pageable pageable) {
+    public PageInfoResponseDto<PostDetailResponseDto> getPost(Long userId, String keyword, String searchType, String category, LocalDate startDate, LocalDate endDate, String sortType, Pageable pageable) {
+
+        validateUser(userId);
 
         PostSearchCond cond = PostSearchCond.builder()
+                .userId(userId)
                 .category(category)
                 .searchType(searchType)
                 .keyword(keyword)
@@ -70,7 +81,8 @@ public class PostServiceImpl implements PostService {
     }
 
     @Override
-    public PostDetailResponseDto getPostDetail(Long postId) {
+    public PostDetailResponseDto getPostDetail(Long userId, Long postId) {
+        validateUser(userId);
         PostDetailResponseDto postDetail = postMapper.getPostByPostId(postId);
         if (postDetail == null) {
             throw new CustomException(ErrorResponseCode.POST_NOT_FOUND);
@@ -82,18 +94,9 @@ public class PostServiceImpl implements PostService {
     @Transactional
     public Long updatePost(Long userId, Long postId, PostRequestDto postRequestDto, List<MultipartFile> files) {
 
-        // 1. 게시글 상세 조회
-        PostDetailResponseDto postDetail = postMapper.getPostByPostId(postId);
+        validateUser(userId);
 
-        // 2. 게시글 존재 여부 확인 (방어 로직)
-        if (postDetail == null) {
-            throw new CustomException(ErrorResponseCode.POST_NOT_FOUND);
-        }
-
-        // 3. 작성자 본인 확인 (권한 체크)
-        if (!postDetail.getUser().getUserId().equals(userId)) {
-            throw new CustomException(ErrorResponseCode.UNAUTHORIZED);
-        }
+        validatePostOwner(userId, postId);
 
         Post updateParam = Post.builder()
                 .postId(postId)
@@ -125,9 +128,7 @@ public class PostServiceImpl implements PostService {
         return postId;
     }
 
-    @Override
-    @Transactional
-    public void deletePost(Long userId, Long postId) {
+    private void validatePostOwner(Long userId, Long postId) {
         // 1. 게시글 상세 조회
         PostDetailResponseDto postDetail = postMapper.getPostByPostId(postId);
 
@@ -140,6 +141,16 @@ public class PostServiceImpl implements PostService {
         if (!postDetail.getUser().getUserId().equals(userId)) {
             throw new CustomException(ErrorResponseCode.UNAUTHORIZED);
         }
+    }
+
+    @Override
+    @Transactional
+    public void deletePost(Long userId, Long postId) {
+
+        validateUser(userId);
+
+        // 1. 게시글 상세 조회
+        validatePostOwner(userId, postId);
 
         // 1. 삭제 전 기존 파일 조회
         List<PostFile> attachedFiles = postMapper.getPostFilesByPostId(postId);

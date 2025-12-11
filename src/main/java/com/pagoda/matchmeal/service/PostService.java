@@ -13,9 +13,9 @@ public interface PostService {
 
     Long writePost(Long userId, PostRequestDto postRequestDto, List<MultipartFile> files);
 
-    PageInfoResponseDto<PostDetailResponseDto> getPost(String keyword, String searchType, String category, LocalDate startDate, LocalDate endDate, String sortType, Pageable pageable);
+    PageInfoResponseDto<PostDetailResponseDto> getPost(Long userId, String keyword, String searchType, String category, LocalDate startDate, LocalDate endDate, String sortType, Pageable pageable);
 
-    PostDetailResponseDto getPostDetail(Long postId);
+    PostDetailResponseDto getPostDetail(Long userId, Long postId);
 
     Long updatePost(Long userId, Long postId, PostRequestDto postRequestDto, List<MultipartFile> files);
 

@@ -12,6 +12,7 @@ public class PostSearchCond {
     private String keyword;
     private String searchType; // (TITLE, CONTENT, TITLE_CONTENT, WRITER)
     private String category; // 공지(NOTICE), 자유(GENERAL), 질문(QNA), 식단(DIET)
+    private Long userId;
 
     private LocalDate startDate;
     private LocalDate endDate;
