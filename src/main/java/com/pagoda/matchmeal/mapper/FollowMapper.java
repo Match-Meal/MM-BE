@@ -1,7 +1,10 @@
 package com.pagoda.matchmeal.mapper;
 
+import com.pagoda.matchmeal.model.dto.response.FollowListDto;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+
+import java.util.List;
 
 @Mapper
 public interface FollowMapper {
@@ -19,4 +22,8 @@ public interface FollowMapper {
 
     // 팔로잉 수 조회 (내가 팔로우 하는 사람)
     Long countFollowings(Long userId);
+
+    List<FollowListDto> getFollowers(@Param("targetId") Long targetId, @Param("viewerId") Long viewerId);
+
+    List<FollowListDto> getFollowings(@Param("targetId") Long targetId, @Param("viewerId") Long viewerId);
 }
