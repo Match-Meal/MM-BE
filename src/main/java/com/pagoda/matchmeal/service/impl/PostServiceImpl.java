@@ -169,15 +169,15 @@ public class PostServiceImpl implements PostService {
         }
 
         // 2. 이미 좋아요를 눌렀는지 확인
-        boolean isLiked = postMapper.existsLike(postId, userId);
+        boolean isLiked = postMapper.existsLike(userId, postId);
 
         if (isLiked) {
             // 이미 눌렀으면 -> 취소 (삭제)
-            postMapper.deleteLike(postId, userId);
+            postMapper.deleteLike(userId, postId);
             return false; // 결과: 좋아요 안 함 상태
         } else {
             // 안 눌렀으면 -> 등록
-            postMapper.insertLike(postId, userId);
+            postMapper.insertLike(userId, postId);
             return true; // 결과: 좋아요 함 상태
         }
     }
