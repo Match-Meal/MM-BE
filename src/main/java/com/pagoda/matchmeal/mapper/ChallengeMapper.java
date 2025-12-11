@@ -1,5 +1,6 @@
 package com.pagoda.matchmeal.mapper;
 
+import com.pagoda.matchmeal.model.dto.response.ActiveChallengeDto;
 import com.pagoda.matchmeal.model.dto.response.ChallengeResponseDto;
 import org.apache.ibatis.annotations.Param;
 
