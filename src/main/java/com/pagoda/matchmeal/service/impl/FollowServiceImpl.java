@@ -4,11 +4,14 @@ import com.pagoda.matchmeal.common.exception.CustomException;
 import com.pagoda.matchmeal.common.exception.ErrorResponseCode;
 import com.pagoda.matchmeal.mapper.FollowMapper;
 import com.pagoda.matchmeal.mapper.UserMapper;
+import com.pagoda.matchmeal.model.dto.response.FollowListDto;
 import com.pagoda.matchmeal.model.dto.response.FollowResponseDto;
 import com.pagoda.matchmeal.service.FollowService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -53,5 +56,20 @@ public class FollowServiceImpl implements FollowService {
                 .followerCount(targetFollowerCount)
                 .followingCount(myFollowingCount)
                 .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<FollowListDto> getFollowers(Long targetUserId, Long viewerId) {
+        // 대상 유저 존재 확인
+        userMapper.findById(targetUserId).orElseThrow(() -> new CustomException(ErrorResponseCode.USER_NOT_FOUND));
+
+        return followMapper.getFollowers(targetUserId, viewerId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<FollowListDto> getFollowings(Long targetUserId, Long viewerId) {
+        return followMapper.getFollowings(targetUserId, viewerId);
     }
 }

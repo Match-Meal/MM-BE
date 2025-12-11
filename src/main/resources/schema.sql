@@ -156,3 +156,18 @@ INSERT INTO users (
              180.0, 80.0, 'ROLE_ADMIN', 'ACTIVE', '관리자 계정입니다.', NULL,
              NULL, NULL, FALSE, NOW(), NOW()
          );
+
+-- 1. 철수(1)가 영희(2)를 팔로우 (맞팔 관계 형성용 1)
+INSERT INTO follows (follower_id, following_id, created_at) VALUES (1, 2, NOW());
+
+-- 2. 영희(2)가 철수(1)를 팔로우 (맞팔 관계 형성용 2)
+INSERT INTO follows (follower_id, following_id, created_at) VALUES (2, 1, NOW());
+
+-- 3. 뉴비(3)가 철수(1)를 팔로우 (철수의 팔로워 증가)
+INSERT INTO follows (follower_id, following_id, created_at) VALUES (3, 1, NOW());
+
+-- 4. 뉴비(3)가 영희(2)를 팔로우 (영희의 팔로워 증가)
+INSERT INTO follows (follower_id, following_id, created_at) VALUES (3, 2, NOW());
+
+-- 5. 철수(1)가 관리자(4)를 팔로우
+INSERT INTO follows (follower_id, following_id, created_at) VALUES (1, 4, NOW());
