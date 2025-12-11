@@ -1,6 +1,5 @@
-package com.pagoda.matchmeal;
+package com.pagoda.matchmeal.mapper;
 
-import com.pagoda.matchmeal.mapper.PostMapper;
 import com.pagoda.matchmeal.model.dto.PostSearchCond;
 import com.pagoda.matchmeal.model.dto.response.PostDetailResponseDto;
 import com.pagoda.matchmeal.model.entity.Post;
