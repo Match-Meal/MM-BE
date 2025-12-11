@@ -219,15 +219,15 @@ class PostServiceImplTest {
         // 1. 게시글 존재 확인
         given(postMapper.getPostByPostId(POST_ID)).willReturn(new PostDetailResponseDto());
         // 2. 좋아요 여부 -> false (안 누름)
-        given(postMapper.existsLike(POST_ID, USER_ID)).willReturn(false);
+        given(postMapper.existsLike(USER_ID, POST_ID)).willReturn(false);
 
         // when
         boolean result = postService.toggleLike(USER_ID, POST_ID);
 
         // then
         assertThat(result).isTrue(); // 결과는 true (등록됨)
-        verify(postMapper).insertLike(POST_ID, USER_ID); // insert 호출 확인
-        verify(postMapper, times(0)).deleteLike(POST_ID, USER_ID); // delete 호출 안 됨 확인
+        verify(postMapper).insertLike(USER_ID, POST_ID); // insert 호출 확인
+        verify(postMapper, times(0)).deleteLike(USER_ID, POST_ID); // delete 호출 안 됨 확인
     }
 
     @Test
@@ -236,14 +236,14 @@ class PostServiceImplTest {
         // given
         given(postMapper.getPostByPostId(POST_ID)).willReturn(new PostDetailResponseDto());
         // 좋아요 여부 -> true (이미 누름)
-        given(postMapper.existsLike(POST_ID, USER_ID)).willReturn(true);
+        given(postMapper.existsLike(USER_ID, POST_ID)).willReturn(true);
 
         // when
         boolean result = postService.toggleLike(USER_ID, POST_ID);
 
         // then
         assertThat(result).isFalse(); // 결과는 false (취소됨)
-        verify(postMapper).deleteLike(POST_ID, USER_ID); // delete 호출 확인
-        verify(postMapper, times(0)).insertLike(POST_ID, USER_ID); // insert 호출 안 됨 확인
+        verify(postMapper).deleteLike(USER_ID, POST_ID); // delete 호출 확인
+        verify(postMapper, times(0)).insertLike(USER_ID, POST_ID); // insert 호출 안 됨 확인
     }
 }
