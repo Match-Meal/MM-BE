@@ -20,4 +20,8 @@ public interface PostService {
     Long updatePost(Long userId, Long postId, PostRequestDto postRequestDto, List<MultipartFile> files);
 
     void deletePost(Long userId, Long postId);
+
+    void increaseViewCount(Long postId);
+
+    boolean toggleLike(Long userId, Long postId);
 }

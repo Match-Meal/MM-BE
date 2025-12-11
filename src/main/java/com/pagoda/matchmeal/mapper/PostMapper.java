@@ -29,4 +29,12 @@ public interface PostMapper {
     int countPosts(PostSearchCond cond);
 
     void deleteAllPosts();
+
+    void increaseViewCount(Long postId);
+
+    boolean existsLike(@Param("userId") Long userId, @Param("postId") Long postId);
+
+    void insertLike(@Param("userId") Long userId, @Param("postId") Long postId);
+
+    void deleteLike(@Param("userId") Long userId, @Param("postId") Long postId);
 }

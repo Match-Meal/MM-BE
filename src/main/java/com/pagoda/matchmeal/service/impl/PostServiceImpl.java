@@ -50,12 +50,6 @@ public class PostServiceImpl implements PostService {
         return post.getPostId();
     }
 
-    private static void validateUser(Long userId) {
-        if (userId == null) {
-            throw new CustomException(ErrorResponseCode.UNAUTHORIZED);
-        }
-    }
-
     @Override
     public PageInfoResponseDto<PostDetailResponseDto> getPost(Long userId, String keyword, String searchType, String category, LocalDate startDate, LocalDate endDate, String sortType, Pageable pageable) {
 
@@ -128,21 +122,6 @@ public class PostServiceImpl implements PostService {
         return postId;
     }
 
-    private void validatePostOwner(Long userId, Long postId) {
-        // 1. 게시글 상세 조회
-        PostDetailResponseDto postDetail = postMapper.getPostByPostId(postId);
-
-        // 2. 게시글 존재 여부 확인 (방어 로직)
-        if (postDetail == null) {
-            throw new CustomException(ErrorResponseCode.POST_NOT_FOUND);
-        }
-
-        // 3. 작성자 본인 확인 (권한 체크)
-        if (!postDetail.getUser().getUserId().equals(userId)) {
-            throw new CustomException(ErrorResponseCode.UNAUTHORIZED);
-        }
-    }
-
     @Override
     @Transactional
     public void deletePost(Long userId, Long postId) {
@@ -170,6 +149,39 @@ public class PostServiceImpl implements PostService {
             postMapper.deletePostFilesByPostId(postId);
         }
     }
+
+    @Override
+    @Transactional
+    public void increaseViewCount(Long postId) {
+        postMapper.increaseViewCount(postId);
+    }
+
+    @Override
+    @Transactional
+    public boolean toggleLike(Long userId, Long postId) {
+
+        validateUser(userId);
+
+        // 1. 게시글 존재 확인 (없으면 에러)
+        // (간단히 카운트만 세거나, 기존 메서드 재활용)
+        if (postMapper.getPostByPostId(postId) == null) {
+            throw new CustomException(ErrorResponseCode.POST_NOT_FOUND);
+        }
+
+        // 2. 이미 좋아요를 눌렀는지 확인
+        boolean isLiked = postMapper.existsLike(postId, userId);
+
+        if (isLiked) {
+            // 이미 눌렀으면 -> 취소 (삭제)
+            postMapper.deleteLike(postId, userId);
+            return false; // 결과: 좋아요 안 함 상태
+        } else {
+            // 안 눌렀으면 -> 등록
+            postMapper.insertLike(postId, userId);
+            return true; // 결과: 좋아요 함 상태
+        }
+    }
+
 
     private void savePostFiles(Long postId, List<MultipartFile> files) {
         // 업로드된 파일 정보를 담을 리스트 생성
@@ -201,12 +213,34 @@ public class PostServiceImpl implements PostService {
         }
     }
 
+
     // S3 파일 삭제 공통 로직
     private void deleteS3Files(List<PostFile> files) {
         if (files == null || files.isEmpty()) return;
 
         for (PostFile file : files) {
             s3Service.deleteFile(file.getFileUrl());
+        }
+    }
+
+    private static void validateUser(Long userId) {
+        if (userId == null) {
+            throw new CustomException(ErrorResponseCode.UNAUTHORIZED);
+        }
+    }
+
+    private void validatePostOwner(Long userId, Long postId) {
+        // 1. 게시글 상세 조회
+        PostDetailResponseDto postDetail = postMapper.getPostByPostId(postId);
+
+        // 2. 게시글 존재 여부 확인 (방어 로직)
+        if (postDetail == null) {
+            throw new CustomException(ErrorResponseCode.POST_NOT_FOUND);
+        }
+
+        // 3. 작성자 본인 확인 (권한 체크)
+        if (!postDetail.getUser().getUserId().equals(userId)) {
+            throw new CustomException(ErrorResponseCode.UNAUTHORIZED);
         }
     }
 }
