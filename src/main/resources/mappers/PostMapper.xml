@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pagoda.matchmeal.mapper.PostMapper">
+
+    <insert id="savePost" parameterType="com.pagoda.matchmeal.model.entity.Post"
+            useGeneratedKeys="true" keyProperty="postId">
+        INSERT INTO posts(user_id, category, title, content, view_count, created_at, updated_at, deleted_at)
+        VALUES (#{userId}, #{category}, #{title}, #{content}, 0, NOW(), NOW(), NULL)
+    </insert>
+
+    <insert id="savePostFiles" parameterType="java.util.List">
+        INSERT INTO post_files (post_id, file_url, file_type)
+        VALUES
+        <foreach collection="list" item="file" separator=",">
+            (#{file.postId}, #{file.fileUrl}, #{file.fileType})
+        </foreach>
+    </insert>
+
+    <select id="getPostFilesByPostId" resultType="com.pagoda.matchmeal.model.entity.PostFile">
+        SELECT file_id,
+               post_id,
+               file_url,
+               file_type
+        FROM post_files
+        WHERE post_id = #{postId}
+    </select>
+
+    <delete id="deletePostFilesByPostId">
+        DELETE
+        FROM post_files
+        WHERE post_id = #{postId}
+    </delete>
+
+    <sql id="searchCondition">
+        AND p.deleted_at IS NULL
+
+        <if test="category != null and category != ''">
+            AND p.category = #{category}
+        </if>
+
+        <if test="startDate != null">
+            AND p.created_at >= #{startDate}
+        </if>
+        <if test="endDate != null">
+            <![CDATA[ AND p.created_at < DATE_ADD(#{endDate}, INTERVAL 1 DAY) ]]>
+        </if>
+
+        <if test="keyword != null and keyword != ''">
+            <choose>
+                <when test="searchType == 'TITLE'">
+                    AND p.title LIKE CONCAT('%', #{keyword}, '%')
+                </when>
+                <when test="searchType == 'CONTENT'">
+                    AND p.content LIKE CONCAT('%', #{keyword}, '%')
+                </when>
+                <when test="searchType == 'WRITER'">
+                    AND u.user_name LIKE CONCAT('%', #{keyword}, '%')
+                </when>
+                <otherwise>
+                    AND (p.title LIKE CONCAT('%', #{keyword}, '%')
+                    OR p.content LIKE CONCAT('%', #{keyword}, '%'))
+                </otherwise>
+            </choose>
+        </if>
+    </sql>
+
+    <select id="getPosts" parameterType="com.pagoda.matchmeal.model.dto.PostSearchCond"
+            resultType="com.pagoda.matchmeal.model.dto.response.PostDetailResponseDto">
+        SELECT
+        p.post_id AS postId,
+        p.title AS title,
+        p.content AS content,
+        p.view_count AS viewCount,
+        p.created_at AS createdAt,
+        p.updated_at AS updatedAt,
+        p.category AS category,
+
+        u.user_id AS "user.userId",
+        u.user_name AS "user.userName",
+        u.profile_image AS "user.profileImage",
+
+        (SELECT COUNT(*) FROM post_likes pl WHERE pl.post_id = p.post_id) AS likeCount,
+        (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.post_id AND c.deleted_at IS NULL) AS commentCount
+
+        FROM posts p
+        JOIN users u ON p.user_id = u.user_id
+
+        <where>
+            <include refid="searchCondition"/>
+        </where>
+
+        <choose>
+            <when test="sortType == 'VIEWS'">
+                ORDER BY p.view_count DESC, p.post_id DESC
+            </when>
+            <when test="sortType == 'LIKES'">
+                ORDER BY likeCount DESC, p.post_id DESC
+            </when>
+            <otherwise>
+                ORDER BY p.created_at DESC
+            </otherwise>
+        </choose>
+
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="getPostByPostId" resultType="com.pagoda.matchmeal.model.dto.response.PostDetailResponseDto">
+        SELECT p.post_id                                                                              AS postId,
+               p.title                                                                                AS title,
+               p.content                                                                              AS content,
+               p.view_count                                                                           AS viewCount,
+               p.created_at                                                                           AS createdAt,
+               p.updated_at                                                                           AS updatedAt,
+               p.category                                                                             AS category,
+
+               u.user_id                                                                              AS "user.userId",
+               u.user_name                                                                            AS "user.userName",
+               u.profile_image                                                                        AS "user.profileImage",
+
+               (SELECT COUNT(*) FROM post_likes pl WHERE pl.post_id = p.post_id)                      AS likeCount,
+               (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.post_id AND c.deleted_at IS NULL) AS commentCount
+
+        FROM posts p
+                 JOIN users u ON p.user_id = u.user_id
+        WHERE p.post_id = #{postId}
+          AND p.deleted_at IS NULL
+    </select>
+
+    <update id="updatePost" parameterType="com.pagoda.matchmeal.model.entity.Post">
+        UPDATE posts
+        <set>
+            <if test="title != null">title = #{title},</if>
+            <if test="content != null">content = #{content},</if>
+            <if test="category != null">category = #{category},</if>
+            updated_at = NOW()
+        </set>
+        WHERE post_id = #{postId}
+        AND user_id = #{userId}
+        AND deleted_at IS NULL
+    </update>
+
+    <update id="deletePost">
+        UPDATE posts
+        SET deleted_at = NOW()
+        WHERE post_id = #{postId}
+          AND user_id = #{userId}
+    </update>
+
+    <select id="countPosts" parameterType="com.pagoda.matchmeal.model.dto.PostSearchCond" resultType="int">
+        SELECT COUNT(*)
+        FROM posts p
+        JOIN users u ON p.user_id = u.user_id
+        <where>
+            <include refid="searchCondition"/>
+        </where>
+    </select>
+
+    <delete id="deleteAllPosts">
+        DELETE
+        FROM posts
+    </delete>
+
+</mapper>
