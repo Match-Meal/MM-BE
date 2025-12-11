@@ -168,4 +168,47 @@ class PostMapperTest {
                 .build();
         postMapper.savePost(post);
     }
+
+    @Test
+    @DisplayName("조회수 증가 쿼리 테스트")
+    void increaseViewCountTest() {
+        // given
+        Post post = Post.builder().userId(testUserId).category("FREE").title("조회수").content("내용").build();
+        postMapper.savePost(post); // 초기 view_count = 0
+
+        // when
+        postMapper.increaseViewCount(post.getPostId());
+
+        // then
+        PostDetailResponseDto result = postMapper.getPostByPostId(post.getPostId());
+        assertThat(result.getViewCount()).isEqualTo(1); // 0 -> 1 증가 확인
+    }
+
+    @Test
+    @DisplayName("좋아요 등록/취소/확인 쿼리 테스트")
+    void likeQueryTest() {
+        // given
+        Post post = Post.builder().userId(testUserId).category("FREE").title("좋아요").content("내용").build();
+        postMapper.savePost(post);
+        Long postId = post.getPostId();
+
+        // 1. 초기 상태 확인 (좋아요 없음)
+        boolean existsBefore = postMapper.existsLike(testUserId, postId);
+        assertThat(existsBefore).isFalse();
+
+        // 2. 좋아요 등록 (Insert)
+        postMapper.insertLike(testUserId, postId);
+        boolean existsAfterInsert = postMapper.existsLike(testUserId, postId);
+        assertThat(existsAfterInsert).isTrue();
+
+        // 3. 좋아요 개수 확인 (서브쿼리 등 확인용)
+        // (getPostByPostId 등에서 likeCount를 가져오는지 간접 검증 가능)
+        // PostDetailResponseDto detail = postMapper.getPostByPostId(postId);
+        // assertThat(detail.getLikeCount()).isEqualTo(1);
+
+        // 4. 좋아요 취소 (Delete)
+        postMapper.deleteLike(testUserId, postId);
+        boolean existsAfterDelete = postMapper.existsLike(testUserId, postId);
+        assertThat(existsAfterDelete).isFalse();
+    }
 }

@@ -201,4 +201,49 @@ class PostServiceImplTest {
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("code", ErrorResponseCode.POST_NOT_FOUND);
     }
+
+    @Test
+    @DisplayName("조회수 증가 호출 테스트")
+    void increaseViewCount_Success() {
+        // when
+        postService.increaseViewCount(POST_ID);
+
+        // then
+        verify(postMapper).increaseViewCount(POST_ID);
+    }
+
+    @Test
+    @DisplayName("좋아요 토글 - 안 눌렀을 때 (등록)")
+    void toggleLike_Insert() {
+        // given
+        // 1. 게시글 존재 확인
+        given(postMapper.getPostByPostId(POST_ID)).willReturn(new PostDetailResponseDto());
+        // 2. 좋아요 여부 -> false (안 누름)
+        given(postMapper.existsLike(POST_ID, USER_ID)).willReturn(false);
+
+        // when
+        boolean result = postService.toggleLike(USER_ID, POST_ID);
+
+        // then
+        assertThat(result).isTrue(); // 결과는 true (등록됨)
+        verify(postMapper).insertLike(POST_ID, USER_ID); // insert 호출 확인
+        verify(postMapper, times(0)).deleteLike(POST_ID, USER_ID); // delete 호출 안 됨 확인
+    }
+
+    @Test
+    @DisplayName("좋아요 토글 - 이미 눌렀을 때 (취소)")
+    void toggleLike_Delete() {
+        // given
+        given(postMapper.getPostByPostId(POST_ID)).willReturn(new PostDetailResponseDto());
+        // 좋아요 여부 -> true (이미 누름)
+        given(postMapper.existsLike(POST_ID, USER_ID)).willReturn(true);
+
+        // when
+        boolean result = postService.toggleLike(USER_ID, POST_ID);
+
+        // then
+        assertThat(result).isFalse(); // 결과는 false (취소됨)
+        verify(postMapper).deleteLike(POST_ID, USER_ID); // delete 호출 확인
+        verify(postMapper, times(0)).insertLike(POST_ID, USER_ID); // insert 호출 안 됨 확인
+    }
 }

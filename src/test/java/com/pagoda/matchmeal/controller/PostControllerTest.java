@@ -7,6 +7,7 @@ import com.pagoda.matchmeal.model.dto.UserDto;
 import com.pagoda.matchmeal.model.dto.request.PostRequestDto;
 import com.pagoda.matchmeal.model.dto.response.PostDetailResponseDto;
 import com.pagoda.matchmeal.service.PostService;
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -33,11 +34,11 @@ import java.util.Collections;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @ExtendWith(MockitoExtension.class) // 순수 Mockito 환경
 class PostControllerTest {
@@ -198,5 +199,60 @@ class PostControllerTest {
             }
             return mockUser;
         }
+    }
+
+    @Test
+    @DisplayName("게시글 상세 조회 - 첫 방문 (조회수 증가 및 쿠키 생성 확인)")
+    void getPost_FirstVisit_IncreaseViewCount() throws Exception {
+        // given
+        PostDetailResponseDto detailDto = new PostDetailResponseDto();
+        given(postService.getPostDetail(anyLong(), eq(POST_ID))).willReturn(detailDto);
+
+        // when & then
+        mockMvc.perform(get("/community/posts/{postId}", POST_ID)) // 쿠키 없이 요청
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(cookie().exists("postView")) // ★ 쿠키가 생성되었는지 확인
+                .andExpect(cookie().value("postView", "[" + POST_ID + "]")); // 쿠키 값 확인
+
+        // ★ Service의 조회수 증가 메서드가 호출되었는지 검증
+        verify(postService).increaseViewCount(POST_ID);
+    }
+
+    @Test
+    @DisplayName("게시글 상세 조회 - 재방문 (조회수 증가 X)")
+    void getPost_Revisit_NoIncreaseViewCount() throws Exception {
+        // given
+        PostDetailResponseDto detailDto = new PostDetailResponseDto();
+        given(postService.getPostDetail(anyLong(), eq(POST_ID))).willReturn(detailDto);
+
+        // 이미 방문한 쿠키 생성
+        Cookie visitCookie = new Cookie("postView", "[" + POST_ID + "]");
+
+        // when & then
+        mockMvc.perform(get("/community/posts/{postId}", POST_ID)
+                        .cookie(visitCookie)) // ★ 쿠키를 달고 요청
+                .andDo(print())
+                .andExpect(status().isOk());
+
+        // ★ Service의 조회수 증가 메서드가 호출되지 않았는지(0번) 검증
+        verify(postService, times(0)).increaseViewCount(POST_ID);
+    }
+
+    @Test
+    @DisplayName("좋아요 토글 성공")
+    void toggleLike_Success() throws Exception {
+        // given
+        // true: 좋아요 등록, false: 좋아요 취소 (상황에 따라 가정)
+        given(postService.toggleLike(anyLong(), eq(POST_ID))).willReturn(true);
+
+        // when & then
+        mockMvc.perform(post("/community/posts/{postId}/like", POST_ID))
+                .andDo(print())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value(200))
+                .andExpect(jsonPath("$.data").value(true)); // true 반환 확인
+
+        verify(postService).toggleLike(anyLong(), eq(POST_ID));
     }
 }
