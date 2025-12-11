@@ -156,3 +156,82 @@ INSERT INTO users (
              180.0, 80.0, 'ROLE_ADMIN', 'ACTIVE', '관리자 계정입니다.', NULL,
              NULL, NULL, FALSE, NOW(), NOW()
          );
+
+-- 기존 테이블이 있다면 삭제 (테스트 환경 초기화용)
+DROP TABLE IF EXISTS comment_likes;
+DROP TABLE IF EXISTS post_likes;
+DROP TABLE IF EXISTS comments;
+DROP TABLE IF EXISTS post_files;
+DROP TABLE IF EXISTS posts;
+
+-- 1. 게시글 테이블
+CREATE TABLE posts (
+    post_id      BIGINT AUTO_INCREMENT PRIMARY KEY,
+    user_id      BIGINT NOT NULL,
+    category     VARCHAR(50) NOT NULL,
+    title        VARCHAR(255) NOT NULL,
+    content      TEXT NOT NULL,
+    view_count   INT DEFAULT 0,
+
+    created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at   TIMESTAMP NULL
+);
+
+-- 인덱스 (H2/MySQL 호환 문법)
+CREATE INDEX idx_posts_user_id ON posts (user_id);
+CREATE INDEX idx_posts_category ON posts (category);
+
+
+-- 2. 게시글 첨부파일 테이블
+CREATE TABLE post_files (
+    file_id      BIGINT AUTO_INCREMENT PRIMARY KEY,
+    post_id      BIGINT NOT NULL,
+    file_url     VARCHAR(500) NOT NULL,
+    file_type    VARCHAR(20) NOT NULL,
+
+    CONSTRAINT fk_post_files_post_id FOREIGN KEY (post_id) REFERENCES posts (post_id) ON DELETE CASCADE
+);
+
+
+-- 3. 게시글 좋아요 테이블
+CREATE TABLE post_likes (
+    post_like_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    post_id      BIGINT NOT NULL,
+    user_id      BIGINT NOT NULL,
+    created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT uk_post_like_user UNIQUE (post_id, user_id),
+    CONSTRAINT fk_post_likes_post_id FOREIGN KEY (post_id) REFERENCES posts (post_id) ON DELETE CASCADE
+);
+
+
+-- 4. 댓글 테이블
+CREATE TABLE comments (
+    comment_id        BIGINT AUTO_INCREMENT PRIMARY KEY,
+    post_id           BIGINT NOT NULL,
+    user_id           BIGINT NOT NULL,
+    content           TEXT NOT NULL,
+    parent_comment_id BIGINT NULL,
+
+    created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at        TIMESTAMP NULL,
+
+    CONSTRAINT fk_comments_post_id FOREIGN KEY (post_id) REFERENCES posts (post_id) ON DELETE CASCADE,
+    CONSTRAINT fk_comments_parent_id FOREIGN KEY (parent_comment_id) REFERENCES comments (comment_id) ON DELETE CASCADE
+);
+
+CREATE INDEX idx_comments_post_id ON comments (post_id);
+
+
+-- 5. 댓글 좋아요 테이블
+CREATE TABLE comment_likes (
+    comment_like_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    comment_id      BIGINT NOT NULL,
+    user_id         BIGINT NOT NULL,
+    created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT uk_comment_like_user UNIQUE (comment_id, user_id),
+    CONSTRAINT fk_comment_likes_comment_id FOREIGN KEY (comment_id) REFERENCES comments (comment_id) ON DELETE CASCADE
+);
