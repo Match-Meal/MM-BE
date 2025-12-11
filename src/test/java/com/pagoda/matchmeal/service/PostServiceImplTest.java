@@ -92,7 +92,7 @@ class PostServiceImplTest {
 
         // when
         PageInfoResponseDto<PostDetailResponseDto> result =
-                postService.getPost("키워드", "TITLE", "DIET", null, null, null, pageable);
+                postService.getPost(USER_ID, "키워드", "TITLE", "DIET", null, null, null, pageable);
 
         // then
         assertThat(result.getContent()).hasSize(1);
