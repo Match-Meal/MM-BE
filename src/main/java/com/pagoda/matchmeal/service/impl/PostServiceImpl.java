@@ -6,9 +6,11 @@ import com.pagoda.matchmeal.common.response.PageInfoResponseDto;
 import com.pagoda.matchmeal.mapper.PostMapper;
 import com.pagoda.matchmeal.model.dto.PostSearchCond;
 import com.pagoda.matchmeal.model.dto.request.PostRequestDto;
+import com.pagoda.matchmeal.model.dto.response.CommentResponseDto;
 import com.pagoda.matchmeal.model.dto.response.PostDetailResponseDto;
 import com.pagoda.matchmeal.model.entity.Post;
 import com.pagoda.matchmeal.model.entity.PostFile;
+import com.pagoda.matchmeal.service.CommentService;
 import com.pagoda.matchmeal.service.PostService;
 import com.pagoda.matchmeal.service.S3Service;
 import lombok.RequiredArgsConstructor;
@@ -28,6 +30,7 @@ public class PostServiceImpl implements PostService {
 
     private final PostMapper postMapper;
     private final S3Service s3Service;
+    private final CommentService commentService;
 
     @Override
     @Transactional
@@ -81,6 +84,11 @@ public class PostServiceImpl implements PostService {
         if (postDetail == null) {
             throw new CustomException(ErrorResponseCode.POST_NOT_FOUND);
         }
+
+        List<CommentResponseDto> comments = commentService.getComments(userId, postId);
+
+        postDetail.setComments(comments);
+
         return postDetail;
     }
 
