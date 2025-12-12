@@ -4,6 +4,8 @@ import com.pagoda.matchmeal.model.dto.UserSimpleDto;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Getter
 @Setter
@@ -21,4 +23,8 @@ public class CommentResponseDto {
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    private Long parentCommentId;
+
+    private List<CommentResponseDto> children = new ArrayList<>();
 }
