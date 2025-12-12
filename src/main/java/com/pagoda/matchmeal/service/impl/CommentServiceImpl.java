@@ -68,6 +68,12 @@ public class CommentServiceImpl implements CommentService {
         Map<Long, CommentResponseDto> map = new HashMap<>(); // id값으로 객체를 찾기 위한 맵
 
         for (CommentResponseDto comment : allByPostId) {
+
+            if (comment.isDeleted()) {
+                comment.setContent("삭제된 댓글입니다."); // 프론트 요구사항에 맞춰 텍스트 변경 or null
+                comment.setUser(null); // 작성자 정보 제거 (개인정보 보호)
+            }
+
             map.put(comment.getCommentId(), comment);
             if (comment.getChildren() == null) {
                 comment.setChildren(new ArrayList<>());

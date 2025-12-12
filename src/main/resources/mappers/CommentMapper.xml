@@ -24,6 +24,8 @@
         <result property="parentCommentId" column="parent_comment_id"/>
         <result property="likeCount" column="like_count"/>
 
+        <result property="isDeleted" column="is_deleted"/>
+
         <association property="user" javaType="com.pagoda.matchmeal.model.dto.UserSimpleDto">
             <id property="userId" column="user_id"/>
             <result property="userName" column="user_name"/>
@@ -43,7 +45,11 @@
                c.parent_comment_id,
                c.created_at,
                c.updated_at,
-               c.deleted_at,
+               -- [수정] deleted_at 컬럼 대신, 삭제 여부(boolean)를 계산해서 반환
+               CASE
+                   WHEN c.deleted_at IS NOT NULL THEN 1
+                   ELSE 0
+                   END                                                                    AS is_deleted,
 
                -- 작성자 정보
                u.user_id,
@@ -56,9 +62,9 @@
         FROM comments c
                  JOIN users u ON c.user_id = u.user_id
         WHERE c.post_id = #{postId}
-          -- 삭제된 댓글도 대댓글이 있으면 '삭제된 댓글입니다'로 보여줘야 하므로 
-          -- 일단 다 가져오거나, 정책에 따라 AND c.deleted_at IS NULL 추가
-          AND c.deleted_at IS NULL
+        -- 삭제된 댓글도 대댓글이 있으면 '삭제된 댓글입니다'로 보여줘야 하므로
+        -- 일단 다 가져오거나, 정책에 따라 AND c.deleted_at IS NULL 추가
+        -- AND c.deleted_at IS NULL
 
         ORDER BY
             -- 1차 정렬: 부모 댓글 ID (부모가 null이면 자기 자신 ID 사용) -> 댓글 그룹핑
