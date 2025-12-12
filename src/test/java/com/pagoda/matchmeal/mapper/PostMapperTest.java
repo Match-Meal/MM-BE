@@ -4,6 +4,7 @@ import com.pagoda.matchmeal.model.dto.PostSearchCond;
 import com.pagoda.matchmeal.model.dto.response.PostDetailResponseDto;
 import com.pagoda.matchmeal.model.entity.Post;
 import com.pagoda.matchmeal.model.entity.PostFile;
+import com.pagoda.matchmeal.model.enums.PostCategory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -43,7 +44,7 @@ class PostMapperTest {
         // ...
         Post post = Post.builder()
                 .userId(testUserId)
-                .category("DIET")
+                .category(PostCategory.DIET)
                 .title("오늘의 식단")
                 .content("닭가슴살 냠냠")
                 .build();
@@ -62,7 +63,7 @@ class PostMapperTest {
     @DisplayName("첨부파일 일괄 저장 테스트")
     void saveFilesTest() {
         // given
-        Post post = Post.builder().userId(testUserId).category("FREE").title("파일테스트").content("내용").build();
+        Post post = Post.builder().userId(testUserId).category(PostCategory.FREE).title("파일테스트").content("내용").build();
         postMapper.savePost(post);
 
         List<PostFile> files = List.of(
@@ -84,9 +85,9 @@ class PostMapperTest {
     @DisplayName("게시글 검색 테스트 (카테고리 + 키워드)")
     void searchTest() {
         // given
-        createMockPost("DIET", "다이어트 식단 1");
-        createMockPost("DIET", "다이어트 식단 2");
-        createMockPost("FREE", "자유게시글");
+        createMockPost(PostCategory.DIET, "다이어트 식단 1");
+        createMockPost(PostCategory.DIET, "다이어트 식단 2");
+        createMockPost(PostCategory.FREE, "자유게시글");
 
         // when
         PostSearchCond cond = PostSearchCond.builder()
@@ -110,7 +111,7 @@ class PostMapperTest {
     @DisplayName("게시글 수정 테스트")
     void updateTest() {
         // given
-        Post post = Post.builder().userId(testUserId).category("DIET").title("원래제목").content("원래내용").build();
+        Post post = Post.builder().userId(testUserId).category(PostCategory.DIET).title("원래제목").content("원래내용").build();
         postMapper.savePost(post);
 
         Post updateParam = Post.builder()
@@ -118,7 +119,7 @@ class PostMapperTest {
                 .postId(post.getPostId())
                 .title("바뀐제목")
                 .content("바뀐내용")
-                .category("FREE")
+                .category(PostCategory.FREE)
                 .build();
 
         // when
@@ -136,7 +137,7 @@ class PostMapperTest {
     @DisplayName("게시글 삭제(Soft Delete) 테스트")
     void deleteTest() {
         // given
-        Post post = Post.builder().userId(testUserId).category("DIET").title("삭제글").content("내용").build();
+        Post post = Post.builder().userId(testUserId).category(PostCategory.DIET).title("삭제글").content("내용").build();
         postMapper.savePost(post);
         Long postId = post.getPostId();
 
@@ -159,7 +160,7 @@ class PostMapperTest {
     }
 
     // 테스트용 데이터 생성 헬퍼 메서드
-    private void createMockPost(String category, String title) {
+    private void createMockPost(PostCategory category, String title) {
         Post post = Post.builder()
                 .userId(testUserId)
                 .category(category)
@@ -173,7 +174,7 @@ class PostMapperTest {
     @DisplayName("조회수 증가 쿼리 테스트")
     void increaseViewCountTest() {
         // given
-        Post post = Post.builder().userId(testUserId).category("FREE").title("조회수").content("내용").build();
+        Post post = Post.builder().userId(testUserId).category(PostCategory.FREE).title("조회수").content("내용").build();
         postMapper.savePost(post); // 초기 view_count = 0
 
         // when
@@ -188,7 +189,7 @@ class PostMapperTest {
     @DisplayName("좋아요 등록/취소/확인 쿼리 테스트")
     void likeQueryTest() {
         // given
-        Post post = Post.builder().userId(testUserId).category("FREE").title("좋아요").content("내용").build();
+        Post post = Post.builder().userId(testUserId).category(PostCategory.FREE).title("좋아요").content("내용").build();
         postMapper.savePost(post);
         Long postId = post.getPostId();
 

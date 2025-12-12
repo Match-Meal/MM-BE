@@ -10,6 +10,7 @@ import com.pagoda.matchmeal.model.dto.request.PostRequestDto;
 import com.pagoda.matchmeal.model.dto.response.PostDetailResponseDto;
 import com.pagoda.matchmeal.model.entity.Post;
 import com.pagoda.matchmeal.model.entity.PostFile;
+import com.pagoda.matchmeal.model.enums.PostCategory;
 import com.pagoda.matchmeal.service.impl.PostServiceImpl;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -55,7 +56,7 @@ class PostServiceImplTest {
         PostRequestDto requestDto = new PostRequestDto();
         requestDto.setTitle("제목");
         requestDto.setContent("내용");
-        requestDto.setCategory("DIET");
+        requestDto.setCategory(PostCategory.DIET);
 
         List<MultipartFile> files = List.of(
                 new MockMultipartFile("files", "image.jpg", "image/jpeg", "dummy".getBytes())

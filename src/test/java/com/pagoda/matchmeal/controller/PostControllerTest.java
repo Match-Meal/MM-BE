@@ -6,6 +6,7 @@ import com.pagoda.matchmeal.common.response.PageInfoResponseDto;
 import com.pagoda.matchmeal.model.dto.UserDto;
 import com.pagoda.matchmeal.model.dto.request.PostRequestDto;
 import com.pagoda.matchmeal.model.dto.response.PostDetailResponseDto;
+import com.pagoda.matchmeal.model.enums.PostCategory;
 import com.pagoda.matchmeal.service.PostService;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
@@ -77,7 +78,7 @@ class PostControllerTest {
         PostRequestDto requestDto = new PostRequestDto();
         requestDto.setTitle("테스트 제목");
         requestDto.setContent("테스트 내용");
-        requestDto.setCategory("DIET");
+        requestDto.setCategory(PostCategory.DIET);
 
         String jsonDto = objectMapper.writeValueAsString(requestDto);
         MockMultipartFile dataPart = new MockMultipartFile(

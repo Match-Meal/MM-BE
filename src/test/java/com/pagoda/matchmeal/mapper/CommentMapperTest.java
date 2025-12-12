@@ -3,6 +3,7 @@ package com.pagoda.matchmeal.mapper;
 import com.pagoda.matchmeal.model.dto.response.CommentResponseDto;
 import com.pagoda.matchmeal.model.entity.Comment;
 import com.pagoda.matchmeal.model.entity.Post;
+import com.pagoda.matchmeal.model.enums.PostCategory;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -45,7 +46,7 @@ class CommentMapperTest {
         // 2. 테스트용 게시글 생성 (댓글의 부모)
         Post post = Post.builder()
                 .userId(testUserId)
-                .category("FREE")
+                .category(PostCategory.FREE)
                 .title("댓글테스트글")
                 .content("내용")
                 .build();
