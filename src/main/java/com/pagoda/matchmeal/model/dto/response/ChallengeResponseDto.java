@@ -27,5 +27,9 @@ public class ChallengeResponseDto {
     private Long userChallengeId;
     private boolean isJoined; // 참여 여부
     private String status; // 성공 여부
+
+    private int currentCount;
+    private int currentStreak;
+    private int maxStreak;
     private int progressPercent; // 현재 달성 횟수
 }
