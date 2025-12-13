@@ -13,13 +13,15 @@ import java.time.LocalDate;
 public class ActiveChallengeDto {
     // user_challenges 테이블 정보
     private Long userChallengeId;
-    private int currentProgress;
-    private LocalDate lastCheckedAt;
+    private int currentCount;
+    private int currentStreak;
+    private int maxStreak;
+    private LocalDate lastSuccessDate;
 
     // challenges 테이블 정보 (JOIN 데이터)
-    private Long challengeId;
     private ChallengeType type;
     private int targetValue;
-    
-    private int duration; // 목표 성공 횟수
+    private LocalDate startDate;
+    private LocalDate endDate;
+    private int goalCount;
 }
