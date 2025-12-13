@@ -6,9 +6,11 @@ import com.pagoda.matchmeal.common.response.PageInfoResponseDto;
 import com.pagoda.matchmeal.mapper.PostMapper;
 import com.pagoda.matchmeal.model.dto.PostSearchCond;
 import com.pagoda.matchmeal.model.dto.request.PostRequestDto;
+import com.pagoda.matchmeal.model.dto.response.CommentResponseDto;
 import com.pagoda.matchmeal.model.dto.response.PostDetailResponseDto;
 import com.pagoda.matchmeal.model.entity.Post;
 import com.pagoda.matchmeal.model.entity.PostFile;
+import com.pagoda.matchmeal.service.CommentService;
 import com.pagoda.matchmeal.service.PostService;
 import com.pagoda.matchmeal.service.S3Service;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -28,6 +31,7 @@ public class PostServiceImpl implements PostService {
 
     private final PostMapper postMapper;
     private final S3Service s3Service;
+    private final CommentService commentService;
 
     @Override
     @Transactional
@@ -55,13 +59,23 @@ public class PostServiceImpl implements PostService {
 
         validateUser(userId);
 
+        LocalDateTime startDateTime = (startDate != null)
+                ? startDate.atStartOfDay()
+                : null;
+
+        // endDate가 있으면 "다음 날 00:00:00"으로 설정 (+1 Day)
+        // 예: 12일 검색 -> 13일 00:00:00 미만으로 조회해야 12일 데이터가 모두 포함됨
+        LocalDateTime endDateTime = (endDate != null)
+                ? endDate.atStartOfDay().plusDays(1)
+                : null;
+
         PostSearchCond cond = PostSearchCond.builder()
                 .userId(userId)
                 .category(category)
                 .searchType(searchType)
                 .keyword(keyword)
-                .startDate(startDate)
-                .endDate(endDate)
+                .startDate(startDateTime)
+                .endDate(endDateTime)
                 .sortType(sortType)
                 .limit(pageable.getPageSize())
                 .offset((int) pageable.getOffset())
@@ -81,6 +95,30 @@ public class PostServiceImpl implements PostService {
         if (postDetail == null) {
             throw new CustomException(ErrorResponseCode.POST_NOT_FOUND);
         }
+
+        // 2. 파일 목록 조회 (DB에서 전체 가져오기)
+        List<PostFile> postFiles = postMapper.getPostFilesByPostId(postId);
+
+        // 3. ★ [핵심] 파일 분류 (Entity -> DTO 변환)
+        List<String> images = new ArrayList<>();
+        List<String> videos = new ArrayList<>();
+
+        for (PostFile file : postFiles) {
+            if ("IMAGE".equals(file.getFileType())) {
+                images.add(file.getFileUrl());
+            } else if ("VIDEO".equals(file.getFileType())) {
+                videos.add(file.getFileUrl());
+            }
+        }
+
+        // 4. DTO에 분류된 리스트 세팅
+        postDetail.setImages(images);
+        postDetail.setVideos(videos);
+
+        List<CommentResponseDto> comments = commentService.getComments(userId, postId);
+
+        postDetail.setComments(comments);
+
         return postDetail;
     }
 

@@ -33,7 +33,10 @@ public enum ErrorResponseCode {
 
     //----------------------------게시글 에러코드----------------------------
     POST_NOT_FOUND(HttpStatus.NOT_FOUND, "게시글을 찾을 수 없습니다."),
-    POST_UPDATE_ERROR(HttpStatus.BAD_REQUEST, "잘못된 요청입니다.");
+    POST_UPDATE_ERROR(HttpStatus.BAD_REQUEST, "잘못된 요청입니다."),
+
+    //----------------------------댓글 에러코드----------------------------
+    COMMENT_NOT_FOUND(HttpStatus.NOT_FOUND, "댓글을 찾을 수 없습니다.");
 
     private final HttpStatus status; // 에러 HTTP 상태 코드
     private final String message; // 에러 메세지

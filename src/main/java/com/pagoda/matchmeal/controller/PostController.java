@@ -46,7 +46,7 @@ public class PostController {
             @RequestParam(value = "startDate", required = false) LocalDate startDate,
             @RequestParam(value = "endDate", required = false) LocalDate endDate,
             @RequestParam(value = "sortType", required = false) String sortType,
-            @PageableDefault(page = 0, size = 20) Pageable pageable
+            @PageableDefault(page = 0, size = 15) Pageable pageable
     ) {
         Long userId = (userDto != null) ? userDto.getId() : null;
         return ApiResponseUtil.success(postService.getPost(userId, keyword, searchType, category, startDate, endDate, sortType, pageable));

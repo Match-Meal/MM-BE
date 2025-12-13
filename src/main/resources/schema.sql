@@ -250,3 +250,77 @@ CREATE TABLE comment_likes (
     CONSTRAINT uk_comment_like_user UNIQUE (comment_id, user_id),
     CONSTRAINT fk_comment_likes_comment_id FOREIGN KEY (comment_id) REFERENCES comments (comment_id) ON DELETE CASCADE
 );
+
+-- 테스트용 더미 데이터
+
+-- 1. [공지사항] 10일 전 (2025-12-03)
+INSERT INTO posts (user_id, category, title, content, view_count, created_at, updated_at, deleted_at)
+VALUES (4, 'NOTICE', '📢 매치밀 서비스 오픈 안내', '건강한 식단과 운동 라이프를 위한 커뮤니티, 매치밀에 오신 것을 환영합니다!', 1500, '2025-12-03 09:00:00', '2025-12-03 09:00:00', NULL);
+
+-- 2. [운동] 5일 전 (2025-12-08)
+INSERT INTO posts (user_id, category, title, content, view_count, created_at, updated_at, deleted_at)
+VALUES (1, 'WORKOUT', '등 운동 루틴 공유합니다 (렛풀다운 꿀팁)', '광배근 자극 제대로 먹이는 방법 알려드립니다.', 340, '2025-12-08 18:30:00', '2025-12-08 18:30:00', NULL);
+
+-- 3. [식단] 4일 전 (2025-12-09)
+INSERT INTO posts (user_id, category, title, content, view_count, created_at, updated_at, deleted_at)
+VALUES (2, 'DIET', '당뇨 식단 3일차 기록 (혈당 수치 공개)', '현미밥 100g, 닭가슴살 100g, 야채 듬뿍.', 120, '2025-12-09 12:00:00', '2025-12-09 12:00:00', NULL);
+
+-- 4. [질문] 3일 전 (2025-12-10)
+INSERT INTO posts (user_id, category, title, content, view_count, created_at, updated_at, deleted_at)
+VALUES (3, 'QNA', '헬린이 질문이요.. 단백질 보충제 꼭 먹어야 하나요?', '이제 막 운동 시작했는데 자연식으로만 섭취해도 될까요?', 55, '2025-12-10 14:15:00', '2025-12-10 14:15:00', NULL);
+
+-- 5. [자유] 2일 전 (2025-12-11)
+INSERT INTO posts (user_id, category, title, content, view_count, created_at, updated_at, deleted_at)
+VALUES (1, 'FREE', '오늘 날씨 진짜 좋네요 러닝 뛰고 싶다', '한강공원 갈 사람 있나요?', 12, '2025-12-11 10:00:00', '2025-12-11 10:00:00', NULL);
+
+-- 6. [식단] 2일 전 (2025-12-11)
+INSERT INTO posts (user_id, category, title, content, view_count, created_at, updated_at, deleted_at)
+VALUES (2, 'DIET', '🥗 맛있는 닭가슴살 샐러드 드레싱 레시피', '올리브오일, 발사믹 식초, 그리고 알룰로스를 섞으면 진짜 맛있어요!', 890, '2025-12-11 19:00:00', '2025-12-11 19:00:00', NULL);
+
+-- 7. [삭제됨] 2일 전 작성, 당일 삭제
+INSERT INTO posts (user_id, category, title, content, view_count, created_at, updated_at, deleted_at)
+VALUES (1, 'FREE', '이 글은 삭제된 게시글입니다.', '잘못 올렸어요 ㅠㅠ 삭제합니다.', 5, '2025-12-11 20:00:00', '2025-12-11 20:05:00', '2025-12-11 20:05:00');
+
+-- 8. [운동] 1일 전 (2025-12-12)
+INSERT INTO posts (user_id, category, title, content, view_count, created_at, updated_at, deleted_at)
+VALUES (1, 'WORKOUT', '드디어 3대 500 달성했습니다!! (영상 유)', '스쿼트 180, 데드 200, 벤치 120 성공했습니다.', 2100, '2025-12-12 09:30:00', '2025-12-12 09:30:00', NULL);
+
+-- 9. [질문] 1일 전 (2025-12-12)
+INSERT INTO posts (user_id, category, title, content, view_count, created_at, updated_at, deleted_at)
+VALUES (2, 'QNA', '살이 너무 안 빠져요.. 정체기 극복 팁 좀', '식단도 하고 운동도 하는데 몸무게가 그대로입니다.', 230, '2025-12-12 15:20:00', '2025-12-12 15:20:00', NULL);
+
+-- 10. [공지] 12시간 전 (2025-12-12 저녁)
+INSERT INTO posts (user_id, category, title, content, view_count, created_at, updated_at, deleted_at)
+VALUES (4, 'NOTICE', '[공지] 새벽 서버 점검 안내 (02:00 ~ 04:00)', '더 나은 서비스를 위해 서버 점검이 진행됩니다.', 450, '2025-12-12 20:00:00', '2025-12-12 20:00:00', NULL);
+
+-- 11. [자유] 10시간 전 (2025-12-12 밤)
+INSERT INTO posts (user_id, category, title, content, view_count, created_at, updated_at, deleted_at)
+VALUES (3, 'FREE', '안녕하세요~ 오늘 가입했습니다!', '열심히 활동하겠습니다. 잘 부탁드려요.', 30, '2025-12-12 22:00:00', '2025-12-12 22:00:00', NULL);
+
+-- 12. [운동] 5시간 전 (2025-12-13 새벽)
+INSERT INTO posts (user_id, category, title, content, view_count, created_at, updated_at, deleted_at)
+VALUES (2, 'WORKOUT', '집에서 하기 좋은 층간소음 없는 유산소', '슬로우 버피랑 마운틴 클라이머 추천합니다.', 150, '2025-12-13 07:00:00', '2025-12-13 07:00:00', NULL);
+
+-- 13. [리뷰] 3시간 전 (2025-12-13 오전)
+INSERT INTO posts (user_id, category, title, content, view_count, created_at, updated_at, deleted_at)
+VALUES (1, 'REVIEW', 'XX 피트니스 3개월 이용 솔직 후기', '기구는 좋은데 샤워실이 좀 좁네요.', 67, '2025-12-13 09:00:00', '2025-12-13 09:00:00', NULL);
+
+-- 14. [삭제됨] 1시간 전 (2025-12-13 오전 11시)
+INSERT INTO posts (user_id, category, title, content, view_count, created_at, updated_at, deleted_at)
+VALUES (3, 'FREE', '광고성 게시글입니다', '비트코인 대박 정보...', 0, '2025-12-13 11:00:00', '2025-12-13 11:10:00', '2025-12-13 11:10:00');
+
+-- 15. [최신글] 방금 전 (2025-12-13 정오)
+INSERT INTO posts (user_id, category, title, content, view_count, created_at, updated_at, deleted_at)
+VALUES (1, 'FREE', '운동 끝나고 먹는 치킨은 0칼로리 맞죠?', '양심상 튀김 옷은 벗기고 먹겠습니다 ㅎㅎ', 1, '2025-12-13 12:00:00', '2025-12-13 12:00:00', NULL);
+
+
+-- (옵션) 연관 데이터들도 필요하시면 이것까지 복사하세요
+
+INSERT INTO post_likes (post_id, user_id) VALUES (8, 2);
+INSERT INTO post_likes (post_id, user_id) VALUES (8, 3);
+INSERT INTO post_likes (post_id, user_id) VALUES (8, 4);
+INSERT INTO post_likes (post_id, user_id) VALUES (6, 1);
+INSERT INTO post_likes (post_id, user_id) VALUES (6, 3);
+
+INSERT INTO comments (post_id, user_id, content, parent_comment_id) VALUES (4, 1, '초보자는 신타6 추천드립니다.', NULL);
+INSERT INTO comments (post_id, user_id, content, parent_comment_id) VALUES (4, 2, '저는 마이프로틴 먹어요.', NULL);

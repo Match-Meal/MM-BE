@@ -1,6 +1,5 @@
 package com.pagoda.matchmeal.model.dto.request;
 
-import com.pagoda.matchmeal.model.enums.PostCategory;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
@@ -10,10 +9,8 @@ import lombok.ToString;
 @Setter
 @NoArgsConstructor
 @ToString
-public class PostRequestDto {
+public class CommentRequestDto {
 
-    private PostCategory category;
-    private String title;
     private String content;
-
+    private Long parentCommentId;
 }
