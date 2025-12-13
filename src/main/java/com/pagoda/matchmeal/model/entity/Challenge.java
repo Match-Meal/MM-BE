@@ -6,6 +6,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Getter
@@ -19,7 +20,13 @@ public class Challenge {
     private ChallengeType type;
 
     private int targetValue; // 목표 수치
-    private int duration; // 챌린지 기간
+    
+    // 목표 기간 설정
+    private LocalDate startDate;
+    private LocalDate endDate;
+    
+    // 성공해야하는 횟수
+    private int goalCount;
 
     private LocalDateTime createdAt;
 }

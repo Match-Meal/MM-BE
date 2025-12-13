@@ -20,4 +20,6 @@ public class ActiveChallengeDto {
     private Long challengeId;
     private ChallengeType type;
     private int targetValue;
+    
+    private int duration; // 목표 성공 횟수
 }
