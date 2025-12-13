@@ -18,6 +18,7 @@
             -- [유저 참여 현황]
             uc.user_challenge_id AS userChallengeId,
             uc.status,
+            uc.last_success_date AS lastSuccessDate,
 
             -- 참여 여부 (ID 존재 시 true)
             CASE WHEN uc.user_challenge_id IS NOT NULL THEN 1 ELSE 0 END AS isJoined,

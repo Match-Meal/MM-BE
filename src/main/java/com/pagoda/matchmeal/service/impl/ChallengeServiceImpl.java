@@ -1,5 +1,7 @@
 package com.pagoda.matchmeal.service.impl;
 
+import com.pagoda.matchmeal.common.exception.CustomException;
+import com.pagoda.matchmeal.common.exception.ErrorResponseCode;
 import com.pagoda.matchmeal.mapper.ChallengeMapper;
 import com.pagoda.matchmeal.model.dto.response.ActiveChallengeDto;
 import com.pagoda.matchmeal.model.dto.response.ChallengeResponseDto;
@@ -29,6 +31,9 @@ public class ChallengeServiceImpl implements ChallengeService {
     @Override
     public void joinChallenge(Long userId, Long challengeId) {
         // 이미 참여했는지 중복 체크 로직 필요
+        if (challengeMapper.existsByUserIdAndChallengeId(userId, challengeId)) {
+            throw new CustomException(ErrorResponseCode.ALREADY_JOINED_CHALLENGE);
+        }
         challengeMapper.insertUserChallenge(userId, challengeId);
     }
 
@@ -108,7 +113,14 @@ public class ChallengeServiceImpl implements ChallengeService {
             if(!dto.isJoined() || dto.getCurrentCount() == 0) continue;
 
             // 마지막 성공 날짜가 null이 아닌 경우 체크
-            //
+            if (dto.getLastSuccessDate() != null) {
+                boolean isStreakBroken = dto.getLastSuccessDate().isBefore(yesterday);
+
+                if (isStreakBroken) {
+                    dto.setCurrentStreak(0);
+                }
+            }
+
         }
 
         return challenges;

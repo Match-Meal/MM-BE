@@ -1,14 +1,12 @@
 package com.pagoda.matchmeal.model.dto.response;
 
 import com.pagoda.matchmeal.model.enums.ChallengeType;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDate;
 
 @Getter
+@Setter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
@@ -32,4 +30,6 @@ public class ChallengeResponseDto {
     private int currentStreak;
     private int maxStreak;
     private int progressPercent; // 현재 달성 횟수
+
+    private LocalDate lastSuccessDate;
 }
