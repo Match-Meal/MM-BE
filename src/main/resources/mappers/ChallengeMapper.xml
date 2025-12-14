@@ -11,7 +11,7 @@
         )
         VALUES
         (
-            (#{ownerId}, #{title}, #{description}, #{type}, #{targetValue}, #{startDate}, #{endDate}, #{goalCount},
+             #{ownerId}, #{title}, #{description}, #{type}, #{targetValue}, #{startDate}, #{endDate}, #{goalCount},
              #{maxParticipants}, #{isPublic}, #{invitationCode}, 1, NOW()
         )
     </insert>
@@ -27,11 +27,11 @@
             AND c.type = #{cond.type}
         </if>
 
-        <if test="cond.searchStartDate != null">
-            AND c.start_date >= #{cond.searchStartDate}
+        <if test="cond.startDate != null">
+            AND c.start_date >= #{cond.startDate}
         </if>
-        <if test="cond.searchEndDate != null">
-            AND c.end_date &lt;= #{cond.searchEndDate}
+        <if test="cond.endDate != null">
+            AND c.end_date &lt;= #{cond.endDate}
         </if>
 
         <if test="cond.keyword != null and cond.keyword != ''">
@@ -104,7 +104,7 @@
 
             -- [챌린지 조건]
             c.challenge_id       AS challengeId,
-            c.type               AS challengeType,
+            c.type               AS type,
             c.target_value       AS targetValue,
             c.start_date         AS startDate,
             c.end_date           AS endDate,
