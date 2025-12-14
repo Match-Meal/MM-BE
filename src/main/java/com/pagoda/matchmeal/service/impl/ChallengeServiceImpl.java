@@ -117,6 +117,9 @@ public class ChallengeServiceImpl implements ChallengeService {
         if (challenge == null) {
             throw new CustomException(ErrorResponseCode.CHALLENGE_NOT_FOUND);
         }
+
+        // 참여 로직 호출
+        joinChallengeLogic(userId, challenge);
     }
 
     /**
