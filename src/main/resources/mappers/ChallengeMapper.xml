@@ -3,7 +3,58 @@
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.pagoda.matchmeal.mapper.ChallengeMapper">
 
-    <select id="findAllChallenges" resultType="ChallengeResponseDto">
+    <insert id="insertChallenge" useGeneratedKeys="true" keyProperty="challengeId">
+        INSERT INTO challenges
+        (
+             owner_id, title, description, type, target_value, start_date, end_date, goal_count,
+             max_participants, is_public, invitation_code, current_head_count, created_at
+        )
+        VALUES
+        (
+            (#{ownerId}, #{title}, #{description}, #{type}, #{targetValue}, #{startDate}, #{endDate}, #{goalCount},
+             #{maxParticipants}, #{isPublic}, #{invitationCode}, 1, NOW()
+        )
+    </insert>
+
+    <select id="searchPublicChallenges" resultType="com.pagoda.matchmeal.model.dto.response.ChallengeResponseDto">
+        SELECT
+            c.*,
+            (SELECT COUNT(*) FROM user_challenges uc WHERE uc.challenge_id = c.challenge_id) as currentHeadCount
+        FROM challenges c
+        WHERE c.is_public = true
+
+        <if test="cond.type != null">
+            AND c.type = #{cond.type}
+        </if>
+
+        <if test="cond.searchStartDate != null">
+            AND c.start_date >= #{cond.searchStartDate}
+        </if>
+        <if test="cond.searchEndDate != null">
+            AND c.end_date &lt;= #{cond.searchEndDate}
+        </if>
+
+        <if test="cond.keyword != null and cond.keyword != ''">
+            AND c.title LIKE CONCAT('%', #{cond.keyword}, '%')
+        </if>
+
+        ORDER BY c.start_date DESC
+    </select>
+
+    <select id="findByInvitationCode" resultType="Challenge">
+        SELECT * FROM challenges WHERE invitation_code = #{code}
+    </select>
+
+    <select id="countParticipants" resultType="int">
+        SELECT COUNT(*) FROM user_challenges WHERE challenge_id = #{challengeId}
+    </select>
+
+    <insert id="insertInvitation">
+        INSERT INTO challenge_invitations (challenge_id, inviter_id, invitee_id, status, created_at)
+        VALUES (#{challengeId}, #{inviterId}, #{inviteeId}, 'PENDING', NOW())
+    </insert>
+
+    <select id="findAllChallenges" resultType="com.pagoda.matchmeal.model.dto.response.ChallengeResponseDto">
         SELECT
             -- [챌린지 정보]
             c.challenge_id     AS challengeId,
@@ -42,7 +93,7 @@
         ORDER BY c.start_date DESC, c.created_at DESC
     </select>
 
-    <select id="findActiveChallengesByUserId" resultType="ActiveChallengeDto">
+    <select id="findActiveChallengesByUserId" resultType="com.pagoda.matchmeal.model.dto.response.ActiveChallengeDto">
         SELECT
             -- [유저 기록]
             uc.user_challenge_id AS userChallengeId,

@@ -1,16 +1,14 @@
 package com.pagoda.matchmeal.model.entity;
 
 import com.pagoda.matchmeal.model.enums.ChallengeType;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Getter
 @Setter
+@Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class Challenge {

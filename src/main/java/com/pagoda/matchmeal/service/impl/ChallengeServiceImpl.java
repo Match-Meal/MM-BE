@@ -3,18 +3,23 @@ package com.pagoda.matchmeal.service.impl;
 import com.pagoda.matchmeal.common.exception.CustomException;
 import com.pagoda.matchmeal.common.exception.ErrorResponseCode;
 import com.pagoda.matchmeal.mapper.ChallengeMapper;
+import com.pagoda.matchmeal.model.dto.ChallengeSearchCondition;
+import com.pagoda.matchmeal.model.dto.request.ChallengeCreateRequestDto;
 import com.pagoda.matchmeal.model.dto.response.ActiveChallengeDto;
 import com.pagoda.matchmeal.model.dto.response.ChallengeResponseDto;
+import com.pagoda.matchmeal.model.entity.Challenge;
 import com.pagoda.matchmeal.model.entity.Diet;
 import com.pagoda.matchmeal.model.entity.DietDetail;
 import com.pagoda.matchmeal.model.enums.MealType;
 import com.pagoda.matchmeal.service.ChallengeService;
+import com.pagoda.matchmeal.service.FollowService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -22,19 +27,120 @@ import java.util.List;
 public class ChallengeServiceImpl implements ChallengeService {
 
     private final ChallengeMapper challengeMapper;
+    private final FollowService followService;
 
     /**
-     * 챌린지 참여
+     * 챌린지 생성
+     * @param userId
+     * @param dto
+     * @return challengeId
+     */
+    @Override
+    public Long createChallenge(Long userId, ChallengeCreateRequestDto dto) {
+        // 초대 코드 생성 (난수 8자리)
+        String inviteCode = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+
+        // 엔티티 빌드
+        Challenge challenge = Challenge.builder()
+                .ownerId(userId)
+                .title(dto.getTitle())
+                .description(dto.getDescription())
+                .type(dto.getType())
+                .targetValue(dto.getTargetValue())
+                .startDate(dto.getStartDate())
+                .endDate(dto.getEndDate())
+                .goalCount(dto.getGoalCount())
+                .maxParticipants(dto.getMaxParticipants())
+                .isPublic(dto.isPublic())
+                .invitationCode(inviteCode)
+                .build();
+
+        // 챌린지 저장
+        challengeMapper.insertChallenge(challenge);
+
+        // 방장도 참여자로 등록
+        challengeMapper.insertUserChallenge(userId, challenge.getChallengeId());
+
+        return challenge.getChallengeId();
+    }
+
+    /**
+     * 챌린지 검색 (공개된 챌린지만 검색)
+     * @param condition
+     * @return List<ChallengeResponseDto>
+     */
+    @Override
+    @Transactional(readOnly = true) // 읽기 전용
+    public List<ChallengeResponseDto> searchChallenges(ChallengeSearchCondition condition) {
+        return challengeMapper.searchPublicChallenges(condition);
+    }
+
+    /**
+     * 공개 목록에서 선택해서 참여 (일반 참여)
      * @param userId
      * @param challengeId
      */
     @Override
-    public void joinChallenge(Long userId, Long challengeId) {
-        // 이미 참여했는지 중복 체크 로직 필요
-        if (challengeMapper.existsByUserIdAndChallengeId(userId, challengeId)) {
+    public void joinPublicChallenge(Long userId, Long challengeId) {
+        Challenge challenge = challengeMapper.findById(challengeId);
+        if (!challenge.isPublic()) {
+            throw new CustomException(ErrorResponseCode.UNAUTHORIZED); // 비공개는 코드로만 입장 가능
+        }
+        joinChallengeLogic(userId, challenge);
+    }
+
+    // 공통 참여 로직
+    private void joinChallengeLogic(Long userId, Challenge challenge) {
+        // 중복 체크
+        if (challengeMapper.existsByUserIdAndChallengeId(userId, challenge.getChallengeId())) {
             throw new CustomException(ErrorResponseCode.ALREADY_JOINED_CHALLENGE);
         }
-        challengeMapper.insertUserChallenge(userId, challengeId);
+
+        // 인원 제한 체크
+        int currentCount = challengeMapper.countParticipants(challenge.getChallengeId());
+        if (currentCount >= challenge.getMaxParticipants()) {
+            throw new CustomException(ErrorResponseCode.CHALLENGE_FULL);
+        }
+
+        // 참여
+        challengeMapper.insertUserChallenge(userId, challenge.getChallengeId());
+    }
+
+    /**
+     * 비공개 챌린지 참여
+     * @param userId
+     * @param code
+     */
+    @Override
+    public void joinByCode(Long userId, String code) {
+        Challenge challenge = challengeMapper.findByInvitationCode(code);
+        if (challenge == null) {
+            throw new CustomException(ErrorResponseCode.CHALLENGE_NOT_FOUND);
+        }
+    }
+
+    /**
+     * 팔로윙 목록에 있는 유저인지 확인 후 초대장 발송
+     * @param inviterId
+     * @param challengeId
+     * @param targetUserId
+     */
+    @Override
+    public void inviteUser(Long inviterId, Long challengeId, Long targetUserId) {
+        // 권한 체크(방장만 가능한지, 참여자 모두 가능한지 정책 결정)
+        if (!challengeMapper.existsByUserIdAndChallengeId(inviterId, challengeId)) {
+            throw new CustomException(ErrorResponseCode.UNAUTHORIZED);
+        }
+
+        // 팔로우 관계 확인
+        boolean isFollowing = followService.isFollowing(inviterId, targetUserId);
+        if (!isFollowing) {
+            throw new CustomException(ErrorResponseCode.NOT_FOLLOWING);
+        }
+
+        // 초대장 DB 저장
+        challengeMapper.insertInvitation(challengeId, inviterId, targetUserId);
+
     }
 
     /**

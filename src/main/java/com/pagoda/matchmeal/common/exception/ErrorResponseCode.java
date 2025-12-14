@@ -32,7 +32,10 @@ public enum ErrorResponseCode {
     SELF_FOLLOW_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "자기 자신을 팔로우 할 수 없습니다."),
 
     //----------------------------챌린지 에러코드----------------------------
-    ALREADY_JOINED_CHALLENGE(HttpStatus.BAD_REQUEST, "이미 참여중인 챌린지입니다.");
+    ALREADY_JOINED_CHALLENGE(HttpStatus.BAD_REQUEST, "이미 참여중인 챌린지입니다."),
+    CHALLENGE_FULL(HttpStatus.BAD_REQUEST, "챌린지 정원이 가득 찼습니다."),
+    CHALLENGE_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 챌린지를 찾을 수 없습니다."),
+    NOT_FOLLOWING(HttpStatus.NOT_FOUND, "팔로우중이 아닙니다.");
 
     private final HttpStatus status; // 에러 HTTP 상태 코드
     private final String message; // 에러 메세지
