@@ -98,4 +98,6 @@ public interface ChallengeMapper {
      * 챌린지 실패 처리 (기간 만료 등)
      */
     void updateStatusToFail(@Param("userChallengeId") Long userChallengeId);
+
+    boolean existsInvitation(@Param("challengeId") Long challengeId, @Param("inviteeId") Long inviteeId);
 }

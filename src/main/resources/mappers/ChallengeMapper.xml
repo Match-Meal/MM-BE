@@ -169,4 +169,12 @@
         WHERE user_challenge_id = #{userChallengeId}
     </update>
 
+    <select id="existsInvitation" resultType="boolean">
+        SELECT COUNT(*) > 0
+        FROM challenge_invitations
+        WHERE challenge_id = #{challengeId}
+        AND invitee_id = #{inviteeId}
+        AND status = 'PENDING'
+    </select>
+
 </mapper>

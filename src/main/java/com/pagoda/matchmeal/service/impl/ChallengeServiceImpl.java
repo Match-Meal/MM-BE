@@ -138,9 +138,18 @@ public class ChallengeServiceImpl implements ChallengeService {
             throw new CustomException(ErrorResponseCode.NOT_FOLLOWING);
         }
 
+        // 3. 이미 초대된 상태인지 혹은 이미 챌린지 멤버인지 중복 체크
+        if (challengeMapper.existsByUserIdAndChallengeId(targetUserId, challengeId)) {
+            throw new CustomException(ErrorResponseCode.ALREADY_JOINED_USER);
+        }
+
+        // 이미 대기 중인 초대장이 있는지?
+        if (challengeMapper.existsInvitation(challengeId, targetUserId)) {
+            throw new CustomException(ErrorResponseCode.ALREADY_INVITED);
+        }
+
         // 초대장 DB 저장
         challengeMapper.insertInvitation(challengeId, inviterId, targetUserId);
-
     }
 
     /**

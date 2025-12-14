@@ -72,4 +72,14 @@ public class FollowServiceImpl implements FollowService {
     public List<FollowListDto> getFollowings(Long targetUserId, Long viewerId) {
         return followMapper.getFollowings(targetUserId, viewerId);
     }
+
+    /**
+     * 팔로윙 확인
+     * @param followerId
+     * @param followingId
+     */
+    @Override
+    public boolean isFollowing(Long followerId, Long followingId) {
+        return followMapper.existsByFollowerAndFollowing(followerId, followingId);
+    }
 }

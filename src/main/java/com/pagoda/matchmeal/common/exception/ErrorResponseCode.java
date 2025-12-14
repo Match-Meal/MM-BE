@@ -33,6 +33,8 @@ public enum ErrorResponseCode {
 
     //----------------------------챌린지 에러코드----------------------------
     ALREADY_JOINED_CHALLENGE(HttpStatus.BAD_REQUEST, "이미 참여중인 챌린지입니다."),
+    ALREADY_INVITED(HttpStatus.CONFLICT, "이미 초대를 보낸 사용자입니다."),
+    ALREADY_JOINED_USER(HttpStatus.CONFLICT, "이미 챌린지에 참여 중인 사용자입니다."),
     CHALLENGE_FULL(HttpStatus.BAD_REQUEST, "챌린지 정원이 가득 찼습니다."),
     CHALLENGE_NOT_FOUND(HttpStatus.NOT_FOUND, "해당 챌린지를 찾을 수 없습니다."),
     NOT_FOLLOWING(HttpStatus.NOT_FOUND, "팔로우중이 아닙니다.");
