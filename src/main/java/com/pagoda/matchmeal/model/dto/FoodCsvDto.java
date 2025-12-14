@@ -22,4 +22,6 @@ public class FoodCsvDto {
     private String protein;       // 단백질(g)
     private String fat;           // 지방(g)
     private String carbohydrate;  // 탄수화물(g)
+    private String sugars;
+    private String sodium;
 }
