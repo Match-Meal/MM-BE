@@ -25,7 +25,7 @@ public class DietController {
     public CommonResponse<Long> addDiet(
             @AuthenticationPrincipal UserDto userDto,
             @RequestPart(value = "data") DietRequestDto dietRequestDto,
-            @RequestPart(value = "file") MultipartFile file) {
+            @RequestPart(value = "file", required = false) MultipartFile file) {
         return ApiResponseUtil.created(dietService.recordDiet(userDto.getId(), dietRequestDto, file));
     }
 

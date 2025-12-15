@@ -20,5 +20,7 @@ public class FoodRequestDto {
     private Double carbohydrate;
     private Double protein;
     private Double fat;
+    private Double sugars;
+    private Double sodium;
 
 }

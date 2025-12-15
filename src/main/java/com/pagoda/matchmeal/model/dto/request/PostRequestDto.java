@@ -6,6 +6,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
+import java.util.List;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -16,4 +18,5 @@ public class PostRequestDto {
     private String title;
     private String content;
 
+    private List<Long> deleteFileIds;
 }

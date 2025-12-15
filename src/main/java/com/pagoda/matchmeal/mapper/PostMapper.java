@@ -37,4 +37,8 @@ public interface PostMapper {
     void insertLike(@Param("userId") Long userId, @Param("postId") Long postId);
 
     void deleteLike(@Param("userId") Long userId, @Param("postId") Long postId);
+
+    List<PostFile> getPostFilesByFileIds(List<Long> fileIds);
+
+    void deletePostFilesByFileIds(List<Long> fileIds);
 }

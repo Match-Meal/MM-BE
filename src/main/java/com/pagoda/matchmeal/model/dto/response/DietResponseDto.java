@@ -29,6 +29,8 @@ public class DietResponseDto {
     private double totalCarbohydrate;
     private double totalProtein;
     private double totalFat;
+    private double totalSugars;
+    private double totalSodium;
 
     private List<DietDetailResponseDto> details;
 
@@ -50,6 +52,8 @@ public class DietResponseDto {
         private double carbohydrate;
         private double protein;
         private double fat;
+        private double sugars;
+        private double sodium;
 
         private String dietImgUrl;
     }

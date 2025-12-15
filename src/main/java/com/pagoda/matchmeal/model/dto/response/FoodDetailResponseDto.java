@@ -28,6 +28,8 @@ public class FoodDetailResponseDto {
     private Double carbohydrate;
     private Double protein;
     private Double fat;
+    private Double sugars;
+    private Double sodium;
 
     // 작성자 정보
     private Long userId; // 작성자 ID (null이면 공용)

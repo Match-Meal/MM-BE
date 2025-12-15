@@ -102,10 +102,10 @@ class PostServiceImplTest {
     }
 
     @Test
-    @DisplayName("게시글 수정 성공 - 파일 전체 교체 로직 검증")
+    @DisplayName("게시글 수정 성공 - 파일 선택 삭제 및 새 파일 추가 검증")
     void updatePost_Success_WithFileChange() {
         // given
-        // 1. 기존 게시글 정보 Mocking (본인 확인 통과용)
+        // 1. 기존 게시글 정보 Mocking (본인 확인 및 존재 여부 확인용)
         PostDetailResponseDto existingPost = new PostDetailResponseDto();
         UserSimpleDto userDto = new UserSimpleDto();
         ReflectionTestUtils.setField(userDto, "userId", USER_ID); // 작성자 ID 일치시키기
@@ -113,34 +113,51 @@ class PostServiceImplTest {
 
         given(postMapper.getPostByPostId(POST_ID)).willReturn(existingPost);
 
-        // 2. 업데이트 실행 시 성공 반환 (1행 수정)
+        // 2. 업데이트 실행 시 성공 반환 (텍스트 수정)
         given(postMapper.updatePost(any(Post.class))).willReturn(1);
 
-        // 3. 기존 파일 목록 Mocking
-        List<PostFile> oldFiles = List.of(
-                PostFile.builder().fileId(1L).fileUrl("http://old-url.com").build()
-        );
-        given(postMapper.getPostFilesByPostId(POST_ID)).willReturn(oldFiles);
+        // ======================================================
+        // [수정 포인트 1] 삭제할 파일 ID 설정 및 Mocking
+        // ======================================================
+        Long deleteFileId = 10L;
+        String deleteFileUrl = "http://old-url.com/image.jpg";
 
-        // 4. 새 파일 준비
+        // 3-1. 요청 DTO에 삭제할 파일 ID 리스트 담기
+        PostRequestDto requestDto = new PostRequestDto();
+        ReflectionTestUtils.setField(requestDto, "title", "수정된 제목");
+        ReflectionTestUtils.setField(requestDto, "content", "수정된 내용");
+        ReflectionTestUtils.setField(requestDto, "deleteFileIds", List.of(deleteFileId)); // 삭제 요청
+
+        // 3-2. "선택된 파일 ID"로 DB 조회 시 리턴할 객체 Mocking
+        List<PostFile> filesToDelete = List.of(
+                PostFile.builder().fileId(deleteFileId).fileUrl(deleteFileUrl).build()
+        );
+        given(postMapper.getPostFilesByFileIds(List.of(deleteFileId))).willReturn(filesToDelete);
+
+        // 4. 새 파일 준비 (추가할 파일)
         List<MultipartFile> newFiles = List.of(
-                new MockMultipartFile("files", "new.jpg", "image/jpeg", "new".getBytes())
+                new MockMultipartFile("files", "new.jpg", "image/jpeg", "new-image-content".getBytes())
         );
 
         // when
-        Long updatedId = postService.updatePost(USER_ID, POST_ID, new PostRequestDto(), newFiles);
+        Long updatedId = postService.updatePost(USER_ID, POST_ID, requestDto, newFiles);
 
         // then
         assertThat(updatedId).isEqualTo(POST_ID);
 
         // [핵심 로직 검증]
-        // 1. 기존 파일 S3 삭제 호출되었는가?
-        verify(s3Service).deleteFile("http://old-url.com");
-        // 2. 기존 파일 DB 삭제 호출되었는가?
-        verify(postMapper).deletePostFilesByPostId(POST_ID);
-        // 3. 새 파일 S3 업로드 호출되었는가?
-        verify(s3Service).uploadFile(any(), anyString());
-        // 4. 새 파일 DB 저장 호출되었는가?
+
+        // 1. S3 삭제가 "삭제 요청된 파일 URL"에 대해 수행되었는가?
+        verify(s3Service).deleteFile(deleteFileUrl);
+
+        // 2. DB 삭제가 "전체 삭제"가 아닌 "ID 기반 선택 삭제"로 호출되었는가?
+        // (deletePostFilesByPostId가 아니라 deletePostFilesByFileIds여야 함)
+        verify(postMapper).deletePostFilesByFileIds(List.of(deleteFileId));
+
+        // 3. 새 파일 S3 업로드가 수행되었는가?
+        verify(s3Service).uploadFile(any(MultipartFile.class), anyString());
+
+        // 4. 새 파일 DB 저장이 수행되었는가? (Append 방식)
         verify(postMapper).savePostFiles(anyList());
     }
 

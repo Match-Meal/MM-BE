@@ -19,8 +19,8 @@ public class PostDetailResponseDto {
     private String content;
     private UserSimpleDto user;
 
-    private List<String> images;
-    private List<String> videos;
+    private List<PostFileResponseDto> images;
+    private List<PostFileResponseDto> videos;
 
     private int viewCount;
     private int likeCount;

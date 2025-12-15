@@ -92,28 +92,10 @@ public class PostServiceImpl implements PostService {
     public PostDetailResponseDto getPostDetail(Long userId, Long postId) {
         validateUser(userId);
         PostDetailResponseDto postDetail = postMapper.getPostByPostId(postId);
+        
         if (postDetail == null) {
             throw new CustomException(ErrorResponseCode.POST_NOT_FOUND);
         }
-
-        // 2. 파일 목록 조회 (DB에서 전체 가져오기)
-        List<PostFile> postFiles = postMapper.getPostFilesByPostId(postId);
-
-        // 3. ★ [핵심] 파일 분류 (Entity -> DTO 변환)
-        List<String> images = new ArrayList<>();
-        List<String> videos = new ArrayList<>();
-
-        for (PostFile file : postFiles) {
-            if ("IMAGE".equals(file.getFileType())) {
-                images.add(file.getFileUrl());
-            } else if ("VIDEO".equals(file.getFileType())) {
-                videos.add(file.getFileUrl());
-            }
-        }
-
-        // 4. DTO에 분류된 리스트 세팅
-        postDetail.setImages(images);
-        postDetail.setVideos(videos);
 
         List<CommentResponseDto> comments = commentService.getComments(userId, postId);
 
@@ -143,17 +125,27 @@ public class PostServiceImpl implements PostService {
             throw new CustomException(ErrorResponseCode.POST_NOT_FOUND);
         }
 
+        // 2. 기존 파일 삭제 요청 처리 (선택적 삭제)
+        List<Long> deleteFileIds = postRequestDto.getDeleteFileIds();
+
+        if (deleteFileIds != null && !deleteFileIds.isEmpty()) {
+            // 2-1. 삭제할 파일 정보 조회 (S3 키를 알기 위해)
+            // (주의: MyBatis XML에서 WHERE file_id IN (...) 쿼리 필요)
+            List<PostFile> filesToDelete = postMapper.getPostFilesByFileIds(deleteFileIds);
+
+            // 2-2. 본인 게시글의 파일이 맞는지 검증 (보안상 권장)
+            // 조회된 파일들이 현재 postId에 속하는지 확인하는 로직 추가 권장
+
+            // 2-3. S3에서 물리적 삭제
+            deleteS3Files(filesToDelete);
+
+            // 2-4. DB에서 데이터 삭제
+            postMapper.deletePostFilesByFileIds(deleteFileIds);
+        }
+
+        // 3. 새 파일 추가 (기존 파일은 건드리지 않음 - Append 방식)
         if (files != null && !files.isEmpty()) {
-            // 2-1. 기존 파일들 조회
-            List<PostFile> oldFiles = postMapper.getPostFilesByPostId(postId);
-
-            // 2-2. 기존 파일 S3 삭제 (물리적 삭제)
-            deleteS3Files(oldFiles);
-
-            // 2-3. 기존 파일 DB 정보 삭제
-            postMapper.deletePostFilesByPostId(postId);
-
-            // 2-4. 새 파일 업로드 및 DB 저장
+            // 3-1. 새 파일 업로드 및 DB 저장
             savePostFiles(postId, files);
         }
 

@@ -53,6 +53,8 @@ public class DietServiceImpl implements DietService {
         double totalCarbohydrate = 0;
         double totalProtein = 0;
         double totalFat = 0;
+        double totalSugars = 0;
+        double totalSodium = 0;
 
         List<DietDetail> details = new ArrayList<>();
 
@@ -63,7 +65,7 @@ public class DietServiceImpl implements DietService {
             String finalFoodName = item.getFoodName(); // 음식 이름
 
             // 계산된 영양소 (스냅샷)
-            double snapCal, snapCarbo, snapProtein, snapFat;
+            double snapCal, snapCarbo, snapProtein, snapFat, snapSugars, snapSodium;
 
             // ==========================================================
             // CASE 1: 기존 음식 DB에서 선택한 경우 (ID가 있음)
@@ -82,6 +84,8 @@ public class DietServiceImpl implements DietService {
                 snapCarbo = food.getCarbohydrate() * ratio;
                 snapProtein = food.getProtein() * ratio;
                 snapFat = food.getFat() * ratio;
+                snapSugars = food.getSugars() * ratio;
+                snapSodium = food.getSodium() * ratio;
             }
             // ==========================================================
             // CASE 2: 직접 입력한 경우 (ID 없음)
@@ -93,6 +97,8 @@ public class DietServiceImpl implements DietService {
                 snapCarbo = item.getCarbohydrate();
                 snapProtein = item.getProtein();
                 snapFat = item.getFat();
+                snapSugars = item.getSugars();
+                snapSodium = item.getSodium();
 
                 // ★ 체크박스 로직: "음식 DB에 저장해주세요" 라고 했나요?
                 if (item.isSaveToMyFoods()) {
@@ -107,6 +113,8 @@ public class DietServiceImpl implements DietService {
                             .carbohydrate(item.getCarbohydrate())
                             .protein(item.getProtein())
                             .fat(item.getFat())
+                            .sugars(item.getSugars())
+                            .sodium(item.getSodium())
                             .build();
 
                     foodMapper.saveFood(newCustomFood); // DB 저장
@@ -128,6 +136,8 @@ public class DietServiceImpl implements DietService {
                     .carbohydrate(snapCarbo)
                     .protein(snapProtein)
                     .fat(snapFat)
+                    .sugars(snapSugars)
+                    .sodium(snapSodium)
                     .build();
 
             details.add(detail);
@@ -137,6 +147,8 @@ public class DietServiceImpl implements DietService {
             totalCarbohydrate += snapCarbo;
             totalProtein += snapProtein;
             totalFat += snapFat;
+            totalSugars += snapSugars;
+            totalSodium += snapSodium;
         }
 
         // 7. 부모(Diet) 엔티티 생성
@@ -152,6 +164,8 @@ public class DietServiceImpl implements DietService {
                 .totalCarbohydrate(totalCarbohydrate)
                 .totalProtein(totalProtein)
                 .totalFat(totalFat)
+                .totalSugars(totalSugars)
+                .totalSodium(totalSodium)
                 .build();
 
         // 8. 부모 저장
@@ -170,6 +184,8 @@ public class DietServiceImpl implements DietService {
                     .carbohydrate(d.getCarbohydrate())
                     .protein(d.getProtein())
                     .fat(d.getFat())
+                    .sugars(d.getSugars())
+                    .sodium(d.getSodium())
                     .build();
             finalDetails.add(completeDetail);
         }
@@ -238,6 +254,8 @@ public class DietServiceImpl implements DietService {
         double totalCarbohydrate = 0;
         double totalProtein = 0;
         double totalFat = 0;
+        double totalSugars = 0;
+        double totalSodium = 0;
 
         List<DietDetail> newDetails = new ArrayList<>();
 
@@ -256,6 +274,8 @@ public class DietServiceImpl implements DietService {
             double carbo = food.getCarbohydrate() * ratio;
             double protein = food.getProtein() * ratio;
             double fat = food.getFat() * ratio;
+            double sugars = food.getSugars() * ratio;
+            double sodium = food.getSodium() * ratio;
 
             DietDetail detail = DietDetail.builder()
                     .dietId(dietId) // 기존 식단 ID 유지
@@ -267,6 +287,8 @@ public class DietServiceImpl implements DietService {
                     .carbohydrate(carbo)
                     .protein(protein)
                     .fat(fat)
+                    .sugars(sugars)
+                    .sodium(sodium)
                     .build();
 
             newDetails.add(detail);
@@ -276,6 +298,8 @@ public class DietServiceImpl implements DietService {
             totalCarbohydrate += carbo;
             totalProtein += protein;
             totalFat += fat;
+            totalSugars += sugars;
+            totalSodium += sodium;
         }
 
         // 3. 부모(Diet) 정보 업데이트
@@ -289,6 +313,8 @@ public class DietServiceImpl implements DietService {
                 .totalCarbohydrate(totalCarbohydrate)
                 .totalProtein(totalProtein)
                 .totalFat(totalFat)
+                .totalSugars(totalSugars)
+                .totalSodium(totalSodium)
                 .build();
 
         dietMapper.updateDiet(dietUpdate);

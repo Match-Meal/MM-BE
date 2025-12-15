@@ -16,6 +16,8 @@ CREATE TABLE foods (
                        protein      DOUBLE PRECISION,
                        fat          DOUBLE PRECISION,
                        carbohydrate DOUBLE PRECISION,
+                       sugars       DOUBLE PRECISION,
+                       sodium       DOUBLE PRECISION,
 
     -- [핵심 수정] 복잡한 날짜 설정 제거 -> 그냥 TIMESTAMP
                        created_at   TIMESTAMP,
@@ -85,6 +87,8 @@ CREATE TABLE diet_records (
                               total_carbohydrate DOUBLE PRECISION DEFAULT 0,
                               total_protein      DOUBLE PRECISION DEFAULT 0,
                               total_fat          DOUBLE PRECISION DEFAULT 0,
+                              total_sugars       DOUBLE PRECISION DEFAULT 0,
+                              total_sodium       DOUBLE PRECISION DEFAULT 0,
 
                               created_at         TIMESTAMP,
                               updated_at         TIMESTAMP,
@@ -107,6 +111,8 @@ CREATE TABLE diet_details (
                               carbohydrate       DOUBLE PRECISION DEFAULT 0,
                               protein            DOUBLE PRECISION DEFAULT 0,
                               fat                DOUBLE PRECISION DEFAULT 0,
+                              sugars             DOUBLE PRECISION DEFAULT 0,
+                              sodium             DOUBLE PRECISION DEFAULT 0,
 
                               CONSTRAINT fk_diet_details_diet
                                   FOREIGN KEY (diet_id) REFERENCES diet_records (diet_id)

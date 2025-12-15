@@ -14,6 +14,8 @@
         <result property="totalCarbohydrate" column="total_carbohydrate"/>
         <result property="totalProtein" column="total_protein"/>
         <result property="totalFat" column="total_fat"/>
+        <result property="totalSugars" column="total_sugars"/>
+        <result property="totalSodium" column="total_sodium"/>
 
         <collection property="details"
                     ofType="com.pagoda.matchmeal.model.dto.response.DietResponseDto$DietDetailResponseDto">
@@ -26,26 +28,30 @@
             <result property="carbohydrate" column="d_carbohydrate"/>
             <result property="protein" column="d_protein"/>
             <result property="fat" column="d_fat"/>
+            <result property="sugars" column="d_sugars"/>
+            <result property="sodium" column="d_sodium"/>
         </collection>
     </resultMap>
 
     <insert id="insertDiet" parameterType="com.pagoda.matchmeal.model.entity.Diet"
             useGeneratedKeys="true" keyProperty="dietId">
         INSERT INTO diet_records (user_id, eat_date, eat_time, meal_type, memo, diet_img_url,
-                                  total_calories, total_carbohydrate, total_protein, total_fat, created_at, updated_at)
+                                  total_calories, total_carbohydrate, total_protein, total_fat, total_sugars,
+                                  total_sodium, created_at, updated_at)
         VALUES (#{userId}, #{eatDate}, #{eatTime}, #{mealType}, #{memo}, #{dietImgUrl},
-                #{totalCalories}, #{totalCarbohydrate}, #{totalProtein}, #{totalFat}, NOW(), NOW())
+                #{totalCalories}, #{totalCarbohydrate}, #{totalProtein}, #{totalFat}, #{totalSugars}, #{totalSodium},
+                NOW(), NOW())
     </insert>
 
     <insert id="insertDietDetails" parameterType="java.util.List">
         INSERT INTO diet_details (
         diet_id, food_id, food_name, quantity, unit,
-        calories, carbohydrate, protein, fat
+        calories, carbohydrate, protein, fat, sugars, sodium
         ) VALUES
         <foreach collection="list" item="item" separator=",">
             (
             #{item.dietId}, #{item.foodId}, #{item.foodName}, #{item.quantity}, #{item.unit},
-            #{item.calories}, #{item.carbohydrate}, #{item.protein}, #{item.fat}
+            #{item.calories}, #{item.carbohydrate}, #{item.protein}, #{item.fat}, #{item.sugars}, #{item.sodium}
             )
         </foreach>
     </insert>
@@ -60,7 +66,9 @@
                dd.calories     AS d_calories,
                dd.carbohydrate AS d_carbohydrate,
                dd.protein      AS d_protein,
-               dd.fat          AS d_fat
+               dd.fat          AS d_fat,
+               dd.sugars       AS d_sugars,
+               dd.sodium       AS d_sodium
         FROM diet_records d
                  LEFT JOIN diet_details dd ON d.diet_id = dd.diet_id
         WHERE d.user_id = #{userId}
@@ -79,7 +87,9 @@
                dd.calories     AS d_calories,
                dd.carbohydrate AS d_carbohydrate,
                dd.protein      AS d_protein,
-               dd.fat          AS d_fat
+               dd.fat          AS d_fat,
+               dd.sugars       AS d_sugars,
+               dd.sodium       AS d_sodium
         FROM diet_records d
                  LEFT JOIN diet_details dd ON d.diet_id = dd.diet_id
         WHERE d.diet_id = #{dietId}
@@ -96,6 +106,8 @@
             total_carbohydrate = #{totalCarbohydrate},
             total_protein      = #{totalProtein},
             total_fat          = #{totalFat},
+            total_sugars       = #{totalSugars},
+            total_sodium       = #{totalSodium},
             updated_at         = NOW()
         WHERE diet_id = #{dietId}
     </update>

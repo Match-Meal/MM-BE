@@ -53,6 +53,8 @@ public class FoodServiceImpl implements FoodService {
                 .carbohydrate(foodRequestDto.getCarbohydrate())
                 .protein(foodRequestDto.getProtein())
                 .fat(foodRequestDto.getFat())
+                .sugars(foodRequestDto.getSugars())
+                .sodium(foodRequestDto.getSodium())
                 .build();
 
         foodMapper.saveFood(food);
@@ -146,6 +148,8 @@ public class FoodServiceImpl implements FoodService {
                 .carbohydrate(foodRequestDto.getCarbohydrate())
                 .protein(foodRequestDto.getProtein())
                 .fat(foodRequestDto.getFat())
+                .sugars(foodRequestDto.getSugars())
+                .sodium(foodRequestDto.getSodium())
                 .build();
 
         foodMapper.updateFood(updateFood);

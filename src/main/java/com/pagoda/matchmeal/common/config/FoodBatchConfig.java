@@ -108,11 +108,11 @@ public class FoodBatchConfig {
                 .encoding("UTF-8") // 한글 깨짐 방지
                 .linesToSkip(1) // 첫 번째 줄(헤더)은 데이터가 아니므로 건너뜀
                 .delimited() // 쉼표(,)로 구분된 파일임
-                // 0:이름, 1:중량, 2:칼로리, 3:탄수, 5:지방, 6:단백질
-                .includedFields(0, 1, 2, 3, 5, 6)
+                // 0:이름, 1:중량, 2:칼로리, 3:탄수, 5:지방, 6:단백질, 4:당류, 9:나트륨
+                .includedFields(0, 1, 2, 3, 5, 6, 4, 9)
 
                 // 위에서 뽑은 순서대로 DTO의 어떤 변수에 넣을지 지정합니다.
-                .names("foodName", "servingSize", "calories", "carbohydrate", "fat", "protein")
+                .names("foodName", "servingSize", "calories", "carbohydrate", "fat", "protein", "sugars", "sodium")
 
                 .targetType(FoodCsvDto.class)
                 .build();
@@ -129,10 +129,10 @@ public class FoodBatchConfig {
                 // ★ 중요: 1,2,3줄은 공백/메타데이터, 4줄은 헤더 -> 총 4줄 스킵
                 .linesToSkip(4)
                 .delimited()
-                .includedFields(2, 5, 9, 11, 12, 15, 19, 20, 21)
+                .includedFields(2, 5, 9, 11, 12, 15, 19, 20, 21, 22, 45)
 
                 // DTO 필드 매핑
-                .names("foodCode", "foodName", "category", "servingSize", "unit", "calories", "protein", "fat", "carbohydrate")
+                .names("foodCode", "foodName", "category", "servingSize", "unit", "calories", "protein", "fat", "carbohydrate", "sugars", "sodium")
 
                 .targetType(FoodCsvDto.class)
                 .build();
@@ -172,6 +172,8 @@ public class FoodBatchConfig {
                     .protein(parseDoubleSafe(item.getProtein()))
                     .fat(parseDoubleSafe(item.getFat()))
                     .carbohydrate(parseDoubleSafe(item.getCarbohydrate()))
+                    .sugars(parseDoubleSafe(item.getSugars()))
+                    .sodium(parseDoubleSafe(item.getSodium()))
                     .build();
         };
     }
@@ -180,8 +182,15 @@ public class FoodBatchConfig {
     @Bean
     public ItemProcessor<FoodCsvDto, Food> foodProcessorB() {
         return item -> {
-            // 단위 처리: 데이터에 "g"라고 적혀있으면 그대로 쓰고, 없으면 기본값
-            String unit = (item.getUnit() != null && !item.getUnit().isEmpty()) ? item.getUnit() : "g";
+            String rawUnit = item.getUnit();
+
+            // 1. unit에 #NUM!이 포함되어 있다면 null 반환 (데이터 저장 스킵)
+            if (rawUnit != null && rawUnit.contains("#NUM!")) {
+                return null;
+            }
+
+            // 2. 단위 처리: 값이 null이거나 공백이면 기본값 "g", 그 외엔 원래 값 사용
+            String unit = (rawUnit != null && !rawUnit.trim().isEmpty()) ? rawUnit : "g";
 
             return Food.builder()
                     // 파일에 있는 코드 그대로 사용
@@ -198,6 +207,8 @@ public class FoodBatchConfig {
                     .protein(parseDoubleSafe(item.getProtein()))
                     .fat(parseDoubleSafe(item.getFat()))
                     .carbohydrate(parseDoubleSafe(item.getCarbohydrate()))
+                    .sugars(parseDoubleSafe(item.getSugars()))
+                    .sodium(parseDoubleSafe(item.getSodium()))
                     .build();
         };
     }
