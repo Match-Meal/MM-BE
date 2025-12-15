@@ -2,14 +2,10 @@ package com.pagoda.matchmeal.service;
 
 import com.pagoda.matchmeal.model.dto.ChallengeSearchCondition;
 import com.pagoda.matchmeal.model.dto.request.ChallengeCreateRequestDto;
-import com.pagoda.matchmeal.model.dto.response.ActiveChallengeDto;
-import com.pagoda.matchmeal.model.dto.response.ChallengeCreateResponseDto;
 import com.pagoda.matchmeal.model.dto.response.ChallengeResponseDto;
-import com.pagoda.matchmeal.model.entity.Challenge;
 import com.pagoda.matchmeal.model.entity.Diet;
 import com.pagoda.matchmeal.model.entity.DietDetail;
 
-import java.time.LocalDate;
 import java.util.List;
 
 public interface ChallengeService {

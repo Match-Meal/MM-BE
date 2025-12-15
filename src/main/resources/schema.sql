@@ -113,6 +113,53 @@ CREATE TABLE diet_details (
                                       ON DELETE CASCADE
 );
 
+-- 1. 챌린지 마스터 테이블
+DROP TABLE IF EXISTS challenges;
+DROP TABLE IF EXISTS user_challenges;
+DROP TABLE IF EXISTS challenge_invitations;
+
+-- H2 DB 호환 스키마
+
+CREATE TABLE IF NOT EXISTS challenges (
+                                          challenge_id        BIGINT AUTO_INCREMENT PRIMARY KEY,
+                                          owner_id            BIGINT NOT NULL,
+                                          title               VARCHAR(100) NOT NULL,
+    description         TEXT,
+    type                VARCHAR(30) NOT NULL,
+    target_value        INT NOT NULL,
+    start_date          DATE NOT NULL,
+    end_date            DATE NOT NULL,
+    goal_count          INT NOT NULL,
+    max_participants    INT NOT NULL DEFAULT 10,
+    current_head_count  INT NOT NULL DEFAULT 1,
+    is_public           BOOLEAN NOT NULL DEFAULT TRUE, -- TINYINT 대신 BOOLEAN 권장 (H2)
+    invitation_code     VARCHAR(20) NOT NULL,
+    created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+CREATE TABLE IF NOT EXISTS user_challenges (
+                                               user_challenge_id   BIGINT AUTO_INCREMENT PRIMARY KEY,
+                                               user_id             BIGINT NOT NULL,
+                                               challenge_id        BIGINT NOT NULL,
+                                               status              VARCHAR(20) DEFAULT 'PROGRESS',
+    current_count       INT DEFAULT 0,
+    current_streak      INT DEFAULT 0,
+    max_streak          INT DEFAULT 0,
+    last_success_date   DATE DEFAULT NULL,
+    created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at          TIMESTAMP DEFAULT NULL
+    );
+
+CREATE TABLE IF NOT EXISTS challenge_invitations (
+                                                     invitation_id       BIGINT AUTO_INCREMENT PRIMARY KEY,
+                                                     challenge_id        BIGINT NOT NULL,
+                                                     inviter_id          BIGINT NOT NULL,
+                                                     invitee_id          BIGINT NOT NULL,
+                                                     status              VARCHAR(20) DEFAULT 'PENDING',
+    created_at          TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+
 -- 1. 모든 정보가 입력된 표준 남성 유저 (공개 프로필)
 INSERT INTO users (
     email, platform, social_id, user_name, gender, birth_date,
@@ -171,3 +218,4 @@ INSERT INTO follows (follower_id, following_id, created_at) VALUES (3, 2, NOW())
 
 -- 5. 철수(1)가 관리자(4)를 팔로우
 INSERT INTO follows (follower_id, following_id, created_at) VALUES (1, 4, NOW());
+

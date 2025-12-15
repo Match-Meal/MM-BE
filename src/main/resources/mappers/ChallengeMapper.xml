@@ -177,4 +177,8 @@
         AND status = 'PENDING'
     </select>
 
+    <select id="findById" resultType="com.pagoda.matchmeal.model.entity.Challenge">
+        SELECT * FROM challenges
+        WHERE challenge_id = #{challengeId}
+    </select>
 </mapper>
