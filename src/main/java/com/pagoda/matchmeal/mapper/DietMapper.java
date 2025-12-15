@@ -1,9 +1,12 @@
 package com.pagoda.matchmeal.mapper;
 
+import com.pagoda.matchmeal.model.dto.response.DailyDietStatDto;
 import com.pagoda.matchmeal.model.dto.response.DietResponseDto;
 import com.pagoda.matchmeal.model.entity.Diet;
 import com.pagoda.matchmeal.model.entity.DietDetail;
+import org.apache.ibatis.annotations.Param;
 
+import java.time.LocalDate;
 import java.util.List;
 
 /**
@@ -63,4 +66,9 @@ public interface DietMapper {
      * @param dietId 삭제할 식단 ID
      */
     void deleteDietByDietId(Long dietId);
+
+    // 날짜별 통계 조회
+    List<DailyDietStatDto> getDailyDietStats(@Param("userId") Long userId,
+                                             @Param("startDate") LocalDate startDate,
+                                             @Param("endDate") LocalDate endDate);
 }
