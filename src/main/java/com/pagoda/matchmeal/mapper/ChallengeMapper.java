@@ -8,6 +8,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 @Mapper
 public interface ChallengeMapper {
@@ -104,4 +105,17 @@ public interface ChallengeMapper {
     void updateStatusToFail(@Param("userChallengeId") Long userChallengeId);
 
     boolean existsInvitation(@Param("challengeId") Long challengeId, @Param("inviteeId") Long inviteeId);
+
+    /**
+     * 챌린지 상세 조회
+     * @param userId
+     * @param challengeId
+     */
+    Optional<ChallengeResponseDto> findChallengeDetailById(@Param("userId") Long userId, @Param("challengeId") Long challengeId);
+
+    /**
+     * 챌린지 정보 수정
+     * @param challenge
+     */
+    void updateChallenge(Challenge challenge);
 }
