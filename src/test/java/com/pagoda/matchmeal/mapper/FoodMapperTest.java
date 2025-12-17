@@ -1,6 +1,5 @@
-package com.pagoda.matchmeal.integration;
+package com.pagoda.matchmeal.mapper;
 
-import com.pagoda.matchmeal.mapper.FoodMapper;
 import com.pagoda.matchmeal.model.dto.FoodSearchCond;
 import com.pagoda.matchmeal.model.dto.response.FoodListResponseDto;
 import com.pagoda.matchmeal.model.entity.Food;

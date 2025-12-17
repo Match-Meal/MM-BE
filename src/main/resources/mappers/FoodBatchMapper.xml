@@ -12,6 +12,8 @@
                            protein,
                            fat,
                            carbohydrate,
+                           sugars,
+                           sodium,
                            created_at)
         VALUES (#{foodCode},
                 #{foodName},
@@ -22,6 +24,8 @@
                 #{protein},
                 #{fat},
                 #{carbohydrate},
+                #{sugars},
+                #{sodium},
                 NOW()) ON DUPLICATE KEY
         UPDATE
             food_name =
@@ -32,7 +36,9 @@
         VALUES (unit), protein =
         VALUES (protein), fat =
         VALUES (fat), carbohydrate =
-        VALUES (carbohydrate), updated_at = NOW()
+        VALUES (carbohydrate), sugars =
+        VALUES (sugars), sodium =
+        VALUES (sodium), updated_at = NOW()
     </insert>
 
     <select id="countAll" resultType="int">

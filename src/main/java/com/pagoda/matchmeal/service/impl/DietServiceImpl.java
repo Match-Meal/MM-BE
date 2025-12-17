@@ -5,7 +5,8 @@ import com.pagoda.matchmeal.common.exception.ErrorResponseCode;
 import com.pagoda.matchmeal.mapper.DietMapper;
 import com.pagoda.matchmeal.mapper.FoodMapper;
 import com.pagoda.matchmeal.model.dto.request.DietRequestDto;
-import com.pagoda.matchmeal.model.dto.response.DietResponseDto;
+import com.pagoda.matchmeal.model.dto.request.DietStatsRequestDto;
+import com.pagoda.matchmeal.model.dto.response.*;
 import com.pagoda.matchmeal.model.entity.Diet;
 import com.pagoda.matchmeal.model.entity.DietDetail;
 import com.pagoda.matchmeal.model.entity.Food;
@@ -19,7 +20,10 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * 식단(Diet) 관련 비즈니스 로직 구현체
@@ -53,6 +57,8 @@ public class DietServiceImpl implements DietService {
         double totalCarbohydrate = 0;
         double totalProtein = 0;
         double totalFat = 0;
+        double totalSugars = 0;
+        double totalSodium = 0;
 
         List<DietDetail> details = new ArrayList<>();
 
@@ -63,7 +69,7 @@ public class DietServiceImpl implements DietService {
             String finalFoodName = item.getFoodName(); // 음식 이름
 
             // 계산된 영양소 (스냅샷)
-            double snapCal, snapCarbo, snapProtein, snapFat;
+            double snapCal, snapCarbo, snapProtein, snapFat, snapSugars, snapSodium;
 
             // ==========================================================
             // CASE 1: 기존 음식 DB에서 선택한 경우 (ID가 있음)
@@ -82,6 +88,8 @@ public class DietServiceImpl implements DietService {
                 snapCarbo = food.getCarbohydrate() * ratio;
                 snapProtein = food.getProtein() * ratio;
                 snapFat = food.getFat() * ratio;
+                snapSugars = food.getSugars() * ratio;
+                snapSodium = food.getSodium() * ratio;
             }
             // ==========================================================
             // CASE 2: 직접 입력한 경우 (ID 없음)
@@ -93,6 +101,8 @@ public class DietServiceImpl implements DietService {
                 snapCarbo = item.getCarbohydrate();
                 snapProtein = item.getProtein();
                 snapFat = item.getFat();
+                snapSugars = item.getSugars();
+                snapSodium = item.getSodium();
 
                 // ★ 체크박스 로직: "음식 DB에 저장해주세요" 라고 했나요?
                 if (item.isSaveToMyFoods()) {
@@ -107,6 +117,8 @@ public class DietServiceImpl implements DietService {
                             .carbohydrate(item.getCarbohydrate())
                             .protein(item.getProtein())
                             .fat(item.getFat())
+                            .sugars(item.getSugars())
+                            .sodium(item.getSodium())
                             .build();
 
                     foodMapper.saveFood(newCustomFood); // DB 저장
@@ -128,6 +140,8 @@ public class DietServiceImpl implements DietService {
                     .carbohydrate(snapCarbo)
                     .protein(snapProtein)
                     .fat(snapFat)
+                    .sugars(snapSugars)
+                    .sodium(snapSodium)
                     .build();
 
             details.add(detail);
@@ -137,6 +151,8 @@ public class DietServiceImpl implements DietService {
             totalCarbohydrate += snapCarbo;
             totalProtein += snapProtein;
             totalFat += snapFat;
+            totalSugars += snapSugars;
+            totalSodium += snapSodium;
         }
 
         // 7. 부모(Diet) 엔티티 생성
@@ -152,6 +168,8 @@ public class DietServiceImpl implements DietService {
                 .totalCarbohydrate(totalCarbohydrate)
                 .totalProtein(totalProtein)
                 .totalFat(totalFat)
+                .totalSugars(totalSugars)
+                .totalSodium(totalSodium)
                 .build();
 
         // 8. 부모 저장
@@ -170,6 +188,8 @@ public class DietServiceImpl implements DietService {
                     .carbohydrate(d.getCarbohydrate())
                     .protein(d.getProtein())
                     .fat(d.getFat())
+                    .sugars(d.getSugars())
+                    .sodium(d.getSodium())
                     .build();
             finalDetails.add(completeDetail);
         }
@@ -238,6 +258,8 @@ public class DietServiceImpl implements DietService {
         double totalCarbohydrate = 0;
         double totalProtein = 0;
         double totalFat = 0;
+        double totalSugars = 0;
+        double totalSodium = 0;
 
         List<DietDetail> newDetails = new ArrayList<>();
 
@@ -256,6 +278,8 @@ public class DietServiceImpl implements DietService {
             double carbo = food.getCarbohydrate() * ratio;
             double protein = food.getProtein() * ratio;
             double fat = food.getFat() * ratio;
+            double sugars = food.getSugars() * ratio;
+            double sodium = food.getSodium() * ratio;
 
             DietDetail detail = DietDetail.builder()
                     .dietId(dietId) // 기존 식단 ID 유지
@@ -267,6 +291,8 @@ public class DietServiceImpl implements DietService {
                     .carbohydrate(carbo)
                     .protein(protein)
                     .fat(fat)
+                    .sugars(sugars)
+                    .sodium(sodium)
                     .build();
 
             newDetails.add(detail);
@@ -276,6 +302,8 @@ public class DietServiceImpl implements DietService {
             totalCarbohydrate += carbo;
             totalProtein += protein;
             totalFat += fat;
+            totalSugars += sugars;
+            totalSodium += sodium;
         }
 
         // 3. 부모(Diet) 정보 업데이트
@@ -289,6 +317,8 @@ public class DietServiceImpl implements DietService {
                 .totalCarbohydrate(totalCarbohydrate)
                 .totalProtein(totalProtein)
                 .totalFat(totalFat)
+                .totalSugars(totalSugars)
+                .totalSodium(totalSodium)
                 .build();
 
         dietMapper.updateDiet(dietUpdate);
@@ -317,5 +347,170 @@ public class DietServiceImpl implements DietService {
             throw new CustomException(ErrorResponseCode.UNAUTHORIZED);
         }
         dietMapper.deleteDietByDietId(dietId);
+    }
+
+    @Override
+    public DietStatsResponseDto getDietStats(Long userId, DietStatsRequestDto dietStatsRequestDto) {
+        // 1. 기간 계산 (시작일~종료일 확정)
+        LocalDate endDate;
+        if (dietStatsRequestDto.getEndDate() == null) {
+            endDate = LocalDate.now();
+        } else {
+            endDate = dietStatsRequestDto.getEndDate();
+        }
+        LocalDate startDate = calculateStartDate(dietStatsRequestDto.getPeriodType(), dietStatsRequestDto.getStartDate(), endDate);
+
+        // 2. DB 조회 (입력한 날짜만 나옴)
+        List<DailyDietStatDto> rawStats = dietMapper.getDailyDietStats(userId, startDate, endDate);
+
+        // 3. 빈 날짜 채우기 (Gap Filling) - 그래프 끊김 방지
+        List<DailyDietStatDto> fullDailyStats = fillMissingDates(startDate, endDate, rawStats);
+
+        // 4. 기간 평균 및 분석 데이터 계산 (여기가 핵심!)
+        return analyzeDietStats(fullDailyStats, startDate, endDate);
+    }
+
+    // 1. 시작일 계산기
+    private LocalDate calculateStartDate(String type, LocalDate customStart, LocalDate end) {
+        if ("MONTHLY".equals(type))
+            return end.minusMonths(1);
+        if ("CUSTOM".equals(type) && customStart != null)
+            return customStart;
+        return end.minusDays(6); // 기본: 일주일 (오늘 포함 7일)
+    }
+
+    // 2. 빈 날짜 채우기 (0점 처리)
+    private List<DailyDietStatDto> fillMissingDates(LocalDate start, LocalDate end, List<DailyDietStatDto> rawData) {
+        Map<LocalDate, DailyDietStatDto> map = rawData.stream()
+                .collect(Collectors.toMap(DailyDietStatDto::getDate, Function.identity()));
+
+        List<DailyDietStatDto> result = new ArrayList<>();
+
+        // 시작일부터 종료일까지 하루씩 증가하며 Map에 없으면 0으로 채움
+        start.datesUntil(end.plusDays(1)).forEach(date -> {
+            result.add(map.getOrDefault(date, DailyDietStatDto.builder()
+                    .date(date)
+                    .totalCalories(0).carbsG(0).proteinG(0).fatG(0).sugarG(0).sodiumMg(0)
+                    .build()));
+        });
+        return result;
+    }
+
+    // 3. ★ 분석 로직 (비율, 경고 등)
+    private DietStatsResponseDto analyzeDietStats(List<DailyDietStatDto> stats, LocalDate start, LocalDate end) {
+        // A. 평균 계산 (값이 없으면 0.0)
+        double totalDays = stats.isEmpty() ? 1 : stats.size();
+        double avgCal = stats.stream().mapToInt(DailyDietStatDto::getTotalCalories).average().orElse(0);
+        double avgCarb = stats.stream().mapToInt(DailyDietStatDto::getCarbsG).average().orElse(0);
+        double avgProtein = stats.stream().mapToInt(DailyDietStatDto::getProteinG).average().orElse(0);
+        double avgFat = stats.stream().mapToInt(DailyDietStatDto::getFatG).average().orElse(0);
+        double avgSugar = stats.stream().mapToInt(DailyDietStatDto::getSugarG).average().orElse(0);
+        double avgSodium = stats.stream().mapToInt(DailyDietStatDto::getSodiumMg).average().orElse(0);
+
+        // B. 탄단지 비율 분석 (kcal 기준: 탄4, 단4, 지9)
+        double totalMacroCal = (avgCarb * 4) + (avgProtein * 4) + (avgFat * 9);
+        totalMacroCal = (totalMacroCal == 0) ? 1 : totalMacroCal; // 0 나누기 방지
+
+        // 1. 실제 비율 계산 (소수점 반올림하여 저장)
+        double actualCarbRatio = Math.round((avgCarb * 4 / totalMacroCal) * 100);
+        double actualProteinRatio = Math.round((avgProtein * 4 / totalMacroCal) * 100);
+        double actualFatRatio = Math.round((avgFat * 9 / totalMacroCal) * 100);
+
+        // 2. 목표 비율 정의 (권장 5:2:3 -> 50%, 20%, 30%)
+        // (추후 user_goals 테이블에서 가져오는 값으로 대체 가능)
+        double goalCarbRatio = 50.0;
+        double goalProteinRatio = 20.0;
+        double goalFatRatio = 30.0;
+
+        // 3. ★ [수정 포인트] 피드백 생성 메서드 호출
+        String feedbackMsg = generateCpfFeedback(
+                new double[]{actualCarbRatio, actualProteinRatio, actualFatRatio},
+                new double[]{goalCarbRatio, goalProteinRatio, goalFatRatio}
+        );
+
+        // 4. 탄단지 DTO 생성
+        MacronutrientAnalysisDto cpfAnalysis = MacronutrientAnalysisDto.builder()
+                .carbRatio(actualCarbRatio)
+                .proteinRatio(actualProteinRatio)
+                .fatRatio(actualFatRatio)
+                .recommendedCarbRatio(goalCarbRatio)
+                .recommendedProteinRatio(goalProteinRatio)
+                .recommendedFatRatio(goalFatRatio)
+                .feedback(feedbackMsg) // 생성된 메시지 주입
+                .build();
+
+        // C. 당류 분석 (권고: 총 섭취 열량의 10% 미만)
+        // 당류 1g = 4kcal. (평균칼로리 * 0.1) / 4 = 권장 g수
+        int recommendedSugarLimit = (int) ((avgCal * 0.1) / 4);
+        // 0이면 최소한의 값(예: 25g) 또는 0 처리
+        recommendedSugarLimit = (recommendedSugarLimit == 0) ? 25 : recommendedSugarLimit;
+
+        NutrientStatusDto sugarAnalysis = NutrientStatusDto.builder()
+                .nutrientName("당류")
+                .currentIntake((int) avgSugar)
+                .recommendedLimit(recommendedSugarLimit)
+                .intakePercentage((int) (avgSugar * 100 / recommendedSugarLimit))
+                // 권장량 초과 시 BAD, 아니면 GOOD
+                .status(avgSugar > recommendedSugarLimit ? NutrientStatusDto.NutrientLevel.BAD : NutrientStatusDto.NutrientLevel.GOOD)
+                .build();
+
+        // D. 나트륨 분석 (권고: 2000mg 미만)
+        int recommendedSodiumLimit = 2000;
+
+        NutrientStatusDto sodiumAnalysis = NutrientStatusDto.builder()
+                .nutrientName("나트륨")
+                .currentIntake((int) avgSodium)
+                .recommendedLimit(recommendedSodiumLimit)
+                .intakePercentage((int) (avgSodium * 100 / recommendedSodiumLimit))
+                .status(avgSodium > recommendedSodiumLimit ? NutrientStatusDto.NutrientLevel.BAD : NutrientStatusDto.NutrientLevel.GOOD)
+                .build();
+
+        // E. 최종 응답 DTO 조립
+        return DietStatsResponseDto.builder()
+                .periodTotalDays((int) totalDays)
+                .averageCalories((int) avgCal)
+                .cpfRatioAnalysis(cpfAnalysis)
+                .sugarAnalysis(sugarAnalysis)
+                .sodiumAnalysis(sodiumAnalysis)
+                .dailyStats(stats) // 그래프용 일별 데이터
+                .build();
+    }
+
+    // 비율 피드백 생성 메서드 (예시)
+    private String generateCpfFeedback(double[] actualRatio, double[] goalRatio) {
+        double carbDiff = actualRatio[0] - goalRatio[0];    // 탄수화물 차이 (+면 과잉, -면 부족)
+        double proteinDiff = actualRatio[1] - goalRatio[1]; // 단백질 차이
+        double fatDiff = actualRatio[2] - goalRatio[2];     // 지방 차이
+
+        // 허용 오차 범위 (±10%)
+        final double THRESHOLD = 10.0;
+
+        // 1. 데이터 없음 체크
+        if (actualRatio[0] == 0 && actualRatio[1] == 0 && actualRatio[2] == 0) {
+            return "식단 기록이 없어 분석할 수 없어요. 😢";
+        }
+
+        // 2. [우선순위 1] 단백질 부족 체크 (가장 중요)
+        if (proteinDiff < -THRESHOLD) {
+            return "단백질이 많이 부족해요! 🍗 닭가슴살이나 두부, 계란을 더 챙겨드세요.";
+        }
+
+        // 3. [우선순위 2] 탄수화물 과잉 체크
+        if (carbDiff > THRESHOLD) {
+            return "탄수화물 비중이 너무 높아요. 🍚 밥이나 면 양을 조금만 줄여볼까요?";
+        }
+
+        // 4. [우선순위 3] 지방 과잉 체크
+        if (fatDiff > THRESHOLD) {
+            return "지방 섭취가 많네요. 튀김이나 기름진 고기 대신 살코기 위주로 드셔보세요.";
+        }
+
+        // 5. [우선순위 4] 탄수화물 부족 (다이어트 중 기력 저하 우려)
+        if (carbDiff < -THRESHOLD) {
+            return "에너지가 부족할 수 있어요. 🍠 고구마나 통곡물로 탄수화물을 보충해주세요.";
+        }
+
+        // 6. [기본] 밸런스 양호 (모든 오차가 10% 이내)
+        return "탄단지 비율이 황금 밸런스입니다! 아주 훌륭해요! 🌿";
     }
 }
