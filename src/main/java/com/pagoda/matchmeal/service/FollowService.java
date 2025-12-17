@@ -12,4 +12,6 @@ public interface FollowService {
 
     List<FollowListDto> getFollowings(Long targetUserId, Long viewerId);
 
+    boolean isFollowing(Long followerId, Long followingId);
+
 }

@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pagoda.matchmeal.mapper.ChallengeMapper">
+
+    <insert id="insertChallenge" useGeneratedKeys="true" keyProperty="challengeId">
+        INSERT INTO challenges
+        (
+             owner_id, title, description, type, target_value, start_date, end_date, goal_count,
+             max_participants, is_public, invitation_code, current_head_count, created_at
+        )
+        VALUES
+        (
+             #{ownerId}, #{title}, #{description}, #{type}, #{targetValue}, #{startDate}, #{endDate}, #{goalCount},
+             #{maxParticipants}, #{isPublic}, #{invitationCode}, 1, NOW()
+        )
+    </insert>
+
+    <select id="searchPublicChallenges" resultType="com.pagoda.matchmeal.model.dto.response.ChallengeResponseDto">
+        SELECT
+            c.*,
+            (SELECT COUNT(*) FROM user_challenges uc WHERE uc.challenge_id = c.challenge_id) as currentHeadCount
+        FROM challenges c
+        WHERE c.is_public = true
+
+        <if test="cond.type != null">
+            AND c.type = #{cond.type}
+        </if>
+
+        <if test="cond.startDate != null">
+            AND c.start_date >= #{cond.startDate}
+        </if>
+        <if test="cond.endDate != null">
+            AND c.end_date &lt;= #{cond.endDate}
+        </if>
+
+        <if test="cond.keyword != null and cond.keyword != ''">
+            AND c.title LIKE CONCAT('%', #{cond.keyword}, '%')
+        </if>
+
+        ORDER BY c.start_date DESC
+    </select>
+
+    <select id="findByInvitationCode" resultType="Challenge">
+        SELECT * FROM challenges WHERE invitation_code = #{code}
+    </select>
+
+    <select id="countParticipants" resultType="int">
+        SELECT COUNT(*) FROM user_challenges WHERE challenge_id = #{challengeId}
+    </select>
+
+    <insert id="insertInvitation">
+        INSERT INTO challenge_invitations (challenge_id, inviter_id, invitee_id, status, created_at)
+        VALUES (#{challengeId}, #{inviterId}, #{inviteeId}, 'PENDING', NOW())
+    </insert>
+
+    <select id="findAllChallenges" resultType="com.pagoda.matchmeal.model.dto.response.ChallengeResponseDto">
+        SELECT
+            -- [챌린지 정보]
+            c.challenge_id     AS challengeId,
+            c.title,
+            c.description,
+            c.type,
+            c.target_value     AS targetValue,
+            c.start_date       AS startDate,
+            c.end_date         AS endDate,
+            c.goal_count       AS goalCount,
+
+            -- [유저 참여 현황]
+            uc.user_challenge_id AS userChallengeId,
+            uc.status,
+            uc.last_success_date AS lastSuccessDate,
+
+            -- 참여 여부 (ID 존재 시 true)
+            CASE WHEN uc.user_challenge_id IS NOT NULL THEN 1 ELSE 0 END AS isJoined,
+
+            -- Null 방지 (참여 안 했으면 0)
+            IFNULL(uc.current_count, 0)  AS currentCount,
+            IFNULL(uc.current_streak, 0) AS currentStreak,
+            IFNULL(uc.max_streak, 0)     AS maxStreak,
+
+            -- [달성률 계산] (현재 / 목표 * 100)
+            CASE
+                WHEN uc.user_challenge_id IS NULL OR c.goal_count = 0 THEN 0
+                WHEN uc.current_count >= c.goal_count THEN 100
+                ELSE FLOOR((uc.current_count / c.goal_count) * 100)
+                END AS progressPercent
+
+        FROM challenges c
+        LEFT JOIN user_challenges uc
+               ON c.challenge_id = uc.challenge_id
+              AND uc.user_id = #{userId}
+        ORDER BY c.start_date DESC, c.created_at DESC
+    </select>
+
+    <select id="findActiveChallengesByUserId" resultType="com.pagoda.matchmeal.model.dto.response.ActiveChallengeDto">
+        SELECT
+            -- [유저 기록]
+            uc.user_challenge_id AS userChallengeId,
+            uc.current_count     AS currentCount,
+            uc.current_streak    AS currentStreak,
+            uc.max_streak        AS maxStreak,
+            uc.last_success_date AS lastSuccessDate,
+
+            -- [챌린지 조건]
+            c.challenge_id       AS challengeId,
+            c.type               AS type,
+            c.target_value       AS targetValue,
+            c.start_date         AS startDate,
+            c.end_date           AS endDate,
+            c.goal_count         AS goalCount
+
+        FROM user_challenges uc
+        JOIN challenges c ON uc.challenge_id = c.challenge_id
+        WHERE uc.user_id = #{userId}
+          AND uc.status = 'PROGRESS'
+    </select>
+
+    <select id="existsByUserIdAndChallengeId" resultType="boolean">
+        SELECT COUNT(*) > 0
+        FROM user_challenges
+        WHERE user_id = #{userId} AND challenge_id = #{challengeId}
+    </select>
+
+    <insert id="insertUserChallenge">
+        INSERT INTO user_challenges
+        (
+            user_id,
+            challenge_id,
+            status,
+            current_count,
+            current_streak,
+            max_streak,
+            created_at
+        )
+        VALUES
+            (
+                #{userId},
+                #{challengeId},
+                'PROGRESS',
+                0, -- 초기 횟수 0
+                0, -- 초기 스트릭 0
+                0, -- 초기 최대 스트릭 0
+                NOW()
+            )
+    </insert>
+
+    <update id="updateProgress">
+        UPDATE user_challenges
+        SET current_count     = #{currentCount},
+            current_streak    = #{currentStreak},
+            max_streak        = #{maxStreak},
+            last_success_date = #{lastSuccessDate},
+            updated_at        = NOW()
+        WHERE user_challenge_id = #{userChallengeId}
+    </update>
+
+    <update id="updateStatusToSuccess">
+        UPDATE user_challenges
+        SET status = 'SUCCESS',
+            updated_at = NOW()
+        WHERE user_challenge_id = #{userChallengeId}
+    </update>
+
+    <update id="updateStatusToFail">
+        UPDATE user_challenges
+        SET status = 'FAIL',
+            updated_at = NOW()
+        WHERE user_challenge_id = #{userChallengeId}
+    </update>
+
+    <select id="existsInvitation" resultType="boolean">
+        SELECT COUNT(*) > 0
+        FROM challenge_invitations
+        WHERE challenge_id = #{challengeId}
+        AND invitee_id = #{inviteeId}
+        AND status = 'PENDING'
+    </select>
+
+    <select id="findById" resultType="com.pagoda.matchmeal.model.entity.Challenge">
+        SELECT * FROM challenges
+        WHERE challenge_id = #{challengeId}
+    </select>
+</mapper>
