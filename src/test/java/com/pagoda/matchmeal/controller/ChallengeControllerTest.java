@@ -5,6 +5,7 @@ import com.pagoda.matchmeal.annotation.WithCustomMockUser;
 import com.pagoda.matchmeal.config.jwt.JwtTokenProvider;
 import com.pagoda.matchmeal.model.dto.ChallengeSearchCondition;
 import com.pagoda.matchmeal.model.dto.request.ChallengeCreateRequestDto;
+import com.pagoda.matchmeal.model.dto.request.ChallengeInviteRequestDto;
 import com.pagoda.matchmeal.model.dto.response.ChallengeResponseDto;
 import com.pagoda.matchmeal.model.enums.ChallengeType;
 import com.pagoda.matchmeal.service.ChallengeService;
@@ -161,16 +162,18 @@ class ChallengeControllerTest {
     void inviteUser_Success() throws Exception {
         // given
         Long challengeId = 1L;
-        Long targetUserId = 99L;
+
+        ChallengeInviteRequestDto requestDto = new ChallengeInviteRequestDto();
+        requestDto.setTargetUserId(99L);
 
         // when & then
         mockMvc.perform(post("/challenge/{challengeId}/invite", challengeId)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(targetUserId)) // Body에 ID 전송
+                        .content(objectMapper.writeValueAsString(requestDto))
                         .with(csrf()))
                 .andDo(print())
                 .andExpect(status().isOk());
 
-        verify(challengeService).inviteUser(any(), eq(challengeId), eq(targetUserId));
+        verify(challengeService).inviteUser(any(), eq(challengeId), eq(requestDto.getTargetUserId()));
     }
 }
