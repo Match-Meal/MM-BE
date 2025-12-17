@@ -207,32 +207,26 @@
     <select id="findChallengeDetailById" resultType="com.pagoda.matchmeal.model.dto.response.ChallengeResponseDto">
         SELECT
             c.challenge_id     AS challengeId,
-            c.owner_id         AS ownerId,   -- 방장 ID (수정 권한 확인용)
-            c.title,
+            c.owner_id         AS ownerId,   c.title,
             c.description,
             c.type,
             c.target_value     AS targetValue,
             c.start_date       AS startDate,
             c.end_date         AS endDate,
             c.goal_count       AS goalCount,
-            c.max_participants AS maxParticipants,
-            c.is_public        AS isPublic,  -- 공개 여부
-            c.invitation_code  AS invitationCode, -- 초대 코드
+            c.max_participants AS maxParticipants, c.is_public        AS isPublic,
+            c.invitation_code  AS invitationCode,
 
-            -- 현재 참여 인원 수
             (SELECT COUNT(*) FROM user_challenges uc_count WHERE uc_count.challenge_id = c.challenge_id) as currentHeadCount,
 
-            -- 내 참여 여부 (1: true, 0: false)
             CASE WHEN uc.user_challenge_id IS NOT NULL THEN 1 ELSE 0 END AS isJoined,
 
-            -- 내 진행 상황
             uc.status,
             IFNULL(uc.current_count, 0) AS currentCount,
             IFNULL(uc.current_streak, 0) AS currentStreak,
             IFNULL(uc.max_streak, 0)     AS maxStreak,
             uc.last_success_date         AS lastSuccessDate,
 
-            -- 달성률 계산
             CASE
                 WHEN uc.user_challenge_id IS NULL OR c.goal_count = 0 THEN 0
                 WHEN uc.current_count >= c.goal_count THEN 100

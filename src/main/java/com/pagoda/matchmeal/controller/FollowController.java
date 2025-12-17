@@ -1,5 +1,7 @@
 package com.pagoda.matchmeal.controller;
 
+import com.pagoda.matchmeal.common.response.CommonResponse;
+import com.pagoda.matchmeal.common.util.ApiResponseUtil;
 import com.pagoda.matchmeal.model.dto.UserDto;
 import com.pagoda.matchmeal.model.dto.response.FollowListDto;
 import com.pagoda.matchmeal.model.dto.response.FollowResponseDto;
@@ -41,7 +43,7 @@ public class FollowController {
      * @param userId
      */
     @GetMapping("/{userId}/followers")
-    public ResponseEntity<List<FollowListDto>> getFollowers(
+    public CommonResponse<List<FollowListDto>> getFollowers(
             @AuthenticationPrincipal UserDto userDto, // 조회하는 사람
             @PathVariable Long userId
     ) {
@@ -49,7 +51,7 @@ public class FollowController {
         Long viewerId = (userDto != null) ? userDto.getId() : null;
 //        System.out.println("====== [Followers] viewerId: " + viewerId + " ======");
         List<FollowListDto> list = followService.getFollowers(userId, viewerId);
-        return ResponseEntity.ok(list);
+        return ApiResponseUtil.success(list);
     }
 
     /**
@@ -58,13 +60,13 @@ public class FollowController {
      * @param userId
      */
     @GetMapping("/{userId}/followings")
-    public ResponseEntity<List<FollowListDto>> getFollowings(
+    public CommonResponse<List<FollowListDto>> getFollowings(
             @AuthenticationPrincipal UserDto userDto, // 조회하는 사람
             @PathVariable Long userId
     ) {
         Long viewerId = (userDto != null) ? userDto.getId() : null;
 //        System.out.println("====== [DEBUG] 요청자 ID (viewerId): " + viewerId + " ======");
         List<FollowListDto> list = followService.getFollowings(userId, viewerId);
-        return ResponseEntity.ok(list);
+        return ApiResponseUtil.success(list);
     }
 }
