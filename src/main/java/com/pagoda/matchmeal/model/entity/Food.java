@@ -27,5 +27,7 @@ public class Food extends BaseEntity {
     private Double carbohydrate;
     private Double protein;
     private Double fat;
+    private Double sugars;
+    private Double sodium;  // 나트륨
     private LocalDateTime deletedAt;
 }

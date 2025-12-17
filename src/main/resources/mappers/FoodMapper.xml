@@ -14,6 +14,8 @@
                            carbohydrate,
                            protein,
                            fat,
+                           sugars,
+                           sodium,
                            created_at,
                            updated_at)
         VALUES (#{userId},
@@ -26,6 +28,8 @@
                 #{carbohydrate},
                 #{protein},
                 #{fat},
+                #{sugars},
+                #{sodium},
                 NOW(),
                 NOW())
     </insert>
@@ -88,6 +92,8 @@
                carbohydrate AS carbohydrate,
                protein      AS protein,
                fat          AS fat,
+               sugars       AS sugars,
+               sodium       AS sodium,
                user_id      AS userId,
                created_at   AS createdAt,
                updated_at   AS updatedAt
@@ -107,6 +113,8 @@
             <if test="carbohydrate != null">carbohydrate = #{carbohydrate},</if>
             <if test="protein != null">protein = #{protein},</if>
             <if test="fat != null">fat = #{fat},</if>
+            <if test="sugars != null">sugars = #{sugars},</if>
+            <if test="sodium != null">sodium = #{sodium},</if>
             updated_at = NOW()
         </set>
         WHERE food_id = #{foodId}

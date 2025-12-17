@@ -40,6 +40,8 @@ public class DietRequestDto {
         private double carbohydrate;
         private double protein;
         private double fat;
+        private double sugars;
+        private double sodium;
 
         // 공통 필수
         private double quantity; // 먹은 양
