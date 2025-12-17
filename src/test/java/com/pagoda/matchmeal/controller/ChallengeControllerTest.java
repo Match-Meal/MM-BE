@@ -79,10 +79,11 @@ class ChallengeControllerTest {
                 .challengeId(1L)
                 .title("검색된 챌린지")
                 .type(ChallengeType.CALORIE_LIMIT)
+                .isJoined(false)
                 .build();
 
         // 어떤 조건이 오든 리스트 반환 모킹
-        given(challengeService.searchChallenges(any(ChallengeSearchCondition.class)))
+        given(challengeService.searchChallenges(any(), any(ChallengeSearchCondition.class)))
                 .willReturn(List.of(responseDto));
 
         // when & then

@@ -1,5 +1,6 @@
 package com.pagoda.matchmeal.model.dto.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.pagoda.matchmeal.model.enums.ChallengeType;
 import lombok.Getter;
 
@@ -16,5 +17,6 @@ public class ChallengeCreateRequestDto {
     private int goalCount;
 
     private int maxParticipants;
+    @JsonProperty("isPublic")
     private boolean isPublic;
 }

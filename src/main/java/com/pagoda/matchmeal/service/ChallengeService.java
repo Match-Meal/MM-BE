@@ -18,7 +18,7 @@ public interface ChallengeService {
     /**
      * 공개 챌린지 검색 (타입, 기간, 키워드 등)
      */
-    List<ChallengeResponseDto> searchChallenges(ChallengeSearchCondition condition);
+    List<ChallengeResponseDto> searchChallenges(Long userId, ChallengeSearchCondition condition);
 
     /**
      * [참여 1] 공개 챌린지 목록에서 선택하여 참여

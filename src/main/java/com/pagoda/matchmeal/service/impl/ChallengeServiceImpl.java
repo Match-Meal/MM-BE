@@ -71,8 +71,8 @@ public class ChallengeServiceImpl implements ChallengeService {
      */
     @Override
     @Transactional(readOnly = true) // 읽기 전용
-    public List<ChallengeResponseDto> searchChallenges(ChallengeSearchCondition condition) {
-        return challengeMapper.searchPublicChallenges(condition);
+    public List<ChallengeResponseDto> searchChallenges(Long userId, ChallengeSearchCondition condition) {
+        return challengeMapper.searchPublicChallenges(userId, condition);
     }
 
     /**
