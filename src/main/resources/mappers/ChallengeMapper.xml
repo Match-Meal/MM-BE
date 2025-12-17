@@ -4,23 +4,45 @@
 <mapper namespace="com.pagoda.matchmeal.mapper.ChallengeMapper">
 
     <insert id="insertChallenge" useGeneratedKeys="true" keyProperty="challengeId">
-        INSERT INTO challenges
-        (
-             owner_id, title, description, type, target_value, start_date, end_date, goal_count,
-             max_participants, is_public, invitation_code, current_head_count, created_at
-        )
-        VALUES
-        (
-             #{ownerId}, #{title}, #{description}, #{type}, #{targetValue}, #{startDate}, #{endDate}, #{goalCount},
-             #{maxParticipants}, #{isPublic}, #{invitationCode}, 1, NOW()
+        INSERT INTO challenges (
+            owner_id, title, description, type, target_value,
+            start_date, end_date, goal_count,
+            max_participants, current_head_count,
+            is_public,  invitation_code, created_at
+        ) VALUES (
+            #{ownerId}, #{title}, #{description}, #{type}, #{targetValue},
+            #{startDate}, #{endDate}, #{goalCount},
+            #{maxParticipants}, #{currentHeadCount},
+            #{isPublic}, #{invitationCode}, NOW()
         )
     </insert>
 
     <select id="searchPublicChallenges" resultType="com.pagoda.matchmeal.model.dto.response.ChallengeResponseDto">
         SELECT
-            c.*,
-            (SELECT COUNT(*) FROM user_challenges uc WHERE uc.challenge_id = c.challenge_id) as currentHeadCount
+            c.challenge_id     AS challengeId,
+            c.title,
+            c.description,
+            c.type,
+            c.target_value     AS targetValue,
+            c.start_date       AS startDate,
+            c.end_date         AS endDate,
+            c.goal_count       AS goalCount,
+            c.max_participants AS maxParticipants,
+            (SELECT COUNT(*) FROM user_challenges uc WHERE uc.challenge_id = c.challenge_id) as currentHeadCount,
+
+            -- LEFT JOIN된 uc.user_challenge_id가 존재하면 1(true), 아니면 0(false)
+            CASE WHEN uc.user_challenge_id IS NOT NULL THEN 1 ELSE 0 END AS isJoined,
+
+            -- 내 진행 상황 (참여 안 했으면 0/null 반환)
+            uc.status,
+            IFNULL(uc.current_count, 0) AS currentCount,
+            IFNULL(uc.current_streak, 0) AS currentStreak
         FROM challenges c
+        -- 유저 ID를 조건으로 LEFT JOIN 추가
+        LEFT JOIN user_challenges uc
+        ON c.challenge_id = uc.challenge_id
+        AND uc.user_id = #{userId}
+
         WHERE c.is_public = true
 
         <if test="cond.type != null">
@@ -87,7 +109,7 @@
                 END AS progressPercent
 
         FROM challenges c
-        LEFT JOIN user_challenges uc
+        JOIN user_challenges uc
                ON c.challenge_id = uc.challenge_id
               AND uc.user_id = #{userId}
         ORDER BY c.start_date DESC, c.created_at DESC

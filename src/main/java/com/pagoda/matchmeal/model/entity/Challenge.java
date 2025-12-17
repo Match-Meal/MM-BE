@@ -33,4 +33,12 @@ public class Challenge {
     private int currentHeadCount; // 현재 참여 인원
 
     private LocalDateTime createdAt;
+
+    public boolean getIsPublic() {
+        return this.isPublic;
+    }
+
+    public boolean isPublic() {
+        return this.isPublic;
+    }
 }

@@ -1,5 +1,6 @@
 package com.pagoda.matchmeal.model.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.pagoda.matchmeal.model.enums.ChallengeType;
 import lombok.*;
 
@@ -23,6 +24,8 @@ public class ChallengeResponseDto {
     
     // 유저별 진행상황
     private Long userChallengeId;
+
+    @JsonProperty("isJoined")
     private boolean isJoined; // 참여 여부
     private String status; // 성공 여부
 

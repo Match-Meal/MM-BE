@@ -4,10 +4,12 @@ import com.pagoda.matchmeal.model.dto.ChallengeSearchCondition;
 import com.pagoda.matchmeal.model.dto.response.ActiveChallengeDto;
 import com.pagoda.matchmeal.model.dto.response.ChallengeResponseDto;
 import com.pagoda.matchmeal.model.entity.Challenge;
+import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
+@Mapper
 public interface ChallengeMapper {
     /* ============================================================
        [Section 1] 챌린지 생성 및 조회 (검색/상세)
@@ -33,9 +35,11 @@ public interface ChallengeMapper {
 
     /**
      * 공개 챌린지 검색 (동적 쿼리)
+     * @param userId
      * @param cond 검색 조건 (타입, 날짜, 키워드) - XML에서 #{cond.xxx}로 접근
      */
-    List<ChallengeResponseDto> searchPublicChallenges(@Param("cond") ChallengeSearchCondition cond);
+    List<ChallengeResponseDto> searchPublicChallenges(@Param("userId") Long userId,
+                                                      @Param("cond") ChallengeSearchCondition cond);
 
     /**
      * 현재 참여 인원 수 조회

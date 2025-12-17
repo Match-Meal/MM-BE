@@ -46,10 +46,13 @@ public class ChallengeController {
      */
     @GetMapping("/search")
     public ResponseEntity<CommonResponse<List<ChallengeResponseDto>>> searchChallenges(
-            @ModelAttribute ChallengeSearchCondition condition) {
+            @ModelAttribute ChallengeSearchCondition condition,
+            @AuthenticationPrincipal UserDto user) {
+
+        Long userId = (user != null) ? user.getId() : null;
 
         return ResponseEntity.ok(
-                ApiResponseUtil.success(challengeService.searchChallenges(condition))
+                ApiResponseUtil.success(challengeService.searchChallenges(userId, condition))
         );
     }
 

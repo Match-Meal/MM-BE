@@ -166,64 +166,131 @@ CREATE TABLE IF NOT EXISTS challenge_invitations (
     );
 
 
--- 1. 모든 정보가 입력된 표준 남성 유저 (공개 프로필)
-INSERT INTO users (
-    email, platform, social_id, user_name, gender, birth_date,
-    height_cm, weight_kg, role, status, status_message, profile_image,
-    allergies, diseases, is_public, created_at, updated_at
-) VALUES (
-             'kim_chulsoo@gmail.com', 'google', 'google_123456789', '헬스보이철수', 'M', '1992-05-15',
-             178.5, 76.0, 'ROLE_USER', 'ACTIVE', '3대 500 치는 그날까지! 💪', NULL,
-             '땅콩,호두', NULL, TRUE, NOW(), NOW()
-         );
+-- [기존 유저 및 팔로우 데이터 (제공해주신 내용)]
+-- (이미 DB에 있다면 이 부분은 생략 가능, 초기화 시 필요)
+INSERT INTO users (email, platform, social_id, user_name, gender, birth_date, height_cm, weight_kg, role, status, status_message, is_public, created_at, updated_at)
+VALUES ('kim_chulsoo@gmail.com', 'google', 'google_123456789', '헬스보이철수', 'M', '1992-05-15', 178.5, 76.0, 'ROLE_USER', 'ACTIVE', '3대 500 치는 그날까지! 💪', TRUE, NOW(), NOW());
 
--- 2. 질병 정보가 있는 여성 유저 (비공개 프로필)
-INSERT INTO users (
-    email, platform, social_id, user_name, gender, birth_date,
-    height_cm, weight_kg, role, status, status_message, profile_image,
-    allergies, diseases, is_public, created_at, updated_at
-) VALUES (
-             'lee_younghee@gmail.com', 'google', 'google_987654321', '샐러드조아', 'F', '1995-10-20',
-             162.0, 48.5, 'ROLE_USER', 'ACTIVE', '건강하게 다이어트 하기 🌱', NULL,
-             '복숭아,우유', '당뇨', FALSE, NOW(), NOW()
-         );
+INSERT INTO users (email, platform, social_id, user_name, gender, birth_date, height_cm, weight_kg, role, status, status_message, allergies, diseases, is_public, created_at, updated_at)
+VALUES ('lee_younghee@gmail.com', 'google', 'google_987654321', '샐러드조아', 'F', '1995-10-20', 162.0, 48.5, 'ROLE_USER', 'ACTIVE', '건강하게 다이어트 하기 🌱', '복숭아,우유', '당뇨', FALSE, NOW(), NOW());
 
--- 3. 알레르기와 질병이 없는 건강한 유저 (소셜ID만 있는 상태, 프로필 작성 전 가정)
-INSERT INTO users (
-    email, platform, social_id, user_name, gender, birth_date,
-    height_cm, weight_kg, role, status, status_message, profile_image,
-    allergies, diseases, is_public, created_at, updated_at
-) VALUES (
-             'new_user@gmail.com', 'google', 'google_99887766', '뉴비', NULL, NULL,
-             NULL, NULL, 'ROLE_USER', 'ACTIVE', NULL, NULL,
-             NULL, NULL, TRUE, NOW(), NOW()
-         );
+INSERT INTO users (email, platform, social_id, user_name, gender, birth_date, role, status, is_public, created_at, updated_at)
+VALUES ('new_user@gmail.com', 'google', 'google_99887766', '뉴비', NULL, NULL, 'ROLE_USER', 'ACTIVE', TRUE, NOW(), NOW());
 
--- 4. 관리자 계정 (ROLE_ADMIN)
-INSERT INTO users (
-    email, platform, social_id, user_name, gender, birth_date,
-    height_cm, weight_kg, role, status, status_message, profile_image,
-    allergies, diseases, is_public, created_at, updated_at
-) VALUES (
-             'admin@matchmeal.com', 'google', 'google_admin_001', '관리자', 'M', '1990-01-01',
-             180.0, 80.0, 'ROLE_ADMIN', 'ACTIVE', '관리자 계정입니다.', NULL,
-             NULL, NULL, FALSE, NOW(), NOW()
-         );
+INSERT INTO users (email, platform, social_id, user_name, gender, birth_date, height_cm, weight_kg, role, status, status_message, is_public, created_at, updated_at)
+VALUES ('admin@matchmeal.com', 'google', 'google_admin_001', '관리자', 'M', '1990-01-01', 180.0, 80.0, 'ROLE_ADMIN', 'ACTIVE', '관리자 계정입니다.', FALSE, NOW(), NOW());
 
--- 1. 철수(1)가 영희(2)를 팔로우 (맞팔 관계 형성용 1)
 INSERT INTO follows (follower_id, following_id, created_at) VALUES (1, 2, NOW());
-
--- 2. 영희(2)가 철수(1)를 팔로우 (맞팔 관계 형성용 2)
 INSERT INTO follows (follower_id, following_id, created_at) VALUES (2, 1, NOW());
-
--- 3. 뉴비(3)가 철수(1)를 팔로우 (철수의 팔로워 증가)
 INSERT INTO follows (follower_id, following_id, created_at) VALUES (3, 1, NOW());
-
--- 4. 뉴비(3)가 영희(2)를 팔로우 (영희의 팔로워 증가)
 INSERT INTO follows (follower_id, following_id, created_at) VALUES (3, 2, NOW());
-
--- 5. 철수(1)가 관리자(4)를 팔로우
 INSERT INTO follows (follower_id, following_id, created_at) VALUES (1, 4, NOW());
+
+
+-- ==========================================
+-- [추가] 챌린지 및 참여 데이터 (Challenges & UserChallenges)
+-- ==========================================
+
+-- 1. [챌린지 생성]
+-- 1-1. 철수(ID:1)가 만든 "벌크업 챌린지" (칼로리 섭취 목표)
+INSERT INTO challenges (
+    owner_id, title, description, type, target_value,
+    start_date, end_date, goal_count,
+    max_participants, current_head_count, is_public, invitation_code, created_at
+) VALUES (
+             1, '💪 3대 500을 위한 벌크업 식단', '근성장을 위해 하루 2500kcal 이상 섭취합시다!', 'CALORIE_LIMIT', 2500,
+             CURRENT_DATE - INTERVAL '5' DAY, CURRENT_DATE + INTERVAL '25' DAY, 20,
+             50, 3, TRUE, 'BULKUP01', NOW()
+         );
+
+-- 1-2. 철수(ID:1)가 만든 "매일 식단 기록" (기록 습관)
+INSERT INTO challenges (
+    owner_id, title, description, type, target_value,
+    start_date, end_date, goal_count,
+    max_participants, current_head_count, is_public, invitation_code, created_at
+) VALUES (
+             1, '📝 헬린이 탈출! 매일 기록하기', '식단 기록 습관을 기릅시다. 하루 3번 기록!', 'RECORD_FREQUENCY', 3,
+             CURRENT_DATE - INTERVAL '1' DAY, CURRENT_DATE + INTERVAL '13' DAY, 14,
+             20, 1, TRUE, 'HELLIN01', NOW()
+         );
+
+-- 1-3. 영희(ID:2)가 만든 "당뇨 관리 식단" (영희의 질병 정보 반영)
+INSERT INTO challenges (
+    owner_id, title, description, type, target_value,
+    start_date, end_date, goal_count,
+    max_participants, current_head_count, is_public, invitation_code, created_at
+) VALUES (
+             2, '🥗 당뇨 관리 - 저염식 챌린지', '혈당 관리를 위한 건강한 식단 공유해요.', 'CALORIE_LIMIT', 1800,
+             CURRENT_DATE, CURRENT_DATE + INTERVAL '30' DAY, 30,
+             10, 5, TRUE, 'SUGARFREE', NOW()
+         );
+
+-- 1-4. 영희(ID:2)가 만든 "아침형 인간" (시간 제한)
+INSERT INTO challenges (
+    owner_id, title, description, type, target_value,
+    start_date, end_date, goal_count,
+    max_participants, current_head_count, is_public, invitation_code, created_at
+) VALUES (
+             2, '⏰ 미라클 모닝! 8시 전 아침먹기', '아침 8시 전에 식사를 마치고 인증하세요.', 'TIME_RANGE', 8,
+             CURRENT_DATE + INTERVAL '1' DAY, CURRENT_DATE + INTERVAL '14' DAY, 14,
+             100, 10, TRUE, 'MIRACLE8', NOW()
+         );
+
+-- 1-5. 관리자(ID:4)가 만든 "비공개 방" (코드 필요)
+INSERT INTO challenges (
+    owner_id, title, description, type, target_value,
+    start_date, end_date, goal_count,
+    max_participants, current_head_count, is_public, invitation_code, created_at
+) VALUES (
+             4, '🔒 관리자 시크릿 챌린지', '초대받은 VIP 회원만 입장 가능합니다.', 'RECORD_FREQUENCY', 1,
+             CURRENT_DATE, CURRENT_DATE + INTERVAL '100' DAY, 100,
+             5, 1, FALSE, 'SECRET12', NOW()
+         );
+
+
+-- 2. [챌린지 참여 현황 (UserChallenges)]
+-- 철수(ID:1)의 참여 상태를 중점으로 구성
+
+-- 2-1. 철수(1)가 본인이 만든 "벌크업 챌린지(ID:1)"에 참여 중 (진척도 25%)
+INSERT INTO user_challenges (
+    user_id, challenge_id, status,
+    current_count, current_streak, max_streak, last_success_date, created_at
+) VALUES (
+             1, 1, 'PROGRESS',
+             5, 5, 5, CURRENT_DATE - INTERVAL '1' DAY, NOW()
+         );
+
+-- 2-2. 철수(1)가 본인이 만든 "매일 기록하기(ID:2)"에 참여 중 (방금 시작)
+INSERT INTO user_challenges (
+    user_id, challenge_id, status,
+    current_count, current_streak, max_streak, last_success_date, created_at
+) VALUES (
+             1, 2, 'PROGRESS',
+             0, 0, 0, NULL, NOW()
+         );
+
+-- 2-3. 철수(1)가 영희(2)의 "당뇨 관리(ID:3)"에 참여 중 (조금 진행함)
+INSERT INTO user_challenges (
+    user_id, challenge_id, status,
+    current_count, current_streak, max_streak, last_success_date, created_at
+) VALUES (
+             1, 3, 'PROGRESS',
+             3, 1, 3, CURRENT_DATE - INTERVAL '2' DAY, NOW()
+         );
+
+-- [참여자 수(Head Count) 맞추기용 더미]
+-- 벌크업 챌린지(1): 영희(2), 뉴비(3)도 참여
+INSERT INTO user_challenges (user_id, challenge_id, status) VALUES (2, 1, 'PROGRESS');
+INSERT INTO user_challenges (user_id, challenge_id, status) VALUES (3, 1, 'PROGRESS');
+
+-- 당뇨 관리(3): 뉴비(3), 관리자(4) 등 참여
+INSERT INTO user_challenges (user_id, challenge_id, status) VALUES (3, 3, 'PROGRESS');
+INSERT INTO user_challenges (user_id, challenge_id, status) VALUES (4, 3, 'PROGRESS');
+INSERT INTO user_challenges (user_id, challenge_id, status) VALUES (2, 3, 'PROGRESS'); -- 영희 본인도 참여
+
+-- 아침형 인간(4): 다수 참여
+INSERT INTO user_challenges (user_id, challenge_id, status) VALUES (3, 4, 'PROGRESS');
+INSERT INTO user_challenges (user_id, challenge_id, status) VALUES (1, 4, 'PROGRESS'); -- 철수도 참여
 
 -- 기존 테이블이 있다면 삭제 (테스트 환경 초기화용)
 DROP TABLE IF EXISTS comment_likes;

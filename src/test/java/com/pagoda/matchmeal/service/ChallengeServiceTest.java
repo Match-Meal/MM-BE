@@ -3,6 +3,7 @@ package com.pagoda.matchmeal.service;
 import com.pagoda.matchmeal.common.exception.CustomException;
 import com.pagoda.matchmeal.common.exception.ErrorResponseCode;
 import com.pagoda.matchmeal.mapper.ChallengeMapper;
+import com.pagoda.matchmeal.model.dto.ChallengeSearchCondition;
 import com.pagoda.matchmeal.model.dto.request.ChallengeCreateRequestDto;
 import com.pagoda.matchmeal.model.dto.response.ActiveChallengeDto;
 import com.pagoda.matchmeal.model.entity.Challenge;
@@ -215,5 +216,25 @@ public class ChallengeServiceTest {
         assertThatThrownBy(() -> challengeService.inviteUser(inviterId, challengeId, targetId))
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("code", ErrorResponseCode.NOT_FOLLOWING);
+    }
+
+    @Test
+    @DisplayName("챌린지 검색 - 성공: Mapper에 userId와 Condition 전달")
+    void searchChallenges_Success() {
+        // given
+        Long userId = 1L;
+        ChallengeSearchCondition condition = new ChallengeSearchCondition();
+        condition.setKeyword("테스트");
+
+        // Mock 반환값 설정
+        given(challengeMapper.searchPublicChallenges(userId, condition))
+                .willReturn(List.of()); // 빈 리스트 반환 가정
+
+        // when
+        challengeService.searchChallenges(userId, condition);
+
+        // then
+        // Mapper가 올바른 인자(userId, condition)로 호출되었는지 검증
+        verify(challengeMapper).searchPublicChallenges(eq(userId), eq(condition));
     }
 }
