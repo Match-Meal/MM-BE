@@ -141,7 +141,9 @@
     <select id="existsByUserIdAndChallengeId" resultType="boolean">
         SELECT COUNT(*) > 0
         FROM user_challenges
-        WHERE user_id = #{userId} AND challenge_id = #{challengeId}
+        WHERE user_id = #{userId}
+          AND challenge_id = #{challengeId}
+          AND status = 'PROGRESS'
     </select>
 
     <insert id="insertUserChallenge">
@@ -251,7 +253,7 @@
             end_date = #{endDate},
             goal_count = #{goalCount},
             max_participants = #{maxParticipants},
-            is_public = #{isPublic} -- 수동 Getter(getIsPublic) 덕분에 정상 작동
+            is_public = #{isPublic}
         WHERE challenge_id = #{challengeId}
     </update>
 </mapper>

@@ -5,6 +5,7 @@ import com.pagoda.matchmeal.common.util.ApiResponseUtil;
 import com.pagoda.matchmeal.model.dto.ChallengeSearchCondition;
 import com.pagoda.matchmeal.model.dto.UserDto;
 import com.pagoda.matchmeal.model.dto.request.ChallengeCreateRequestDto;
+import com.pagoda.matchmeal.model.dto.request.ChallengeInviteRequestDto;
 import com.pagoda.matchmeal.model.dto.response.ChallengeResponseDto;
 import com.pagoda.matchmeal.service.ChallengeService;
 import lombok.RequiredArgsConstructor;
@@ -95,9 +96,9 @@ public class ChallengeController {
     public CommonResponse<Void> inviteUser(
             @AuthenticationPrincipal UserDto user,
             @PathVariable Long challengeId,
-            @RequestBody Long targetUserId) {
+            @RequestBody ChallengeInviteRequestDto request) {
 
-        challengeService.inviteUser(user.getId(), challengeId, targetUserId);
+        challengeService.inviteUser(user.getId(), challengeId, request.getTargetUserId());
 
         return ApiResponseUtil.success();
     }

@@ -302,17 +302,15 @@ public class ChallengeServiceImpl implements ChallengeService {
         }
 
         // 데이터 업데이터
-        challenge = challenge.builder()
-                .title(dto.getTitle())
-                .description(dto.getDescription())
-                .type(dto.getType())
-                .targetValue(dto.getTargetValue())
-                .startDate(dto.getStartDate())
-                .endDate(dto.getEndDate())
-                .goalCount(dto.getGoalCount())
-                .maxParticipants(dto.getMaxParticipants())
-                .isPublic(dto.isPublic())
-                .build();
+        challenge.setTitle(dto.getTitle());
+        challenge.setDescription(dto.getDescription());
+        challenge.setType(dto.getType());
+        challenge.setTargetValue(dto.getTargetValue());
+        challenge.setStartDate(dto.getStartDate());
+        challenge.setEndDate(dto.getEndDate());
+        challenge.setGoalCount(dto.getGoalCount());
+        challenge.setMaxParticipants(dto.getMaxParticipants());
+        challenge.setPublic(dto.isPublic());
 
         challengeMapper.updateChallenge(challenge);
     }
