@@ -2,76 +2,60 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.pagoda.matchmeal.mapper.UserMapper">
-    <resultMap id="UserResultMap" type="User">
-        <id property="id" column="user_id"/>
-        <result property="email" column="email"/>
-        <result property="platform" column="platform"/>
-        <result property="socialId" column="social_id"/>
-        <result property="userName" column="user_name"/>
-        <result property="role" column="role"/>
-        <result property="status" column="status"/>
-        <result property="gender" column="gender"/>
-        <result property="birthDate" column="birth_date"/>
-        <result property="heightCm" column="height_cm"/>
-        <result property="weightKg" column="weight_kg"/>
-        <result property="statusMessage" column="status_message"/>
-        <result property="profileImage" column="profile_image" />
-        <result property="allergies" column="allergies"/> <result property="diseases" column="diseases"/>   <result property="createdAt" column="created_at"/>
-        <result property="updatedAt" column="updated_at"/>
-    </resultMap>
 
     <!-- 회원가입 -->
-    <insert id="save" useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO users (
-           email, platform, social_id, user_name, role, status,
-           gender, birth_date, height_cm, weight_kg, status_message, profile_image,
-           allergies, diseases, is_public, created_at
-        ) VALUES (
-           #{email}, #{platform}, #{socialId}, #{userName}, #{role},
-           #{status}, #{gender}, #{birthDate}, #{heightCm}, #{weightKg},
-           #{statusMessage}, #{profileImage}, #{allergies}, #{diseases}, #{isPublic}, NOW()
-        )
+    <insert id="save" useGeneratedKeys="true" keyProperty="userId">
+        INSERT INTO users (email, platform, social_id, user_name, role, status,
+                           gender, birth_date, height_cm, weight_kg, status_message, profile_image,
+                           allergies, diseases, is_public, created_at)
+        VALUES (#{email}, #{platform}, #{socialId}, #{userName}, #{role},
+                #{status}, #{gender}, #{birthDate}, #{heightCm}, #{weightKg},
+                #{statusMessage}, #{profileImage}, #{allergies}, #{diseases}, #{isPublic}, NOW())
     </insert>
 
     <!-- socialId 값으로 유저 검색 -->
-    <select id="findBySocialId" resultMap="UserResultMap">
-        SELECT * FROM users WHERE social_id = #{socialId}
+    <select id="findBySocialId" resultType="com.pagoda.matchmeal.model.entity.User">
+        SELECT *
+        FROM users
+        WHERE social_id = #{socialId}
     </select>
 
     <!-- id값으로 유저 검색 -->
-    <select id="findById" resultMap="UserResultMap">
-        SELECT * FROM users WHERE user_id = #{id}
+    <select id="findById" resultType="com.pagoda.matchmeal.model.entity.User">
+        SELECT *
+        FROM users
+        WHERE user_id = #{userId}
     </select>
 
     <!-- 회원이름 변경 -->
     <update id="updateUserName">
         UPDATE users
-        SET user_name = #{userName}, updated_at = NOW()
+        SET user_name  = #{userName},
+            updated_at = NOW()
         WHERE social_id = #{socialId}
     </update>
 
     <!-- 프로필 정보 수정 -->
     <update id="updateProfile" parameterType="User">
         UPDATE users
-        SET
-            user_name = #{userName},
-            gender = #{gender},
-            birth_date = #{birthDate},
-            height_cm = #{heightCm},
-            weight_kg = #{weightKg},
+        SET user_name      = #{userName},
+            gender         = #{gender},
+            birth_date     = #{birthDate},
+            height_cm      = #{heightCm},
+            weight_kg      = #{weightKg},
             status_message = #{statusMessage},
-            profile_image = #{profileImage},
-            allergies = #{allergies},
-            diseases = #{diseases},
-            updated_at = NOW()
-        WHERE user_id = #{id}
+            profile_image  = #{profileImage},
+            allergies      = #{allergies},
+            diseases       = #{diseases},
+            updated_at     = NOW()
+        WHERE user_id = #{userId}
     </update>
 
     <!-- 프로필 공개여부 설정-->
     <update id="updateVisibility" parameterType="User">
         UPDATE users
         SET is_public = #{isPublic}
-        WHERE user_id = #{id}
+        WHERE user_id = #{userId}
     </update>
 
 </mapper>
