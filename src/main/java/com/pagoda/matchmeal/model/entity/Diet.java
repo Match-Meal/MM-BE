@@ -5,6 +5,7 @@ import lombok.*;
 import lombok.experimental.SuperBuilder;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 
@@ -31,7 +32,11 @@ public class Diet extends BaseEntity {
     private double totalCarbohydrate;    // 총 탄수
     private double totalProtein;  // 총 단백
     private double totalFat;      // 총 지방
+    private double totalSugars;
+    private double totalSodium;
 
 
     private List<DietDetail> dietDetails; // 포함된 음식들
+
+    private LocalDateTime deletedAt;
 }

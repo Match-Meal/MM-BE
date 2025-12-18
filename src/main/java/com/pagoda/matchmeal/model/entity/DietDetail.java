@@ -24,4 +24,6 @@ public class DietDetail {
     private double carbohydrate;
     private double protein;
     private double fat;
+    private double sugars;
+    private double sodium;
 }

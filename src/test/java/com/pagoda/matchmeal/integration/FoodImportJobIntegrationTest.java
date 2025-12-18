@@ -1,7 +1,8 @@
-package com.pagoda.matchmeal;
+package com.pagoda.matchmeal.integration;
 
 import com.pagoda.matchmeal.mapper.FoodBatchMapper;
 import com.pagoda.matchmeal.model.entity.Food;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.batch.core.*;
@@ -17,7 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.DEFINED_PORT) // 스프링 컨텍스트 전체 로드 (통합 테스트)
 @ActiveProfiles("test") // application-test.yml 설정을 사용
-class FoodImportJobTest {
+class FoodImportJobIntegrationTest {
 
     @Autowired
     private JobLauncher jobLauncher;
@@ -27,6 +28,11 @@ class FoodImportJobTest {
 
     @Autowired
     private FoodBatchMapper foodMapper; // DB에 잘 들어갔는지 확인할 매퍼
+
+    @BeforeEach
+    void setUp() {
+        foodMapper.deleteAll();
+    }
 
     @Test
     @DisplayName("음식 CSV 데이터가 H2 DB로 정상적으로 들어가는지 확인")
@@ -56,11 +62,11 @@ class FoodImportJobTest {
         // 2. 실제 DB(H2)에 데이터가 들어갔는지 확인
         // (FoodBatchMapper에 count 쿼리가 없다면 임시로 selectAll().size() 등으로 확인 가능하지만,
         //  보통 테스트용으로 갯수 세는 메소드를 하나 만들거나, 특정 데이터 조회를 시도합니다.)
-        
+
         // 예시: 매퍼에 쿼리가 없다고 가정하고 간단한 검증 (실제로는 매퍼에 메소드가 있어야 함)
         // int count = foodMapper.countAll(); 
         // assertThat(count).isGreaterThan(0); 
-        
+
         System.out.println("====== 배치 테스트 성공! Status: " + jobExecution.getExitStatus());
 
         List<Food> foods = foodMapper.findAll();

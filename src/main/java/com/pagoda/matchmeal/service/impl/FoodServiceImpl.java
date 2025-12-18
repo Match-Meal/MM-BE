@@ -11,10 +11,13 @@ import com.pagoda.matchmeal.model.dto.response.FoodListResponseDto;
 import com.pagoda.matchmeal.model.entity.Food;
 import com.pagoda.matchmeal.service.FoodService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.UUID;
 
@@ -50,6 +53,8 @@ public class FoodServiceImpl implements FoodService {
                 .carbohydrate(foodRequestDto.getCarbohydrate())
                 .protein(foodRequestDto.getProtein())
                 .fat(foodRequestDto.getFat())
+                .sugars(foodRequestDto.getSugars())
+                .sodium(foodRequestDto.getSodium())
                 .build();
 
         foodMapper.saveFood(food);
@@ -143,6 +148,8 @@ public class FoodServiceImpl implements FoodService {
                 .carbohydrate(foodRequestDto.getCarbohydrate())
                 .protein(foodRequestDto.getProtein())
                 .fat(foodRequestDto.getFat())
+                .sugars(foodRequestDto.getSugars())
+                .sodium(foodRequestDto.getSodium())
                 .build();
 
         foodMapper.updateFood(updateFood);
@@ -167,6 +174,17 @@ public class FoodServiceImpl implements FoodService {
         if (!existingFood.getUserId().equals(userId)) {
             throw new CustomException(ErrorResponseCode.UNAUTHORIZED);
         }
-        foodMapper.deleteFood(foodId);
+
+        String suffix = "_DEL_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
+
+        foodMapper.deleteFood(foodId, suffix);
+    }
+
+    // "categories"라는 이름으로 캐시 저장 (메모리에 저장됨)
+    // 이 메소드는 최초 1회만 DB를 조회하고, 그 뒤론 메모리에서 꺼내줌
+    @Override
+    @Cacheable(value = "foodCategories")
+    public List<String> getFoodCategories() {
+        return foodMapper.findAllCategories();
     }
 }

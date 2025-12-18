@@ -4,6 +4,7 @@ import com.pagoda.matchmeal.model.dto.FoodSearchCond;
 import com.pagoda.matchmeal.model.dto.response.FoodDetailResponseDto;
 import com.pagoda.matchmeal.model.dto.response.FoodListResponseDto;
 import com.pagoda.matchmeal.model.entity.Food;
+import org.apache.ibatis.annotations.Param;
 
 import java.util.List;
 
@@ -61,8 +62,10 @@ public interface FoodMapper {
      *
      * @param foodId 삭제할 음식의 PK
      */
-    void deleteFood(Long foodId);
+    void deleteFood(@Param("foodId") Long foodId, @Param("deleteSuffix") String deleteSuffix);
 
     // [추가] 서비스 내부 로직 계산용
     Food findById(Long foodId);
+
+    List<String> findAllCategories();
 }

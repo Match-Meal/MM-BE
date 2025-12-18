@@ -1,8 +1,7 @@
-package com.pagoda.matchmeal;
+package com.pagoda.matchmeal.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pagoda.matchmeal.config.jwt.JwtTokenProvider;
-import com.pagoda.matchmeal.controller.FoodController;
 import com.pagoda.matchmeal.model.dto.UserDto;
 import com.pagoda.matchmeal.model.dto.request.FoodRequestDto;
 import com.pagoda.matchmeal.service.FoodService;

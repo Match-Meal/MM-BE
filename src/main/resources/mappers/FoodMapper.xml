@@ -14,6 +14,8 @@
                            carbohydrate,
                            protein,
                            fat,
+                           sugars,
+                           sodium,
                            created_at,
                            updated_at)
         VALUES (#{userId},
@@ -26,29 +28,31 @@
                 #{carbohydrate},
                 #{protein},
                 #{fat},
+                #{sugars},
+                #{sodium},
                 NOW(),
                 NOW())
     </insert>
 
     <sql id="searchConditions">
-        <where>
-            <choose>
-                <when test="userOnly == true">
-                    AND f.user_id = #{userId}
-                </when>
-                <otherwise>
-                    AND (f.user_id IS NULL OR f.user_id = #{userId})
-                </otherwise>
-            </choose>
 
-            <if test="keyword != null and keyword != ''">
-                AND f.food_name LIKE CONCAT('%', #{keyword}, '%')
-            </if>
+        <choose>
+            <when test="userOnly == true">
+                AND f.user_id = #{userId}
+            </when>
+            <otherwise>
+                AND (f.user_id IS NULL OR f.user_id = #{userId})
+            </otherwise>
+        </choose>
 
-            <if test="category != null and category != ''">
-                AND f.category = #{category}
-            </if>
-        </where>
+        <if test="keyword != null and keyword != ''">
+            AND f.food_name LIKE CONCAT('%', #{keyword}, '%')
+        </if>
+
+        <if test="category != null and category != ''">
+            AND f.category = #{category}
+        </if>
+
     </sql>
 
     <select id="findFoodList" resultType="com.pagoda.matchmeal.model.dto.response.FoodListResponseDto">
@@ -59,9 +63,10 @@
         f.unit AS unit,
         f.calories AS calories
         FROM foods f
-
-        <include refid="searchConditions"/>
-
+        <where>
+            f.deleted_at IS NULL
+            <include refid="searchConditions"/>
+        </where>
         ORDER BY f.created_at DESC
         LIMIT #{limit}
         OFFSET #{offset}
@@ -70,7 +75,10 @@
     <select id="countFoodList" resultType="int">
         SELECT COUNT(*)
         FROM foods f
-        <include refid="searchConditions"/>
+        <where>
+            f.deleted_at IS NULL
+            <include refid="searchConditions"/>
+        </where>
     </select>
 
     <select id="findFoodDetail" resultType="com.pagoda.matchmeal.model.dto.response.FoodDetailResponseDto">
@@ -84,11 +92,14 @@
                carbohydrate AS carbohydrate,
                protein      AS protein,
                fat          AS fat,
+               sugars       AS sugars,
+               sodium       AS sodium,
                user_id      AS userId,
                created_at   AS createdAt,
                updated_at   AS updatedAt
         FROM foods
         WHERE food_id = #{foodId}
+          AND deleted_at IS NULL
     </select>
 
     <update id="updateFood" parameterType="com.pagoda.matchmeal.model.entity.Food">
@@ -102,20 +113,31 @@
             <if test="carbohydrate != null">carbohydrate = #{carbohydrate},</if>
             <if test="protein != null">protein = #{protein},</if>
             <if test="fat != null">fat = #{fat},</if>
+            <if test="sugars != null">sugars = #{sugars},</if>
+            <if test="sodium != null">sodium = #{sodium},</if>
             updated_at = NOW()
         </set>
         WHERE food_id = #{foodId}
     </update>
 
-    <delete id="deleteFood" parameterType="long">
-        DELETE
-        FROM foods
+    <update id="deleteFood">
+        UPDATE foods
+        SET deleted_at = NOW(),
+            food_code  = CONCAT(food_code, #{deleteSuffix})
         WHERE food_id = #{foodId}
-    </delete>
+    </update>
 
     <select id="findById" resultType="com.pagoda.matchmeal.model.entity.Food">
         SELECT *
         FROM foods
         WHERE food_id = #{foodId}
+    </select>
+
+    <select id="findAllCategories" resultType="string">
+        SELECT DISTINCT category
+        FROM foods
+        WHERE category IS NOT NULL
+          AND category != ''
+        ORDER BY category ASC
     </select>
 </mapper>

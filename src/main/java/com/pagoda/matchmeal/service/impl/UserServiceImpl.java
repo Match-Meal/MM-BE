@@ -2,17 +2,20 @@ package com.pagoda.matchmeal.service.impl;
 
 import com.pagoda.matchmeal.common.exception.CustomException;
 import com.pagoda.matchmeal.common.exception.ErrorResponseCode;
+import com.pagoda.matchmeal.mapper.FollowMapper;
 import com.pagoda.matchmeal.mapper.UserMapper;
 import com.pagoda.matchmeal.model.dto.UserDto;
 import com.pagoda.matchmeal.model.dto.UserProfileDto;
 import com.pagoda.matchmeal.model.entity.User;
 import com.pagoda.matchmeal.model.enums.UserRole;
 import com.pagoda.matchmeal.model.enums.UserStatus;
+import com.pagoda.matchmeal.service.S3Service;
 import com.pagoda.matchmeal.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -22,9 +25,12 @@ import java.util.stream.Collectors;
 public class UserServiceImpl implements UserService {
 
     private final UserMapper userMapper;
+    private final S3Service s3Service;
+    private final FollowMapper followMapper;
 
     @Override
-    public Map<String, Object> processLoginOrRegister(String socialId, String email, String name, String platform) {
+    @Transactional
+    public Map<String, Object> processLoginOrRegister(String socialId, String email, String name, String platform, String picture) {
         Map<String, Object> result = new HashMap<>();
 
         User user = userMapper.findBySocialId(socialId).orElse(null);
@@ -38,8 +44,10 @@ public class UserServiceImpl implements UserService {
                     .email(email)
                     .userName(name) // 최초 가입시 소셜 이름으로 기본값 설정
                     .platform(platform)
+                    .profileImage(picture)
                     .role(UserRole.ROLE_USER)
                     .status(UserStatus.ACTIVE)
+                    .isPublic(true)
                     .build();
             userMapper.save(user);
         }
@@ -62,7 +70,23 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public void updateProfile(Long userId, UserProfileDto profileDto) {
+    public void updateProfile(Long userId, UserProfileDto profileDto, MultipartFile imageFile) {
+
+        User existUser = userMapper.findById(userId).orElseThrow(() -> new CustomException(ErrorResponseCode.USER_NOT_FOUND));
+
+        String profileImageUrl = existUser.getProfileImage();
+
+        // 새 이미지가 업로드된 경우
+        if (imageFile != null && !imageFile.isEmpty()) {
+            // (선택) 기존 이미지가 있다면 S3에서 삭제 (구글 기본 이미지가 아닐 경우만)
+            if (StringUtils.hasText(profileImageUrl) && !profileImageUrl.startsWith("amazonaws.com")) {
+                s3Service.deleteFile(profileImageUrl); // 삭제 메서드 구현 필요
+            }
+
+            // 새 파일 업로드
+            profileImageUrl = s3Service.uploadFile(imageFile, "profile");
+        }
+
         String allergyStr = convertToString(profileDto.getAllergies());
         String diseaseStr = convertToString(profileDto.getDiseases());
 
@@ -75,6 +99,7 @@ public class UserServiceImpl implements UserService {
                 .heightCm(profileDto.getHeightCm())
                 .weightKg(profileDto.getWeightKg())
                 .statusMessage(profileDto.getStatusMessage())
+                .profileImage(profileImageUrl)
                 .allergies(allergyStr)
                 .diseases(diseaseStr)
                 .build();
@@ -100,15 +125,24 @@ public class UserServiceImpl implements UserService {
         User targetUser = userMapper.findById(targetUserId)
                 .orElseThrow(() -> new CustomException(ErrorResponseCode.USER_NOT_FOUND));
 
-        if (!targetUser.getIsPublic()) {
+        if (Boolean.FALSE.equals(targetUser.getIsPublic())) {
+            // 비공개여도 이름, 사진, 팔로우 숫자는 보여줘야함
+            Long followerCount = followMapper.countFollowers(targetUserId);
+            Long followingCount = followMapper.countFollowings(targetUserId);
+
             return UserDto.builder()
                     .userName(targetUser.getUserName())
+                    .profileImage(targetUser.getProfileImage())
                     .statusMessage("비공개 프로필입니다.")
+                    .followerCount(followerCount)
+                    .followingCount(followingCount)
                     .build();
         }
 
         return convertToDto(targetUser);
     }
+
+    // ---------------- Helper Methods -----------------
 
     private List<String> convertToList(String str) {
         if (!StringUtils.hasText(str)) return Collections.emptyList();
@@ -124,11 +158,16 @@ public class UserServiceImpl implements UserService {
     }
 
     private UserDto convertToDto(User user) {
+        // 팔로우/팔로잉 숫자 조회
+        Long followerCount = followMapper.countFollowers(user.getId());
+        Long followingCount = followMapper.countFollowings(user.getId());
+
         return UserDto.builder()
                 .id(user.getId())
                 .userName(user.getUserName())
                 .socialId(user.getSocialId())
                 .email(user.getEmail())
+                .profileImage(user.getProfileImage())
                 .role(user.getRole() != null ? user.getRole().name() : null)
                 .createdAt(user.getCreatedAt() != null ? user.getCreatedAt().toString() : null)
                 .statusMessage(user.getStatusMessage())
@@ -140,6 +179,8 @@ public class UserServiceImpl implements UserService {
                 .allergies(convertToList(user.getAllergies()))
                 .diseases(convertToList(user.getDiseases()))
                 .isPublic(user.getIsPublic())
+                .followerCount(followerCount)
+                .followingCount(followingCount)
                 .build();
     }
 

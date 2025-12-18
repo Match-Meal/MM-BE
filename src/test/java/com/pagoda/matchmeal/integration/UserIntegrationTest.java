@@ -4,24 +4,32 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pagoda.matchmeal.config.jwt.JwtTokenProvider;
 import com.pagoda.matchmeal.mapper.UserMapper;
 import com.pagoda.matchmeal.model.dto.UserDto;
+import com.pagoda.matchmeal.model.dto.UserProfileDto;
 import com.pagoda.matchmeal.model.entity.User;
 import com.pagoda.matchmeal.model.enums.UserRole;
 import com.pagoda.matchmeal.model.enums.UserStatus;
+import com.pagoda.matchmeal.service.S3Service;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.BDDMockito.given;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -43,6 +51,9 @@ public class UserIntegrationTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @MockitoBean
+    private S3Service s3Service;
+
     private User savedUser;
     private String token;
 
@@ -58,6 +69,7 @@ public class UserIntegrationTest {
                 .allergies("복숭아,갑각류") // 테스트용 알레르기 데이터 추가
                 .statusMessage("화이팅")
                 .isPublic(true)
+                .profileImage("http://k.kakaocdn.net/old_image.jpg") // 초기 이미지
                 .build();
 
         userMapper.save(savedUser);
@@ -108,9 +120,9 @@ public class UserIntegrationTest {
 
         // when
         mockMvc.perform(patch("/user/visibility")
-                .header("Authorization", "Bearer " + token)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(request)))
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
                 .andDo(print())
                 .andExpect(status().isOk());
 
@@ -131,5 +143,61 @@ public class UserIntegrationTest {
                 .andDo(print())
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.userName").value("테스트유저"));
+    }
+
+    @Test
+    @DisplayName("프로필 업데이트 API (이미지 + JSON) 성공 테스트")
+    void updateProfileWithImageSuccess() throws Exception {
+        // given
+        // 1. JSON 데이터 준비
+        UserProfileDto profileDto = new UserProfileDto();
+        profileDto.setUserName("이미지업로드성공");
+        profileDto.setHeightCm(185.0);
+        profileDto.setAllergies(List.of("복숭아"));
+
+        String profileJson = objectMapper.writeValueAsString(profileDto);
+
+        // 2. MockMultipartFile 생성 (JSON Part)
+        MockMultipartFile dataPart = new MockMultipartFile(
+                "data", // @RequestPart("data")와 일치해야 함
+                "",
+                "application/json",
+                profileJson.getBytes(StandardCharsets.UTF_8)
+        );
+
+        // 3. MockMultipartFile 생성 (File Part)
+        MockMultipartFile filePart = new MockMultipartFile(
+                "file", // @RequestPart("file")과 일치해야 함
+                "new_profile.jpg",
+                "image/jpeg",
+                "<<image data>>".getBytes()
+        );
+
+        // 4. S3Service Mocking (실제 업로드 대신 가짜 URL 반환)
+        String mockS3Url = "https://s3.amazonaws.com/bucket/new_profile.jpg";
+        given(s3Service.uploadFile(any(), any(String.class))).willReturn(mockS3Url);
+
+        // when & then
+        // [주의] multipart 요청은 기본적으로 POST입니다. PUT으로 보내려면 with(...)를 써야 합니다.
+        mockMvc.perform(multipart(HttpMethod.PUT, "/user/profile")
+                        .file(dataPart)
+                        .file(filePart)
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.MULTIPART_FORM_DATA))
+                .andDo(print())
+                .andExpect(status().isOk());
+
+        // DB 검증
+        User updatedUser = userMapper.findById(savedUser.getId()).orElseThrow();
+
+        // S3Service가 반환한 URL로 업데이트 되었는지 확인
+        if (!updatedUser.getProfileImage().equals(mockS3Url)) {
+            throw new AssertionError("Profile image URL not updated! Expected: " + mockS3Url + ", Actual: " + updatedUser.getProfileImage());
+        }
+
+        // 텍스트 정보도 업데이트 되었는지 확인
+        if (!updatedUser.getUserName().equals("이미지업로드성공")) {
+            throw new AssertionError("User name not updated!");
+        }
     }
 }

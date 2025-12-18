@@ -14,6 +14,8 @@
         <result property="totalCarbohydrate" column="total_carbohydrate"/>
         <result property="totalProtein" column="total_protein"/>
         <result property="totalFat" column="total_fat"/>
+        <result property="totalSugars" column="total_sugars"/>
+        <result property="totalSodium" column="total_sodium"/>
 
         <collection property="details"
                     ofType="com.pagoda.matchmeal.model.dto.response.DietResponseDto$DietDetailResponseDto">
@@ -26,26 +28,30 @@
             <result property="carbohydrate" column="d_carbohydrate"/>
             <result property="protein" column="d_protein"/>
             <result property="fat" column="d_fat"/>
+            <result property="sugars" column="d_sugars"/>
+            <result property="sodium" column="d_sodium"/>
         </collection>
     </resultMap>
 
     <insert id="insertDiet" parameterType="com.pagoda.matchmeal.model.entity.Diet"
             useGeneratedKeys="true" keyProperty="dietId">
         INSERT INTO diet_records (user_id, eat_date, eat_time, meal_type, memo, diet_img_url,
-                                  total_calories, total_carbohydrate, total_protein, total_fat)
+                                  total_calories, total_carbohydrate, total_protein, total_fat, total_sugars,
+                                  total_sodium, created_at, updated_at)
         VALUES (#{userId}, #{eatDate}, #{eatTime}, #{mealType}, #{memo}, #{dietImgUrl},
-                #{totalCalories}, #{totalCarbohydrate}, #{totalProtein}, #{totalFat})
+                #{totalCalories}, #{totalCarbohydrate}, #{totalProtein}, #{totalFat}, #{totalSugars}, #{totalSodium},
+                NOW(), NOW())
     </insert>
 
     <insert id="insertDietDetails" parameterType="java.util.List">
         INSERT INTO diet_details (
         diet_id, food_id, food_name, quantity, unit,
-        calories, carbohydrate, protein, fat
+        calories, carbohydrate, protein, fat, sugars, sodium
         ) VALUES
         <foreach collection="list" item="item" separator=",">
             (
             #{item.dietId}, #{item.foodId}, #{item.foodName}, #{item.quantity}, #{item.unit},
-            #{item.calories}, #{item.carbohydrate}, #{item.protein}, #{item.fat}
+            #{item.calories}, #{item.carbohydrate}, #{item.protein}, #{item.fat}, #{item.sugars}, #{item.sodium}
             )
         </foreach>
     </insert>
@@ -60,11 +66,14 @@
                dd.calories     AS d_calories,
                dd.carbohydrate AS d_carbohydrate,
                dd.protein      AS d_protein,
-               dd.fat          AS d_fat
+               dd.fat          AS d_fat,
+               dd.sugars       AS d_sugars,
+               dd.sodium       AS d_sodium
         FROM diet_records d
                  LEFT JOIN diet_details dd ON d.diet_id = dd.diet_id
         WHERE d.user_id = #{userId}
           AND d.eat_date = #{eatDate}
+          AND d.deleted_at IS NULL
         ORDER BY d.eat_time ASC
     </select>
 
@@ -78,10 +87,13 @@
                dd.calories     AS d_calories,
                dd.carbohydrate AS d_carbohydrate,
                dd.protein      AS d_protein,
-               dd.fat          AS d_fat
+               dd.fat          AS d_fat,
+               dd.sugars       AS d_sugars,
+               dd.sodium       AS d_sodium
         FROM diet_records d
                  LEFT JOIN diet_details dd ON d.diet_id = dd.diet_id
         WHERE d.diet_id = #{dietId}
+          AND d.deleted_at IS NULL
     </select>
 
     <update id="updateDiet" parameterType="com.pagoda.matchmeal.model.entity.Diet">
@@ -94,6 +106,8 @@
             total_carbohydrate = #{totalCarbohydrate},
             total_protein      = #{totalProtein},
             total_fat          = #{totalFat},
+            total_sugars       = #{totalSugars},
+            total_sodium       = #{totalSodium},
             updated_at         = NOW()
         WHERE diet_id = #{dietId}
     </update>
@@ -104,9 +118,30 @@
         WHERE diet_id = #{dietId}
     </delete>
 
-    <delete id="deleteDietByDietId">
-        DELETE
-        FROM diet_records
+    <update id="deleteDietByDietId">
+        UPDATE diet_records
+        SET deleted_at = NOW()
         WHERE diet_id = #{dietId}
-    </delete>
+    </update>
+
+    <select id="getDailyDietStats" resultType="com.pagoda.matchmeal.model.dto.response.DailyDietStatDto">
+        SELECT eat_date AS date,
+
+        -- 스키마의 실제 컬럼명(total_*)으로 변경 및 DTO 필드명(G, Mg)으로 별칭 부여
+        COALESCE(SUM(total_calories), 0)     AS totalCalories,
+        COALESCE(SUM(total_carbohydrate), 0) AS carbsG,
+        COALESCE(SUM(total_protein), 0)      AS proteinG,
+        COALESCE(SUM(total_fat), 0)          AS fatG,
+        COALESCE(SUM(total_sugars), 0)       AS sugarG,
+        COALESCE(SUM(total_sodium), 0)       AS sodiumMg
+
+        FROM diet_records
+        WHERE user_id = #{userId}
+          AND deleted_at IS NULL
+          AND eat_date BETWEEN #{startDate}
+          AND #{endDate}
+
+        GROUP BY eat_date
+        ORDER BY eat_date ASC
+    </select>
 </mapper>
