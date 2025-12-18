@@ -71,7 +71,7 @@ public class UserServiceTest {
         // given
         Long userId = 1L;
         User user = User.builder()
-                .id(userId)
+                .userId(userId)
                 .allergies("땅콩,우유") // DB 값
                 .role(UserRole.ROLE_USER)
                 .isPublic(true)
@@ -99,7 +99,7 @@ public class UserServiceTest {
         // given
         Long targetId = 2L;
         User targetUser = User.builder()
-                .id(targetId)
+                .userId(targetId)
                 .userName("공개유저")
                 .isPublic(true)
                 .heightCm(180.0)
@@ -125,7 +125,7 @@ public class UserServiceTest {
         // given
         Long targetId = 3L;
         User targetUser = User.builder()
-                .id(targetId)
+                .userId(targetId)
                 .userName("비공개유저")
                 .isPublic(false) // 비공개
                 .heightCm(180.0)
@@ -182,7 +182,7 @@ public class UserServiceTest {
         String s3Url = "https://s3.aws.com/profile/uuid_test.jpg";
 
         User existingUser = User.builder()
-                .id(userId)
+                .userId(userId)
                 .profileImage("old_url")
                 .build();
 
@@ -209,7 +209,7 @@ public class UserServiceTest {
         dto.setUserName("이름만수정");
 
         User existingUser = User.builder()
-                .id(userId)
+                .userId(userId)
                 .profileImage("original_url.jpg")
                 .build();
 

@@ -76,7 +76,7 @@ public class UserIntegrationTest {
 
         // 토큰 생성
         UserDto tokenDto = UserDto.builder()
-                .id(savedUser.getId())
+                .id(savedUser.getUserId())
                 .socialId(savedUser.getSocialId())
                 .role(savedUser.getRole().name())
                 .build();
@@ -95,7 +95,7 @@ public class UserIntegrationTest {
                 .andDo(print())
                 .andExpect(status().isOk())
                 // 기본 정보 확인
-                .andExpect(jsonPath("$.id").value(savedUser.getId().intValue()))
+                .andExpect(jsonPath("$.id").value(savedUser.getUserId().intValue()))
                 .andExpect(jsonPath("$.userName").value("테스트유저"))
                 // [중요] DB에서 가져온 프로필 정보가 제대로 매핑되었는지 확인
                 .andExpect(jsonPath("$.statusMessage").value("화이팅"))
@@ -127,7 +127,7 @@ public class UserIntegrationTest {
                 .andExpect(status().isOk());
 
         // thend
-        User updatedUser = userMapper.findById(savedUser.getId()).orElseThrow();
+        User updatedUser = userMapper.findById(savedUser.getUserId()).orElseThrow();
 
         if (updatedUser.getIsPublic()) {
             throw new AssertionError("Visibility should be updated to false");
@@ -138,7 +138,7 @@ public class UserIntegrationTest {
     @DisplayName("타인 프로필 조회 API 호출 성공")
     void getUserProfileSuccess() throws Exception {
         // when & then
-        mockMvc.perform(get("/user/" + savedUser.getId())
+        mockMvc.perform(get("/user/" + savedUser.getUserId())
                         .header("Authorization", "Bearer " + token))
                 .andDo(print())
                 .andExpect(status().isOk())
@@ -188,7 +188,7 @@ public class UserIntegrationTest {
                 .andExpect(status().isOk());
 
         // DB 검증
-        User updatedUser = userMapper.findById(savedUser.getId()).orElseThrow();
+        User updatedUser = userMapper.findById(savedUser.getUserId()).orElseThrow();
 
         // S3Service가 반환한 URL로 업데이트 되었는지 확인
         if (!updatedUser.getProfileImage().equals(mockS3Url)) {
