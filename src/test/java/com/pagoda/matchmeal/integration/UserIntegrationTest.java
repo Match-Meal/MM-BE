@@ -1,7 +1,7 @@
 package com.pagoda.matchmeal.integration;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.pagoda.matchmeal.config.jwt.JwtTokenProvider;
+import com.pagoda.matchmeal.common.config.jwt.JwtTokenProvider;
 import com.pagoda.matchmeal.mapper.UserMapper;
 import com.pagoda.matchmeal.model.dto.UserDto;
 import com.pagoda.matchmeal.model.dto.UserProfileDto;

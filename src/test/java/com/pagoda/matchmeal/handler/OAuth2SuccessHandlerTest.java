@@ -1,7 +1,7 @@
 package com.pagoda.matchmeal.handler;
 
-import com.pagoda.matchmeal.config.jwt.JwtTokenProvider;
-import com.pagoda.matchmeal.config.oauth.OAuth2SuccessHandler;
+import com.pagoda.matchmeal.common.config.jwt.JwtTokenProvider;
+import com.pagoda.matchmeal.common.config.oauth.OAuth2SuccessHandler;
 import com.pagoda.matchmeal.mapper.UserMapper;
 import com.pagoda.matchmeal.model.dto.UserDto;
 import com.pagoda.matchmeal.model.entity.User;

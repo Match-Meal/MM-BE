@@ -1,4 +1,4 @@
-package com.pagoda.matchmeal.config;
+package com.pagoda.matchmeal.common.config;
 
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;

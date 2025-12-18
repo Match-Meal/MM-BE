@@ -1,7 +1,7 @@
-package com.pagoda.matchmeal.config;
+package com.pagoda.matchmeal.common.config;
 
-import com.pagoda.matchmeal.config.jwt.JwtAuthenticationFilter;
-import com.pagoda.matchmeal.config.oauth.OAuth2SuccessHandler;
+import com.pagoda.matchmeal.common.config.jwt.JwtAuthenticationFilter;
+import com.pagoda.matchmeal.common.config.oauth.OAuth2SuccessHandler;
 import com.pagoda.matchmeal.service.CustomOAuth2UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;

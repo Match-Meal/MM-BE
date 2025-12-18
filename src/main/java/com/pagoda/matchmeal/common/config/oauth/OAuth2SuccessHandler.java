@@ -1,8 +1,8 @@
-package com.pagoda.matchmeal.config.oauth;
+package com.pagoda.matchmeal.common.config.oauth;
 
+import com.pagoda.matchmeal.common.config.jwt.JwtTokenProvider;
 import com.pagoda.matchmeal.common.exception.CustomException;
 import com.pagoda.matchmeal.common.exception.ErrorResponseCode;
-import com.pagoda.matchmeal.config.jwt.JwtTokenProvider;
 import com.pagoda.matchmeal.mapper.UserMapper;
 import com.pagoda.matchmeal.model.dto.UserDto;
 import com.pagoda.matchmeal.model.entity.User;
