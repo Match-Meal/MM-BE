@@ -46,4 +46,10 @@ public interface ChallengeService {
      * 내 챌린지 전체 조회 (진척도, 스트릭 포함)
      */
     List<ChallengeResponseDto> getAllChallenges(Long userId);
+
+    // 상세 조회
+    ChallengeResponseDto getChallengeDetail(Long userId, Long challengeId);
+
+    // 챌린지 수정
+    void updateChallenge(Long userId, Long challengeId, ChallengeCreateRequestDto dto);
 }

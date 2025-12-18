@@ -5,11 +5,11 @@ import com.pagoda.matchmeal.common.util.ApiResponseUtil;
 import com.pagoda.matchmeal.model.dto.ChallengeSearchCondition;
 import com.pagoda.matchmeal.model.dto.UserDto;
 import com.pagoda.matchmeal.model.dto.request.ChallengeCreateRequestDto;
+import com.pagoda.matchmeal.model.dto.request.ChallengeInviteRequestDto;
 import com.pagoda.matchmeal.model.dto.response.ChallengeResponseDto;
 import com.pagoda.matchmeal.service.ChallengeService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -24,92 +24,109 @@ public class ChallengeController {
 
     /**
      * 챌린지 생성
-     * @param user
-     * @param dto
-     * @return 성공 시 HTTP 201 Created와 생성된 challengeId 반환
+     * [변경] ResponseEntity 제거 -> CommonResponse 직접 반환
+     * [추가] @ResponseStatus(HttpStatus.CREATED) -> HTTP Header를 201로 설정
      */
     @PostMapping
-    public ResponseEntity<CommonResponse<Long>> createChallenge(
+    @ResponseStatus(HttpStatus.CREATED)
+    public CommonResponse<Long> createChallenge(
             @AuthenticationPrincipal UserDto user,
             @RequestBody ChallengeCreateRequestDto dto) {
 
         Long challengeId = challengeService.createChallenge(user.getId(), dto);
 
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponseUtil.success(challengeId));
+        // ApiResponseUtil.created()를 바로 반환
+        return ApiResponseUtil.created(challengeId);
     }
 
     /**
      * 공개 챌린지 검색
-     * @param condition (type, date 등을 담은 객체)
-     * @return 필터링된 공개 챌린지 List 반환
+     * (기본 상태코드가 200 OK이므로 별도 어노테이션 불필요)
      */
     @GetMapping("/search")
-    public ResponseEntity<CommonResponse<List<ChallengeResponseDto>>> searchChallenges(
+    public CommonResponse<List<ChallengeResponseDto>> searchChallenges(
             @ModelAttribute ChallengeSearchCondition condition,
             @AuthenticationPrincipal UserDto user) {
 
         Long userId = (user != null) ? user.getId() : null;
 
-        return ResponseEntity.ok(
-                ApiResponseUtil.success(challengeService.searchChallenges(userId, condition))
-        );
+        return ApiResponseUtil.success(challengeService.searchChallenges(userId, condition));
     }
 
     /**
      * 전체 챌린지 조회
-     * @param user
-     * @return 로그인한 유저의 참여 목록, 진척도, 스트릭 정보 반환
      */
     @GetMapping
-    public ResponseEntity<CommonResponse<List<ChallengeResponseDto>>> getAllChallenges(
+    public CommonResponse<List<ChallengeResponseDto>> getAllChallenges(
             @AuthenticationPrincipal UserDto user) {
-        return ResponseEntity.ok(
-                ApiResponseUtil.success(challengeService.getAllChallenges(user.getId()))
-        );
+
+        return ApiResponseUtil.success(challengeService.getAllChallenges(user.getId()));
     }
 
     /**
      * 공개 챌린지 참여
-     * @param user
-     * @param challengeId
      */
     @PostMapping("/{challengeId}/join")
-    public ResponseEntity<CommonResponse<Void>> joinPublicChallenge(
+    public CommonResponse<Void> joinPublicChallenge(
             @AuthenticationPrincipal UserDto user,
             @PathVariable Long challengeId) {
 
         challengeService.joinPublicChallenge(user.getId(), challengeId);
-        return ResponseEntity.ok(ApiResponseUtil.success());
+
+        return ApiResponseUtil.success();
     }
 
     /**
      * 비공개 챌린지 참여
-     * @param user
-     * @param code
      */
     @PostMapping("/join/code")
-    public ResponseEntity<CommonResponse<Void>> joinByCode(
+    public CommonResponse<Void> joinByCode(
             @AuthenticationPrincipal UserDto user,
             @RequestParam String code) {
 
         challengeService.joinByCode(user.getId(), code);
-        return ResponseEntity.ok(ApiResponseUtil.success());
+
+        return ApiResponseUtil.success();
     }
 
     /**
      * 팔로잉 유저를 챌린지에 초대
-     * @param user
-     * @param challengeId
-     * @param targetUserId
      */
     @PostMapping("/{challengeId}/invite")
-    public ResponseEntity<CommonResponse<Void>> inviteUser(
+    public CommonResponse<Void> inviteUser(
             @AuthenticationPrincipal UserDto user,
             @PathVariable Long challengeId,
-            @RequestBody Long targetUserId) {
+            @RequestBody ChallengeInviteRequestDto request) {
 
-        challengeService.inviteUser(user.getId(), challengeId, targetUserId);
-        return ResponseEntity.ok(ApiResponseUtil.success());
+        challengeService.inviteUser(user.getId(), challengeId, request.getTargetUserId());
+
+        return ApiResponseUtil.success();
+    }
+
+    /**
+     * 챌린지 상세 조회
+     */
+    @GetMapping("/{challengeId}")
+    public CommonResponse<ChallengeResponseDto> getChallengeDetail(
+            @AuthenticationPrincipal UserDto user,
+            @PathVariable Long challengeId) {
+
+        Long userId = (user != null) ? user.getId() : null;
+
+        return ApiResponseUtil.success(challengeService.getChallengeDetail(userId, challengeId));
+    }
+
+    /**
+     * 챌린지 수정
+     */
+    @PutMapping("/{challengeId}")
+    public CommonResponse<Void> updateChallenge(
+            @AuthenticationPrincipal UserDto user,
+            @PathVariable Long challengeId,
+            @RequestBody ChallengeCreateRequestDto dto) {
+
+        challengeService.updateChallenge(user.getId(), challengeId, dto);
+
+        return ApiResponseUtil.success();
     }
 }

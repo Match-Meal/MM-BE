@@ -66,7 +66,7 @@ class FollowControllerTest {
         mockMvc.perform(get("/user/{userId}/followers", targetId)
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].userName").value("Fan1"));
+                .andExpect(jsonPath("$.data[0].userName").value("Fan1"));
 
         verify(followService).getFollowers(targetId, viewerId);
     }

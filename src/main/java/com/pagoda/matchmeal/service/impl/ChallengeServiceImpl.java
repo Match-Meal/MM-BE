@@ -282,4 +282,36 @@ public class ChallengeServiceImpl implements ChallengeService {
         }
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public ChallengeResponseDto getChallengeDetail(Long userId, Long challengeId) {
+        return challengeMapper.findChallengeDetailById(userId, challengeId)
+                .orElseThrow(() -> new CustomException(ErrorResponseCode.CHALLENGE_NOT_FOUND));
+    }
+
+    @Override
+    public void updateChallenge(Long userId, Long challengeId, ChallengeCreateRequestDto dto) {
+        Challenge challenge = challengeMapper.findById(challengeId);
+        if (challenge == null) {
+            throw new CustomException(ErrorResponseCode.CHALLENGE_NOT_FOUND);
+        }
+
+        // 권한 체크
+        if (!challenge.getOwnerId().equals(userId)) {
+            throw new CustomException(ErrorResponseCode.UNAUTHORIZED);
+        }
+
+        // 데이터 업데이터
+        challenge.setTitle(dto.getTitle());
+        challenge.setDescription(dto.getDescription());
+        challenge.setType(dto.getType());
+        challenge.setTargetValue(dto.getTargetValue());
+        challenge.setStartDate(dto.getStartDate());
+        challenge.setEndDate(dto.getEndDate());
+        challenge.setGoalCount(dto.getGoalCount());
+        challenge.setMaxParticipants(dto.getMaxParticipants());
+        challenge.setPublic(dto.isPublic());
+
+        challengeMapper.updateChallenge(challenge);
+    }
 }

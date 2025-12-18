@@ -13,6 +13,7 @@ import java.time.LocalDate;
 @AllArgsConstructor
 public class ChallengeResponseDto {
     private Long challengeId;
+    private Long ownerId;
     private String title;
     private String description;
     private ChallengeType type;
