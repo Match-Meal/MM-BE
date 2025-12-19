@@ -6,6 +6,7 @@ import com.pagoda.matchmeal.mapper.ChallengeMapper;
 import com.pagoda.matchmeal.model.dto.ChallengeSearchCondition;
 import com.pagoda.matchmeal.model.dto.request.ChallengeCreateRequestDto;
 import com.pagoda.matchmeal.model.dto.response.ActiveChallengeDto;
+import com.pagoda.matchmeal.model.dto.response.ChallengeParticipantDto;
 import com.pagoda.matchmeal.model.dto.response.ChallengeResponseDto;
 import com.pagoda.matchmeal.model.entity.Challenge;
 import com.pagoda.matchmeal.model.entity.Diet;
@@ -104,6 +105,9 @@ public class ChallengeServiceImpl implements ChallengeService {
 
         // 참여
         challengeMapper.insertUserChallenge(userId, challenge.getChallengeId());
+
+        // 챌린지 테이블의 참여 인원수 증가
+        challengeMapper.increaseHeadCount(challenge.getChallengeId());
     }
 
     /**
@@ -285,8 +289,17 @@ public class ChallengeServiceImpl implements ChallengeService {
     @Override
     @Transactional(readOnly = true)
     public ChallengeResponseDto getChallengeDetail(Long userId, Long challengeId) {
-        return challengeMapper.findChallengeDetailById(userId, challengeId)
+        // 챌린지 기본 정보 + 내 진행 상황 조회
+        ChallengeResponseDto response = challengeMapper.findChallengeDetailById(userId, challengeId)
                 .orElseThrow(() -> new CustomException(ErrorResponseCode.CHALLENGE_NOT_FOUND));
+
+        // 해당 챌린지의 참여자 목록 조회 및 세팅
+        List<ChallengeParticipantDto> participants = challengeMapper.findParticipantsByChallengeId(challengeId);
+        response.setParticipants(participants);
+
+        // 리스트 화면과 싱크를 맞추기 위해 headCount도 다시 세팅
+        response.setCurrentHeadCount(participants.size());
+        return response;
     }
 
     @Override

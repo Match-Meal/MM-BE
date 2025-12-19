@@ -216,8 +216,9 @@
             c.start_date       AS startDate,
             c.end_date         AS endDate,
             c.goal_count       AS goalCount,
-            c.max_participants AS maxParticipants, c.is_public        AS isPublic,
+            c.max_participants AS maxParticipants, c.is_public AS isPublic,
             c.invitation_code  AS invitationCode,
+            c.current_head_count AS currentHeadCount,
 
             (SELECT COUNT(*) FROM user_challenges uc_count WHERE uc_count.challenge_id = c.challenge_id) as currentHeadCount,
 
@@ -254,6 +255,30 @@
             goal_count = #{goalCount},
             max_participants = #{maxParticipants},
             is_public = #{isPublic}
+        WHERE challenge_id = #{challengeId}
+    </update>
+
+    <select id="findParticipantsByChallengeId" resultType="com.pagoda.matchmeal.model.dto.response.ChallengeParticipantDto">
+        SELECT
+            u.user_id      AS userId,
+            u.user_name    AS userName,
+            u.profile_image AS profileImage,
+
+            CASE
+                WHEN c.goal_count > 0 THEN
+                    TRUNCATE((uc.current_count * 100) / c.goal_count, 0)
+                ELSE 0
+                END AS progressPercent
+
+        FROM user_challenges uc
+                 JOIN users u ON uc.user_id = u.user_id
+                 JOIN challenges c ON uc.challenge_id = c.challenge_id  WHERE uc.challenge_id = #{challengeId}
+        ORDER BY uc.created_at ASC
+    </select>
+
+    <update id="increaseHeadCount">
+        UPDATE challenges
+        SET current_head_count = current_head_count + 1
         WHERE challenge_id = #{challengeId}
     </update>
 </mapper>

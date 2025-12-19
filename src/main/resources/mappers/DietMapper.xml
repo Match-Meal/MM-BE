@@ -144,4 +144,21 @@
         GROUP BY eat_date
         ORDER BY eat_date ASC
     </select>
+
+<!--    <select id="findAllByPeriod" resultMap="DietResponseMap">-->
+<!--        SELECT d.*,-->
+<!--               dd.diet_detail_id, dd.food_id, dd.food_name, dd.quantity, dd.unit,-->
+<!--               dd.calories AS d_calories,-->
+<!--               dd.carbohydrate AS d_carbohydrate,-->
+<!--               dd.protein AS d_protein,-->
+<!--               dd.fat AS d_fat,-->
+<!--               dd.sugars AS d_sugars,-->
+<!--               dd.sodium AS d_sodium-->
+<!--        FROM diet_records d-->
+<!--                 LEFT JOIN diet_details dd ON d.diet_id = dd.diet_id-->
+<!--        WHERE d.user_id = #{userId}-->
+<!--          AND d.eat_date BETWEEN #{startDate} AND #{endDate} AND d.deleted_at IS NULL-->
+<!--        ORDER BY d.eat_date ASC, d.eat_time ASC-->
+<!--    </select>-->
+
 </mapper>

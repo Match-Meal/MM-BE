@@ -2,6 +2,7 @@ package com.pagoda.matchmeal.mapper;
 
 import com.pagoda.matchmeal.model.dto.ChallengeSearchCondition;
 import com.pagoda.matchmeal.model.dto.response.ActiveChallengeDto;
+import com.pagoda.matchmeal.model.dto.response.ChallengeParticipantDto;
 import com.pagoda.matchmeal.model.dto.response.ChallengeResponseDto;
 import com.pagoda.matchmeal.model.entity.Challenge;
 import org.apache.ibatis.annotations.Mapper;
@@ -118,4 +119,13 @@ public interface ChallengeMapper {
      * @param challenge
      */
     void updateChallenge(Challenge challenge);
+
+    /**
+     * 특정 챌린지의 참여자 목록 조회
+     * @param challengeId
+     * @return 참여자 정보를 담은 리스트 반환
+     */
+    List<ChallengeParticipantDto> findParticipantsByChallengeId(Long challengeId);
+
+    void increaseHeadCount(Long challengeId);
 }
