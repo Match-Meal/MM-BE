@@ -24,7 +24,7 @@ public class SecurityConfig {
     private final CustomOAuth2UserService customOAuth2UserService;
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
 
-    @Value("${CORS_ALLOWED_ORIGIN_URL}")
+    @Value("${cors.url}")
     private String CORS_ALLOWED_ORIGIN_URL;
 
     @Bean
