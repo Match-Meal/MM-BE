@@ -55,6 +55,8 @@ dependencies {
     runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.6")
 
     implementation 'me.paulschwarz:spring-dotenv:4.0.0'
+
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
 }
 
 // 단위 테스트만 돌리도록 설정 (develop 용)

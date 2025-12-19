@@ -103,6 +103,27 @@
           AND deleted_at IS NULL
     </select>
 
+    <select id="findFoodDetailByFoodName" resultType="com.pagoda.matchmeal.model.dto.response.FoodDetailResponseDto">
+        SELECT food_id      AS foodId,
+               food_code    AS foodCode,
+               food_name    AS foodName,
+               category     AS category,
+               serving_size AS servingSize,
+               unit         AS unit,
+               calories     AS calories,
+               carbohydrate AS carbohydrate,
+               protein      AS protein,
+               fat          AS fat,
+               sugars       AS sugars,
+               sodium       AS sodium,
+               user_id      AS userId,
+               created_at   AS createdAt,
+               updated_at   AS updatedAt
+        FROM foods
+        WHERE food_name = #{foodName}
+          AND deleted_at IS NULL
+    </select>
+
     <update id="updateFood" parameterType="com.pagoda.matchmeal.model.entity.Food">
         UPDATE foods
         <set>
