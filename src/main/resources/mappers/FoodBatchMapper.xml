@@ -39,7 +39,6 @@
         VALUES (fat), carbohydrate =
         VALUES (carbohydrate), sugars =
         VALUES (sugars), sodium =
-        VALUES (sodium), updated_at = NOW()
-    </insert>
+        VALUES (sodium), updated_at = NOW() </insert>
 
 </mapper>
