@@ -32,7 +32,7 @@ public class AiFoodVisionServiceImpl implements AiFoodVisionService {
     private final WebClient webClient;
 
     @Value("${ai.url}")
-    private static String FASTAPI_URL;
+    private String FASTAPI_URL;
 
     @Override
     public FoodAnalysisResponseDto analyzeAndFindFood(MultipartFile image) {

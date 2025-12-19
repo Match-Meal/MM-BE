@@ -21,10 +21,10 @@ public class WebClientConfig {
         // 1. [타임아웃 설정] AI 분석이 오래 걸릴 수 있으므로 넉넉하게 잡습니다.
         HttpClient httpClient = HttpClient.create()
                 .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 30000) // 연결 타임아웃 (30초)
-                .responseTimeout(Duration.ofSeconds(60))             // 응답 타임아웃 (60초 - AI 분석 대기 시간)
+                .responseTimeout(Duration.ofSeconds(300))             // 응답 타임아웃 (60초 - AI 분석 대기 시간)
                 .doOnConnected(conn ->
-                        conn.addHandlerLast(new ReadTimeoutHandler(60, TimeUnit.SECONDS))
-                                .addHandlerLast(new WriteTimeoutHandler(60, TimeUnit.SECONDS)));
+                        conn.addHandlerLast(new ReadTimeoutHandler(300, TimeUnit.SECONDS))
+                                .addHandlerLast(new WriteTimeoutHandler(300, TimeUnit.SECONDS)));
 
         // 2. [메모리 버퍼 설정] 대용량 데이터(이미지 등) 통신 시 버퍼 크기 증가
         // 기본값은 256KB라 이미지 처리 시 "DataBufferLimitException"이 발생할 수 있습니다.
