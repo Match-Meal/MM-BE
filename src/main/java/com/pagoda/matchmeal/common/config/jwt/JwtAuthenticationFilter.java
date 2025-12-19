@@ -1,4 +1,4 @@
-package com.pagoda.matchmeal.config.jwt;
+package com.pagoda.matchmeal.common.config.jwt;
 
 import com.pagoda.matchmeal.model.dto.UserDto;
 import jakarta.servlet.FilterChain;

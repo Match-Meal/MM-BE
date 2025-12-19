@@ -2,6 +2,7 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.pagoda.matchmeal.mapper.FoodMapper">
+
     <insert id="saveFood" parameterType="com.pagoda.matchmeal.model.entity.Food"
             useGeneratedKeys="true" keyProperty="foodId">
         INSERT INTO foods (user_id,

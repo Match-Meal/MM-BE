@@ -92,7 +92,7 @@ public class UserServiceImpl implements UserService {
 
         // 기존 유저 조회
         User user = User.builder()
-                .id(userId)
+                .userId(userId)
                 .userName(profileDto.getUserName())
                 .gender(profileDto.getGender())
                 .birthDate(profileDto.getBirthDate())
@@ -111,7 +111,7 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public void updateVisibility(Long userId, boolean isPublic) {
         User user = User.builder()
-                .id(userId)
+                .userId(userId)
                 .isPublic(isPublic)
                 .build();
 
@@ -159,11 +159,11 @@ public class UserServiceImpl implements UserService {
 
     private UserDto convertToDto(User user) {
         // 팔로우/팔로잉 숫자 조회
-        Long followerCount = followMapper.countFollowers(user.getId());
-        Long followingCount = followMapper.countFollowings(user.getId());
+        Long followerCount = followMapper.countFollowers(user.getUserId());
+        Long followingCount = followMapper.countFollowings(user.getUserId());
 
         return UserDto.builder()
-                .id(user.getId())
+                .id(user.getUserId())
                 .userName(user.getUserName())
                 .socialId(user.getSocialId())
                 .email(user.getEmail())

@@ -43,7 +43,7 @@ public class FollowServiceTset {
         Long followingId = 2L; // 상대방
 
         // 상대 유저 존재 가정
-        given(userMapper.findById(followingId)).willReturn(Optional.of(User.builder().id(followerId).build()));
+        given(userMapper.findById(followingId)).willReturn(Optional.of(User.builder().userId(followerId).build()));
 
         // 팔로우 중이 아님(false)
         given(followMapper.existsByFollowerAndFollowing(followerId, followingId)).willReturn(false);
@@ -75,7 +75,7 @@ public class FollowServiceTset {
         Long followerId = 1L;
         Long followingId = 2L;
 
-        given(userMapper.findById(followingId)).willReturn(Optional.of(User.builder().id(followingId).build()));
+        given(userMapper.findById(followingId)).willReturn(Optional.of(User.builder().userId(followingId).build()));
 
         // 현재 팔로우 중임 (true)
         given(followMapper.existsByFollowerAndFollowing(followerId, followingId)).willReturn(true);
@@ -133,7 +133,7 @@ public class FollowServiceTset {
 
         // 팔로우 로직은 실행되지 않아야 함
         verify(followMapper, never()).insertFollow(anyLong(), anyLong());
-        
+
     }
 
     @Test
@@ -146,7 +146,7 @@ public class FollowServiceTset {
         // [수정 2] Mapper는 UserDto가 아니라 User(Entity)를 반환합니다.
         // 따라서 Mock 객체도 User 타입으로 생성해야 합니다.
         User mockUser = User.builder()
-                .id(targetId)
+                .userId(targetId)
                 .userName("TargetUser")
                 .build();
 

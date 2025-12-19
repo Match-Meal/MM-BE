@@ -29,12 +29,6 @@
                     select="selectPostVideos"/>
     </resultMap>
 
-    <resultMap id="PostDetailFileMap" type="com.pagoda.matchmeal.model.dto.response.PostFileResponseDto">
-        <id property="fileId" column="file_id"/>
-        <result property="fileUrl" column="file_url"/>
-        <result property="fileType" column="file_type"/>
-    </resultMap>
-
     <insert id="savePost" parameterType="com.pagoda.matchmeal.model.entity.Post"
             useGeneratedKeys="true" keyProperty="postId">
         INSERT INTO posts(user_id, category, title, content, view_count, created_at, updated_at, deleted_at)
@@ -166,14 +160,14 @@
           AND p.deleted_at IS NULL
     </select>
 
-    <select id="selectPostImages" resultMap="PostDetailFileMap">
+    <select id="selectPostImages" resultType="com.pagoda.matchmeal.model.dto.response.PostFileResponseDto">
         SELECT file_id, file_url, file_type
         FROM post_files
         WHERE post_id = #{postId}
           AND file_type = 'IMAGE' -- 이미지만 골라오기
     </select>
 
-    <select id="selectPostVideos" resultMap="PostDetailFileMap">
+    <select id="selectPostVideos" resultType="com.pagoda.matchmeal.model.dto.response.PostFileResponseDto">
         SELECT file_id, file_url, file_type
         FROM post_files
         WHERE post_id = #{postId}
@@ -239,14 +233,7 @@
           AND user_id = #{userId}
     </delete>
 
-    <resultMap id="PostFileMap" type="com.pagoda.matchmeal.model.entity.PostFile">
-        <id property="fileId" column="file_id"/>
-        <result property="postId" column="post_id"/>
-        <result property="fileUrl" column="file_url"/>
-        <result property="fileType" column="file_type"/>
-    </resultMap>
-
-    <select id="getPostFilesByFileIds" resultMap="PostFileMap">
+    <select id="getPostFilesByFileIds" resultType="com.pagoda.matchmeal.model.entity.PostFile">
         SELECT * FROM post_files
         WHERE file_id IN
         <foreach item="id" collection="fileIds" open="(" separator="," close=")">

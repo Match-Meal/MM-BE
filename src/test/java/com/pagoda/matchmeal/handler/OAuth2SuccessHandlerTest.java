@@ -1,7 +1,7 @@
 package com.pagoda.matchmeal.handler;
 
-import com.pagoda.matchmeal.config.jwt.JwtTokenProvider;
-import com.pagoda.matchmeal.config.oauth.OAuth2SuccessHandler;
+import com.pagoda.matchmeal.common.config.jwt.JwtTokenProvider;
+import com.pagoda.matchmeal.common.config.oauth.OAuth2SuccessHandler;
 import com.pagoda.matchmeal.mapper.UserMapper;
 import com.pagoda.matchmeal.model.dto.UserDto;
 import com.pagoda.matchmeal.model.entity.User;
@@ -22,9 +22,7 @@ import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Optional;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
@@ -74,7 +72,7 @@ public class OAuth2SuccessHandlerTest {
         // 2. DB 조회 Mocking (User -> DTO 변환을 위해 필수)
         // @SuperBuilder를 사용했으므로 부모 필드(createdAt)도 빌더로 설정 가능
         User mockUser = User.builder()
-                .id(1L)
+                .userId(1L)
                 .socialId(socialId)
                 .email("test@test.com")
                 .userName("테스트유저")
@@ -111,8 +109,8 @@ public class OAuth2SuccessHandlerTest {
         // 3. 최종적으로 프론트엔드 URL로 리다이렉트 되는지 확인
         verify(response).sendRedirect(argThat(url ->
                 url.startsWith("http://localhost:5173/oauth/callback") &&
-                url.contains("accessToken=" + generatedToken) &&
-                url.contains("isNew=" + isNewUser)
+                        url.contains("accessToken=" + generatedToken) &&
+                        url.contains("isNew=" + isNewUser)
         ));
     }
 }

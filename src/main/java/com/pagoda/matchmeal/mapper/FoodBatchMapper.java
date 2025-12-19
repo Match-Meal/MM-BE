@@ -3,8 +3,6 @@ package com.pagoda.matchmeal.mapper;
 import com.pagoda.matchmeal.model.entity.Food;
 import org.apache.ibatis.annotations.Mapper;
 
-import java.util.List;
-
 @Mapper
 public interface FoodBatchMapper {
     /**
@@ -15,21 +13,4 @@ public interface FoodBatchMapper {
      * @param food 저장할 음식 엔티티
      */
     void insertFood(Food food);
-
-    /**
-     * (테스트용) 저장된 모든 음식 데이터를 조회합니다.
-     * - 데이터가 정상적으로 들어갔는지 검증할 때 사용합니다.
-     * * @return 저장된 음식 리스트
-     */
-    int countAll();
-
-    /**
-     * (테스트용) 전체 데이터 개수를 조회합니다.
-     * - Batch 실행 후 건수 확인용입니다.
-     *
-     * @return 전체 행(Row) 개수
-     */
-    List<Food> findAll();
-
-    void deleteAll();
 }

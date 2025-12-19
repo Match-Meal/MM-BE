@@ -1,12 +1,11 @@
-package com.pagoda.matchmeal.config.oauth;
+package com.pagoda.matchmeal.common.config.oauth;
 
+import com.pagoda.matchmeal.common.config.jwt.JwtTokenProvider;
 import com.pagoda.matchmeal.common.exception.CustomException;
 import com.pagoda.matchmeal.common.exception.ErrorResponseCode;
-import com.pagoda.matchmeal.config.jwt.JwtTokenProvider;
 import com.pagoda.matchmeal.mapper.UserMapper;
 import com.pagoda.matchmeal.model.dto.UserDto;
 import com.pagoda.matchmeal.model.entity.User;
-import com.pagoda.matchmeal.model.enums.UserRole;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -40,7 +39,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
         // 2. DTO 변환
         UserDto userDto = UserDto.builder()
-                .id(user.getId())
+                .id(user.getUserId())
                 .socialId(user.getSocialId())
                 .userName(user.getUserName())
                 .role(user.getRole().name())

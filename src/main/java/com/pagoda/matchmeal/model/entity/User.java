@@ -3,7 +3,10 @@ package com.pagoda.matchmeal.model.entity;
 import com.pagoda.matchmeal.model.enums.Gender;
 import com.pagoda.matchmeal.model.enums.UserRole;
 import com.pagoda.matchmeal.model.enums.UserStatus;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import lombok.experimental.SuperBuilder;
 
 import java.time.LocalDate;
@@ -17,7 +20,7 @@ import java.time.LocalDateTime;
 public class User extends BaseEntity {
 
     // user_id (PK)
-    private Long id;
+    private Long userId;
     private String email;
     private UserStatus status;
     private String userName;
