@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -30,12 +31,42 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public Map<String, Object> processLoginOrRegister(String socialId, String email, String name, String platform, String picture) {
+    public Map<String, Object> processLoginOrRegister(String socialId, String email, String name, String platform, String picture, String restartType) {
         Map<String, Object> result = new HashMap<>();
 
         User user = userMapper.findBySocialId(socialId).orElse(null);
         boolean isNew = false;
 
+        // 유저가 존재하고, 탈퇴한 상태인 경우 처리 로직
+        if (user != null && user.getDeletedAt() != null) {
+            // 유예기간이 지났는지 먼저 체크(지났으면 무조건 삭제 후 신규 가입
+            LocalDateTime threeMonthsAgo = LocalDateTime.now().minusMonths(3);
+            if (user.getDeletedAt().isBefore(threeMonthsAgo)) {
+                userMapper.hardDeleteUserById(user.getUserId());
+                user = null; // 신규 가입 로직으로 넘기기 위해 null 처리
+            } else {
+                // 유예기간 이내인 경우 -> 사용자 선택 확인
+
+                if (restartType == null) {
+                    // 선택 없이 처음
+                    throw new CustomException(ErrorResponseCode.USER_WITHDRAWN_WAITING);
+                }
+
+                if ("RESTORE".equals(restartType)) {
+                    // 복구하기
+                    userMapper.restoreUser(user.getUserId());
+                    user.setDeletedAt(null);
+                    user.setStatus(UserStatus.ACTIVE);
+                } else if ("RESET".equals(restartType)) {
+                    // 새로 만들기(기존 데이터 삭제)
+                    // 연관된 테이블이 있다면 Casecade 설정
+                    userMapper.hardDeleteUserById(user.getUserId());
+                    user = null; // 아래 신규 가입 로직을 타게 만듬
+                }
+            }
+        }
+
+        // 신규 가입 (아예 데이터가 없거나 RESET을 통해 user가 null인 경우
         if (user == null) {
             // 신규 회원
             isNew = true;
@@ -51,6 +82,8 @@ public class UserServiceImpl implements UserService {
                     .build();
             userMapper.save(user);
         }
+        
+        // 결과 반환(JWT 토큰 생성 등을 위한 정보
         result.put("user", user);
         result.put("isNew", isNew);
 
@@ -142,6 +175,19 @@ public class UserServiceImpl implements UserService {
         return convertToDto(targetUser);
     }
 
+    @Override
+    @Transactional
+    public void withdrawUser(Long userId) {
+        User user = userMapper.findById(userId)
+                .orElseThrow(() -> new CustomException(ErrorResponseCode.USER_NOT_FOUND));
+
+        if (user.getDeletedAt() != null) {
+            throw new CustomException(ErrorResponseCode.ALREADY_USER_DELETE);
+        }
+
+        userMapper.softDeleteUser(userId);
+    }
+
     // ---------------- Helper Methods -----------------
 
     private List<String> convertToList(String str) {
@@ -183,6 +229,4 @@ public class UserServiceImpl implements UserService {
                 .followingCount(followingCount)
                 .build();
     }
-
-
 }

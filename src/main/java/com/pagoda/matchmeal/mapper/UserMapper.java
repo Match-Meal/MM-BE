@@ -3,6 +3,7 @@ package com.pagoda.matchmeal.mapper;
 import com.pagoda.matchmeal.model.entity.User;
 import org.apache.ibatis.annotations.Mapper;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 @Mapper
@@ -22,4 +23,11 @@ public interface UserMapper {
 
     void updateVisibility(User user);
 
+    void softDeleteUser(Long userId);
+
+    void restoreUser(Long userId);
+
+    void hardDeleteExpiredUsers(LocalDateTime thresholdDate);
+
+    void hardDeleteUserById(Long userId);
 }

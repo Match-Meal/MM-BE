@@ -18,6 +18,8 @@ public enum ErrorResponseCode {
 
     //---------------------------- 유저 에러코드----------------------------
     USER_NOT_FOUND(HttpStatus.NOT_FOUND, "회원 정보를 찾을 수 없습니다."),
+    ALREADY_USER_DELETE(HttpStatus.BAD_REQUEST, "이미 탈퇴처리된 회원입니다."),
+    USER_WITHDRAWN_WAITING(HttpStatus.BAD_REQUEST, "탈퇴한 회원입니다. 복구 또는 재가입을 선택해주세요."),
 
     //----------------------------식단 에러코드----------------------------
     DIET_NOT_FOUND(HttpStatus.NOT_FOUND, "식단 데이터를 찾을 수 없습니다."),
