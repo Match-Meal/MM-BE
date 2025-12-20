@@ -81,6 +81,8 @@ public class AiFoodVisionServiceImpl implements AiFoodVisionService {
         List<MatchedFoodDto> matchedFoodDtos = foodEntities.stream()
                 .map(entity -> MatchedFoodDto.builder()
                         .foodId(entity.getFoodId())
+                        .servingSize(entity.getServingSize())
+                        .unit(entity.getUnit())
                         .foodName(entity.getFoodName())
                         .calories(entity.getCalories())
                         .carbohydrate(entity.getCarbohydrate())

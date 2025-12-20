@@ -13,6 +13,8 @@ public class MatchedFoodDto {
 
     private Long foodId;
 
+    private Double servingSize;
+    private String unit;
     private String foodName;
     private Double calories;
     private Double carbohydrate;
