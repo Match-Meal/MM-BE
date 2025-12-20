@@ -2,6 +2,7 @@ package com.pagoda.matchmeal.service;
 
 import com.pagoda.matchmeal.model.dto.UserDto;
 import com.pagoda.matchmeal.model.dto.UserProfileDto;
+import com.pagoda.matchmeal.model.entity.User;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
@@ -23,6 +24,8 @@ public interface UserService {
 
     void updateVisibility(Long userId, boolean isPublic);
 
-    void withdrawUser(Long userId);
+    void withdrawUser(Long userId, String socialAccessToken);
+
+    UserDto convertUserToDto(User user);
 
 }

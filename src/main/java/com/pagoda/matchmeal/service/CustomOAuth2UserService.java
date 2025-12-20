@@ -2,6 +2,7 @@ package com.pagoda.matchmeal.service;
 
 import com.pagoda.matchmeal.common.exception.CustomException;
 import com.pagoda.matchmeal.common.exception.ErrorResponseCode;
+import com.pagoda.matchmeal.common.exception.WithdrawnUserException;
 import com.pagoda.matchmeal.model.entity.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -38,7 +39,8 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
 
         // 유저 정보 가져오기(google)
         Map<String, Object> attributes = oAuth2User.getAttributes();
-        String socialId = (String) attributes.get("sub");
+        String socialId = extractSocialId(registrationId, attributes);
+
         String email = (String) attributes.get("email");
         String name = (String) attributes.get("name");
         String picture = (String) attributes.get("picture");
@@ -54,20 +56,12 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
             user = (User) result.get("user");
             isNew = (boolean) result.get("isNew");
         } catch (CustomException e) {
-            // 탈퇴 유저(복구 대기 상태)인 경우 처리
-            if (e.getErrorCode() == ErrorResponseCode.USER_WITHDRAWN_WAITING) {
-                // spring security의 인증 실패 흐름을 넘기기 위해 OAuth2AuthenticationException 발생
-                // OAuth2Error 코드를 커스텀하게 설정 ("WITHDRAWN_USER")
-                throw new OAuth2AuthenticationException(
-                        new OAuth2Error("WITHDRAWN_USER", "탈퇴한 회원입니다. 복구 또는 재가입이 필요합니다.", null),
-                        e
-                );
+            // 탈퇴 대기 유저 발생 시
+            if (e.getCode() == ErrorResponseCode.USER_WITHDRAWN_WAITING) {
+                // 여기서 socialId, email 등을 담아서 던집니다.
+                throw new WithdrawnUserException(socialId, email, registrationId);
             }
-
-            // 그 외에는 일반 인증 에러로 처리
-            throw new OAuth2AuthenticationException(
-                    new OAuth2Error("SERVER_ERROR"), e
-            );
+            throw new OAuth2AuthenticationException(new OAuth2Error("SERVER_ERROR"), e);
         }
 
         // 정상 로그인 성공 시 (Active 유저 or 신규 유저)
@@ -82,5 +76,19 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
                         newAttributes,
                         userNameAttributeName
         );
+    }
+
+    // Helper Method
+    private String extractSocialId(String registrationId, Map<String, Object> attributes) {
+        if ("google".equalsIgnoreCase(registrationId)) {
+            return String.valueOf(attributes.get("sub"));
+        } else if ("kakao".equalsIgnoreCase(registrationId)) {
+            // 카카오는 id가 Long 타입으로 옴 -> String 변환 필수
+            return String.valueOf(attributes.get("id"));
+        } else if ("naver".equalsIgnoreCase(registrationId)) {
+            Map<String, Object> response = (Map<String, Object>) attributes.get("response");
+            return String.valueOf(response.get("id"));
+        }
+        throw new OAuth2AuthenticationException("지원하지 않는 소셜 플랫폼입니다: " + registrationId);
     }
 }

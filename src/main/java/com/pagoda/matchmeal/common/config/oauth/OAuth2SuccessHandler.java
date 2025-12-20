@@ -31,10 +31,10 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
         // CustomOAuth2UserService에서 넘긴 isNew 값 추출
         boolean isNew = Boolean.TRUE.equals(oAuth2User.getAttributes().get("isNew"));
-        String socialId = (String) oAuth2User.getAttributes().get("sub");
+        Long userId = (Long) oAuth2User.getAttributes().get("userId");
 
         // 1. DB에서 최신 유저 정보 조회
-        User user = userMapper.findBySocialId(socialId)
+        User user = userMapper.findById(userId)
                 .orElseThrow(() -> new CustomException(ErrorResponseCode.USER_NOT_FOUND));
 
         // 2. DTO 변환
@@ -43,7 +43,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
                 .socialId(user.getSocialId())
                 .userName(user.getUserName())
                 .role(user.getRole().name())
-                .createdAt(user.getCreatedAt() != null ? user.getCreatedAt().toString() : null)
+                .createdAt(user.getCreatedAt() != null ? user.getCreatedAt().toString() : "")
                 .build();
 
         // 토큰 생성 (socialId와 Role)
