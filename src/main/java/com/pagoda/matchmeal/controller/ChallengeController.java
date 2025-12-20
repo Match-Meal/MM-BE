@@ -6,6 +6,7 @@ import com.pagoda.matchmeal.model.dto.ChallengeSearchCondition;
 import com.pagoda.matchmeal.model.dto.UserDto;
 import com.pagoda.matchmeal.model.dto.request.ChallengeCreateRequestDto;
 import com.pagoda.matchmeal.model.dto.request.ChallengeInviteRequestDto;
+import com.pagoda.matchmeal.model.dto.response.ChallengeInvitationResponseDto;
 import com.pagoda.matchmeal.model.dto.response.ChallengeResponseDto;
 import com.pagoda.matchmeal.service.ChallengeService;
 import lombok.RequiredArgsConstructor;
@@ -177,6 +178,16 @@ public class ChallengeController {
 
         challengeService.respondInvitation(user.getId(), invitationId, false);
         return ApiResponseUtil.success();
+    }
+
+    /**
+     * 나에게 온 초대장 목록 조회
+     */
+    @GetMapping("/invitations")
+    public CommonResponse<List<ChallengeInvitationResponseDto>> getMyInvitations(
+            @AuthenticationPrincipal UserDto user) {
+
+        return ApiResponseUtil.success(challengeService.getMyInvitations(user.getId()));
     }
 
 }

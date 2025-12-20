@@ -3,6 +3,7 @@ package com.pagoda.matchmeal.service;
 import com.pagoda.matchmeal.model.dto.ChallengeSearchCondition;
 import com.pagoda.matchmeal.model.dto.request.ChallengeCreateRequestDto;
 import com.pagoda.matchmeal.model.dto.response.ActiveChallengeDto;
+import com.pagoda.matchmeal.model.dto.response.ChallengeInvitationResponseDto;
 import com.pagoda.matchmeal.model.dto.response.ChallengeResponseDto;
 import com.pagoda.matchmeal.model.entity.Diet;
 import com.pagoda.matchmeal.model.entity.DietDetail;
@@ -79,5 +80,11 @@ public interface ChallengeService {
      */    
     void respondInvitation(Long userId, Long invitationId, boolean isAccepted);
 
+    /**
+     * 초대받은 챌린지 관리
+     * @param userId
+     * @return 초대받은 챌린지 정보 리스트
+     */
+    List<ChallengeInvitationResponseDto> getMyInvitations(Long userId);
 
 }

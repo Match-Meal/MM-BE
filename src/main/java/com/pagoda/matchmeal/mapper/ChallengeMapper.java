@@ -2,6 +2,7 @@ package com.pagoda.matchmeal.mapper;
 
 import com.pagoda.matchmeal.model.dto.ChallengeSearchCondition;
 import com.pagoda.matchmeal.model.dto.response.ActiveChallengeDto;
+import com.pagoda.matchmeal.model.dto.response.ChallengeInvitationResponseDto;
 import com.pagoda.matchmeal.model.dto.response.ChallengeParticipantDto;
 import com.pagoda.matchmeal.model.dto.response.ChallengeResponseDto;
 import com.pagoda.matchmeal.model.entity.Challenge;
@@ -171,6 +172,11 @@ public interface ChallengeMapper {
      * @return 챌린지 초대 정보
      */
     ChallengeInvitation findInvitationById(Long invitationId);
+
+    /**
+     * 나에게 온 대기 중인 초대장 목록 조회
+     */
+    List<ChallengeInvitationResponseDto> findPendingInvitationsByUserId(Long userId);
 
     /**
      * 초대장 상태 업데이트

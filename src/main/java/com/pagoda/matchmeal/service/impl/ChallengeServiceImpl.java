@@ -6,6 +6,7 @@ import com.pagoda.matchmeal.mapper.ChallengeMapper;
 import com.pagoda.matchmeal.model.dto.ChallengeSearchCondition;
 import com.pagoda.matchmeal.model.dto.request.ChallengeCreateRequestDto;
 import com.pagoda.matchmeal.model.dto.response.ActiveChallengeDto;
+import com.pagoda.matchmeal.model.dto.response.ChallengeInvitationResponseDto;
 import com.pagoda.matchmeal.model.dto.response.ChallengeParticipantDto;
 import com.pagoda.matchmeal.model.dto.response.ChallengeResponseDto;
 import com.pagoda.matchmeal.model.entity.Challenge;
@@ -417,5 +418,14 @@ public class ChallengeServiceImpl implements ChallengeService {
             // 거절
             challengeMapper.updateInvitationStatus(invitationId, "REJECTED");
         }
+    }
+
+    /**
+     * 나에게 온 초대장 목록 조회
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public List<ChallengeInvitationResponseDto> getMyInvitations(Long userId) {
+        return challengeMapper.findPendingInvitationsByUserId(userId);
     }
 }

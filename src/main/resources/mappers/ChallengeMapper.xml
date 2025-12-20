@@ -322,4 +322,32 @@
         SET status = #{status}
         WHERE invitation_id = #{invitationId}
     </update>
+
+    <select id="findPendingInvitationsByUserId" resultType="com.pagoda.matchmeal.model.dto.response.ChallengeInvitationResponseDto">
+        SELECT
+            i.invitation_id       AS invitationId,
+            i.created_at          AS sentAt,
+
+            /* 보낸 사람 정보 */
+            u.user_id             AS inviterId,
+            u.user_name           AS inviterName,
+            u.profile_image       AS inviterProfileImage,
+
+            /* 챌린지 정보 */
+            c.challenge_id        AS challengeId,
+            c.title               AS challengeTitle,
+            c.type                AS type,
+            c.target_value        AS targetValue,
+            c.goal_count          AS goalCount,
+            c.current_head_count  AS currentHeadCount,
+            c.max_participants    AS maxParticipants
+
+        FROM invitations i
+                 JOIN users u ON i.inviter_id = u.user_id
+                 JOIN challenges c ON i.challenge_id = c.challenge_id
+
+        WHERE i.invitee_id = #{userId}
+          AND i.status = 'PENDING'
+        ORDER BY i.created_at DESC
+    </select>
 </mapper>
