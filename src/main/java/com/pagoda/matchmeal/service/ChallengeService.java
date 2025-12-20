@@ -47,9 +47,18 @@ public interface ChallengeService {
      */
     List<ChallengeResponseDto> getAllChallenges(Long userId);
 
-    // 상세 조회
+    /**
+     * 상세 조회
+     */
     ChallengeResponseDto getChallengeDetail(Long userId, Long challengeId);
 
-    // 챌린지 수정
+    /**
+     * 챌린지 수정
+     */
     void updateChallenge(Long userId, Long challengeId, ChallengeCreateRequestDto dto);
+
+    /**
+     * 챌린지 삭제
+     */
+    void deleteChallenge(Long userId, Long challengeId);
 }

@@ -127,5 +127,27 @@ public interface ChallengeMapper {
      */
     List<ChallengeParticipantDto> findParticipantsByChallengeId(Long challengeId);
 
+    /**
+     * 챌린지 최대 인원
+     * @param challengeId
+     */
     void increaseHeadCount(Long challengeId);
+
+    /**
+     * 해당 챌린지의 모든 초대장 삭제
+     * @param challengeId
+     */
+    void deleteInvitationsByChallengeId(Long challengeId);
+
+    /**
+     * 해당 챌린지의 모든 참여 기록 삭제
+     * @param challengeId
+     */
+    void deleteUserChallengesByChallengeId(Long challengeId);
+
+    /**
+     * 챌린지 본체 삭제
+     * @param challengeId
+     */
+    void deleteChallengeById(Long challengeId);
 }

@@ -281,4 +281,19 @@
         SET current_head_count = current_head_count + 1
         WHERE challenge_id = #{challengeId}
     </update>
+
+    <delete id="deleteInvitationsByChallengeId">
+        DELETE FROM challenge_invitation
+        WHERE challenge_id = #{challengeId}
+    </delete>
+
+    <delete id="deleteUserChallengesByChallengeId">
+        DELETE FROM user_challenges
+        WHERE challenge_id = #{challengeId}
+    </delete>
+
+    <delete id="deleteChallengeById">
+        DELETE FROM challenges
+        WHERE challenge_id = #{challengeId}
+    </delete>
 </mapper>

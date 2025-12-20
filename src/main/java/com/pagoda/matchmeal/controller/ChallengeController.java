@@ -129,4 +129,17 @@ public class ChallengeController {
 
         return ApiResponseUtil.success();
     }
+
+    /**
+     * 챌린지 삭제
+     */
+    @DeleteMapping("/{challengeId}")
+    public CommonResponse<Void> deleteChallenge(
+            @AuthenticationPrincipal UserDto user,
+            @PathVariable Long challengeId) {
+
+        challengeService.deleteChallenge(user.getId(), challengeId);
+
+        return ApiResponseUtil.success();
+    }
 }

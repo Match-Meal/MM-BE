@@ -327,4 +327,22 @@ public class ChallengeServiceImpl implements ChallengeService {
 
         challengeMapper.updateChallenge(challenge);
     }
+
+    @Override
+    public void deleteChallenge(Long userId, Long challengeId) {
+        Challenge challenge = challengeMapper.findById(challengeId);
+        if (challenge == null) {
+            throw new CustomException(ErrorResponseCode.CHALLENGE_NOT_FOUND);
+        }
+
+        // 권한 체크
+        if (!challenge.getOwnerId().equals(userId)) {
+            throw new CustomException(ErrorResponseCode.UNAUTHORIZED);
+        }
+
+        // 연관 데이터 삭제 (초대장 -> 참여중인 유저 -> 챌린지 순으로 삭제)
+        challengeMapper.deleteInvitationsByChallengeId(challengeId);
+        challengeMapper.deleteUserChallengesByChallengeId(challengeId);
+        challengeMapper.deleteChallengeById(challengeId);
+    }
 }
