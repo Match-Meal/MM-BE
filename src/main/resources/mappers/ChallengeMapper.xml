@@ -280,7 +280,7 @@
     </update>
 
     <delete id="deleteInvitationsByChallengeId">
-        DELETE FROM challenge_invitation
+        DELETE FROM invitations
         WHERE challenge_id = #{challengeId}
     </delete>
 

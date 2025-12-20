@@ -150,7 +150,7 @@ public class ChallengeController {
     @PostMapping("/{challengeId}/leave")
     public CommonResponse<Void> leaveChallenge(
             @AuthenticationPrincipal UserDto user,
-            @PathVariable Long challengeid) {
+            @PathVariable("challengeId") Long challengeid) {
 
         challengeService.leaveChallenge(user.getId(), challengeid);
         return ApiResponseUtil.success();

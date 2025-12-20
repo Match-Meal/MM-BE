@@ -226,9 +226,10 @@ public class DietServiceImpl implements DietService {
         if (diet == null) {
             throw new CustomException(ErrorResponseCode.DIET_NOT_FOUND);
         }
-        if (!diet.getUserId().equals(userId)) {
-            throw new CustomException(ErrorResponseCode.UNAUTHORIZED);
-        }
+        // 챌린지 참여자간 공유 목적으로 임시 비활성화
+//        if (!diet.getUserId().equals(userId)) {
+//            throw new CustomException(ErrorResponseCode.UNAUTHORIZED);
+//        }
         return diet;
     }
 
