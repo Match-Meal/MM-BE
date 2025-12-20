@@ -344,8 +344,8 @@ public class ChallengeServiceImpl implements ChallengeService {
             throw new CustomException(ErrorResponseCode.CHALLENGE_NOT_FOUND);
         }
 
-        // 권한 체크
-        if (!challenge.getOwnerId().equals(userId)) {
+        // ownerId가 null이면(탈퇴한 방장) 아무도 수정할 수 없음 -> UNAUTHORIZED 처리
+        if (challenge.getOwnerId() == null || !challenge.getOwnerId().equals(userId)) {
             throw new CustomException(ErrorResponseCode.UNAUTHORIZED);
         }
 
@@ -371,7 +371,8 @@ public class ChallengeServiceImpl implements ChallengeService {
         }
 
         // 권한 체크
-        if (!challenge.getOwnerId().equals(userId)) {
+        // ownerId가 null이면(탈퇴한 방장) 아무도 삭제할 수 없음 (혹은 관리자만 가능)
+        if (challenge.getOwnerId() == null || !challenge.getOwnerId().equals(userId)) {
             throw new CustomException(ErrorResponseCode.UNAUTHORIZED);
         }
 
@@ -393,8 +394,9 @@ public class ChallengeServiceImpl implements ChallengeService {
             throw new CustomException(ErrorResponseCode.CHALLENGE_NOT_FOUND);
         }
 
-        // 방장은 나가는것이 아닌 챌린지 삭제를 해야함
-        if (challenge.getOwnerId().equals(userId)) {
+        // ownerId가 null이 아니고, 내가 ownerId라면 예외 발생
+        // (ownerId가 null인 경우는 방장이 없는 방이므로, 참여자는 누구나 나갈 수 있음 -> 통과)
+        if (challenge.getOwnerId() != null && challenge.getOwnerId().equals(userId)) {
             throw new CustomException(ErrorResponseCode.OWNER_CANNOT_LEAVE);
         }
 

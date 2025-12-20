@@ -118,7 +118,7 @@ public class JwtTokenProvider {
                 .compact();
     }
 
-    // ★ 6. (편의 메서드) 토큰에서 Subject(UserId or SocialId) 추출
+    // 6. (편의 메서드) 토큰에서 Subject(UserId or SocialId) 추출
     public String getSubject(String token) {
         return Jwts.parser()
                 .verifyWith(key)

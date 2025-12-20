@@ -9,6 +9,7 @@ import com.pagoda.matchmeal.model.entity.User;
 import com.pagoda.matchmeal.model.enums.UserRole;
 import com.pagoda.matchmeal.model.enums.UserStatus;
 import com.pagoda.matchmeal.service.AuthService;
+import com.pagoda.matchmeal.service.RedisService;
 import com.pagoda.matchmeal.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

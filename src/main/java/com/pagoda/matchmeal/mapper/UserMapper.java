@@ -2,6 +2,7 @@ package com.pagoda.matchmeal.mapper;
 
 import com.pagoda.matchmeal.model.entity.User;
 import org.apache.ibatis.annotations.Mapper;
+import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -27,7 +28,7 @@ public interface UserMapper {
 
     void restoreUser(Long userId);
 
-    void hardDeleteExpiredUsers(LocalDateTime thresholdDate);
+    void hardDeleteExpiredUsers(@Param("thresholdDate") LocalDateTime thresholdDate);
 
     void hardDeleteUserById(Long userId);
 }

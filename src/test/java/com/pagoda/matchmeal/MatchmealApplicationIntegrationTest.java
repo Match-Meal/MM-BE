@@ -1,10 +1,10 @@
 package com.pagoda.matchmeal;
 
+import com.pagoda.matchmeal.support.IntegrationTestSupport;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
-class MatchmealApplicationIntegrationTest {
+class MatchmealApplicationIntegrationTest extends IntegrationTestSupport {
 
     @Test
     void contextLoads() {

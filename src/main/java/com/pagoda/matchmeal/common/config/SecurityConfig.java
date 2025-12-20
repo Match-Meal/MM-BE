@@ -56,6 +56,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests((auth) -> auth
                         .requestMatchers("/user/reactivate").hasRole("WITHDRAWN") // 임시 토큰 가진 사람만 접근 가능
                         .requestMatchers("/user/**").hasRole("USER") // 일반 유저
+                        .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/", "/css/**", "/images/**", "/js/**", "/login/**").permitAll()
                         .requestMatchers("/h2-console/**", "/test/**").permitAll()
                         .anyRequest().authenticated()

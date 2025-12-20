@@ -263,9 +263,15 @@ public class PostServiceImpl implements PostService {
         // 1. 게시글 상세 조회
         PostDetailResponseDto postDetail = postMapper.getPostByPostId(postId);
 
-        // 2. 게시글 존재 여부 확인 (방어 로직)
         if (postDetail == null) {
             throw new CustomException(ErrorResponseCode.POST_NOT_FOUND);
+        }
+
+        // [수정] 작성자 정보가 없거나(탈퇴한 회원), 작성자 ID가 요청한 유저와 다를 경우
+        // postDetail.getUser()가 null일 수도 있고, getUser().getUserId()가 null일 수도 있음
+        if (postDetail.getUser() == null || postDetail.getUser().getUserId() == null) {
+            // 작성자가 없는 글은 수정/삭제 불가 -> 권한 없음 처리
+            throw new CustomException(ErrorResponseCode.UNAUTHORIZED);
         }
 
         // 3. 작성자 본인 확인 (권한 체크)

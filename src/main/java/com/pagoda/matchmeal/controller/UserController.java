@@ -7,6 +7,7 @@ import com.pagoda.matchmeal.common.util.ApiResponseUtil;
 import com.pagoda.matchmeal.model.dto.UserDto;
 import com.pagoda.matchmeal.model.dto.UserProfileDto;
 import com.pagoda.matchmeal.model.entity.User;
+import com.pagoda.matchmeal.service.AuthService;
 import com.pagoda.matchmeal.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +29,7 @@ import java.util.Map;
 public class UserController {
 
     private final UserService userService;
+    private final AuthService authService;
     private final JwtTokenProvider jwtTokenProvider;
     private final OAuth2AuthorizedClientService authorizedClientService;
 
@@ -109,7 +111,7 @@ public class UserController {
 
         // 2. 서비스 호출 (기존 processLoginOrRegister 재활용)
         // socialId는 토큰에서 꺼냈으므로 안전함. 나머지는 null로 넘겨도 DB 조회로 처리됨.
-        Map<String, Object> result = userService.processLoginOrRegister(
+        Map<String, Object> result = authService.processLoginOrRegister(
                 socialId,
                 null, null, null, null, // 이미 DB에 있거나 토큰에 정보가 있으므로 생략 가능
                 decision
@@ -132,34 +134,13 @@ public class UserController {
 
     @DeleteMapping("/withdraw")
     public CommonResponse<Void> withdrawUser(
-            @AuthenticationPrincipal UserDto userDto,
-            OAuth2AuthenticationToken authentication // 현재 인증 정보(소셜 정보 포함)
+            @AuthenticationPrincipal UserDto userDto
     ) {
-        String socialAccessToken = null;
+        log.info("회원 탈퇴 요청 - UserID: {}", userDto.getId());
 
-        // 1. 소셜 로그인 사용자라면 토큰 추출
-        if (authentication != null) {
-            // "google", "kakao" 등의 registrationId
-            String registrationId = authentication.getAuthorizedClientRegistrationId();
-
-            // 메모리(또는 DB)에 저장된 클라이언트 정보 로드
-            OAuth2AuthorizedClient client = authorizedClientService.loadAuthorizedClient(
-                    registrationId,
-                    authentication.getName()
-            );
-
-            if (client != null) {
-                socialAccessToken = client.getAccessToken().getTokenValue();
-            } else {
-                // ★ 로그 추가 권장
-                log.info("소셜 Access Token을 찾을 수 없어 플랫폼 연결 해제는 건너뜁니다. (User ID: {})", userDto.getId());
-            }
-        }
-
-        // 2. 서비스로 토큰과 함께 전달
-        userService.withdrawUser(userDto.getId(), socialAccessToken);
+        // 소셜 토큰 추출 로직 삭제 -> 서비스 레이어에서 DB 정보로 처리하거나 생략
+        userService.withdrawUser(userDto.getId());
 
         return ApiResponseUtil.success();
     }
-
 }

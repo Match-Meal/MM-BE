@@ -1,4 +1,4 @@
-package com.pagoda.matchmeal.service.impl;
+package com.pagoda.matchmeal.service;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.redis.core.RedisTemplate;

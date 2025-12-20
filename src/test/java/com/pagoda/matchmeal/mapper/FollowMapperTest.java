@@ -1,6 +1,7 @@
 package com.pagoda.matchmeal.mapper;
 
 import com.pagoda.matchmeal.model.dto.response.FollowListDto;
+import com.pagoda.matchmeal.support.MapperTestSupport;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mybatis.spring.boot.test.autoconfigure.MybatisTest;
@@ -11,9 +12,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@MybatisTest
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE) // 실제 DB 혹은 설정된 H2 사용
-class FollowMapperTest {
+class FollowMapperTest extends MapperTestSupport {
 
     @Autowired
     private FollowMapper followMapper;

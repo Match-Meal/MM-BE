@@ -6,7 +6,7 @@ import com.pagoda.matchmeal.common.exception.ErrorResponseCode;
 import com.pagoda.matchmeal.mapper.UserMapper;
 import com.pagoda.matchmeal.model.dto.UserDto;
 import com.pagoda.matchmeal.model.entity.User;
-import com.pagoda.matchmeal.service.impl.RedisService;
+import com.pagoda.matchmeal.service.RedisService;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -61,7 +61,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
         // Redis에 Refresh Token 저장 (Key: "RT:{userId}", Value: refreshToken)
         // 유효기간을 설정하여 자동 만료되도록 함
-        long refreshTokenExpirationMillis = jwtTokenProvider.getRefreshTokenValidity();
+        long refreshTokenExpirationMillis = jwtTokenProvider.getRefreshTokenValidityInMilliseconds();
         redisService.setValues(
                 "RT:" + user.getUserId(),
                 refreshToken,

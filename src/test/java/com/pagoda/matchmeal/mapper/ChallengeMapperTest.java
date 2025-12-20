@@ -5,12 +5,12 @@ import com.pagoda.matchmeal.model.dto.response.ActiveChallengeDto;
 import com.pagoda.matchmeal.model.dto.response.ChallengeResponseDto;
 import com.pagoda.matchmeal.model.entity.Challenge;
 import com.pagoda.matchmeal.model.enums.ChallengeType;
+import com.pagoda.matchmeal.support.MapperTestSupport;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.mybatis.spring.annotation.MapperScan;
-import org.mybatis.spring.boot.test.autoconfigure.MybatisTest;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
+import org.springframework.jdbc.core.JdbcTemplate;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -18,13 +18,29 @@ import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@MybatisTest
-@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.ANY)
-@MapperScan("com.pagoda.matchmeal.mapper")
-class ChallengeMapperTest {
+class ChallengeMapperTest extends MapperTestSupport {
 
     @Autowired
     private ChallengeMapper challengeMapper;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    @BeforeEach
+    void setUp() {
+        // 챌린지 생성 시 ownerId(1L) 등 유저가 필요하므로 생성 로직 추가
+        Long ownerId = 1L;
+        Integer userCount = jdbcTemplate.queryForObject("SELECT count(*) FROM users WHERE user_id = ?", Integer.class, ownerId);
+        if (userCount == 0) {
+            jdbcTemplate.update("INSERT INTO users (user_id, email, user_name, role) VALUES (?, 'test@test.com', '방장', 'ROLE_USER')", ownerId);
+        }
+
+        Long userId = 100L; // 테스트에서 쓰는 유저
+        Integer userCount2 = jdbcTemplate.queryForObject("SELECT count(*) FROM users WHERE user_id = ?", Integer.class, userId);
+        if (userCount2 == 0) {
+            jdbcTemplate.update("INSERT INTO users (user_id, email, user_name, role) VALUES (?, 'user@test.com', '참가자', 'ROLE_USER')", userId);
+        }
+    }
 
     @Test
     @DisplayName("챌린지 생성 및 ID 자동 생성 확인")
@@ -82,7 +98,7 @@ class ChallengeMapperTest {
     @DisplayName("내 챌린지 목록 조회 - 참여한 것만 조회되는지 확인 (Inner Join)")
     void findMyChallenges_StatusCheck() {
         // given
-        Long myId = 10L;
+        Long myId = 100L;
         Challenge c1 = createDummyChallenge("내가 참여한 방", ChallengeType.TIME_RANGE, true);
         Challenge c2 = createDummyChallenge("참여 안 한 방", ChallengeType.TIME_RANGE, true);
 
@@ -127,7 +143,7 @@ class ChallengeMapperTest {
     @Test
     @DisplayName("진척도 업데이트 확인")
     void updateProgress_Success() {
-        Long userId = 200L;
+        Long userId = 100L;
         Challenge challenge = createDummyChallenge("업데이트 테스트", ChallengeType.CALORIE_LIMIT, true);
         Long challengeId = challenge.getChallengeId();
         challengeMapper.insertUserChallenge(userId, challengeId);
@@ -146,9 +162,11 @@ class ChallengeMapperTest {
     @Test
     @DisplayName("초대장 발송 확인")
     void invite_Success() {
-        Long challengeId = 1L;
-        Long inviterId = 10L;
-        Long inviteeId = 20L;
+        Challenge challenge = createDummyChallenge("초대 테스트", ChallengeType.RECORD_FREQUENCY, true);
+        Long challengeId = challenge.getChallengeId();
+
+        Long inviterId = 1L;
+        Long inviteeId = 100L;
 
         challengeMapper.insertInvitation(challengeId, inviterId, inviteeId);
         boolean exists = challengeMapper.existsInvitation(challengeId, inviteeId);

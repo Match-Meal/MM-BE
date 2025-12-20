@@ -19,7 +19,7 @@ public interface UserService {
 
     void updateVisibility(Long userId, boolean isPublic);
 
-    void withdrawUser(Long userId, String socialAccessToken);
+    void withdrawUser(Long userId);
 
     UserDto convertUserToDto(User user);
 

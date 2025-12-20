@@ -6,6 +6,7 @@ import com.pagoda.matchmeal.model.dto.UserDto;
 import com.pagoda.matchmeal.service.AuthService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -36,6 +37,7 @@ public class AuthController {
     @PostMapping("/logout")
     public CommonResponse<Void> logout(@AuthenticationPrincipal UserDto userDto) {
         authService.logout(userDto.getId());
+        SecurityContextHolder.clearContext();
         return ApiResponseUtil.success();
     }
 }
