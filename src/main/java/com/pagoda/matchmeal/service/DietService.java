@@ -22,4 +22,6 @@ public interface DietService {
     void deleteDiet(Long userId, Long dietId);
 
     DietStatsResponseDto getDietStats(Long userId, DietStatsRequestDto dietStatsRequestDto);
+
+    List<DietResponseDto> getDietListByPeriod(Long userId, LocalDate startDate, LocalDate endDate);
 }

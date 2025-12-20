@@ -72,17 +72,13 @@ public interface DietMapper {
                                              @Param("startDate") LocalDate startDate,
                                              @Param("endDate") LocalDate endDate);
 
-//    /**
-//     * 특정 날짜의 식단 목록을 조회합니다. (기간 조회)
-//     *
-//     * @param userId
-//     * @param startDate
-//     * @param endDate
-//     * @return 해당 기간의 식단 리스트
-//     */
-//    List<DietResponseDto> findAllByPeriod(
-//            @Param("userId") Long userId,
-//            @Param("startDate") String startDate,
-//            @Param("endDate") String endDate
-//    );
+    /**
+     * 특정 기간의 식단 목록을 조회합니다. (기간 조회)
+     * - 챌린지 상세 화면에서 특정 유저의 기록을 볼 때 사용
+     */
+    List<DietResponseDto> findAllByPeriod(
+            @Param("userId") Long userId,
+            @Param("startDate") String startDate,
+            @Param("endDate") String endDate
+    );
 }

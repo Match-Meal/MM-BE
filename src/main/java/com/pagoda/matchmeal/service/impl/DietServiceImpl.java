@@ -518,4 +518,13 @@ public class DietServiceImpl implements DietService {
         // 6. [기본] 밸런스 양호 (모든 오차가 10% 이내)
         return "탄단지 비율이 황금 밸런스입니다! 아주 훌륭해요! 🌿";
     }
+
+    /**
+     * [기간 조회] 특정 기간(Start~End)의 식단 리스트 반환
+     */
+    @Override
+    public List<DietResponseDto> getDietListByPeriod(Long userId, LocalDate startDate, LocalDate endDate) {
+        // LocalDate -> String 변환하여 Mapper 호출
+        return dietMapper.findAllByPeriod(userId, startDate.toString(), endDate.toString());
+    }
 }

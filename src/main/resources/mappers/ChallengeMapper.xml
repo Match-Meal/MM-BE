@@ -183,6 +183,12 @@
         WHERE user_challenge_id = #{userChallengeId}
     </update>
 
+    <update id="updateStatusToProgress">
+        UPDATE user_challenges
+        SET status = 'PROGRESS'
+        WHERE user_challenge_id = #{userChallengeId}
+    </update>
+
     <update id="updateStatusToFail">
         UPDATE user_challenges
         SET status = 'FAIL',

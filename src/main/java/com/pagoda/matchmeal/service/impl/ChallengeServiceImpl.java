@@ -3,16 +3,15 @@ package com.pagoda.matchmeal.service.impl;
 import com.pagoda.matchmeal.common.exception.CustomException;
 import com.pagoda.matchmeal.common.exception.ErrorResponseCode;
 import com.pagoda.matchmeal.mapper.ChallengeMapper;
+import com.pagoda.matchmeal.mapper.DietMapper;
 import com.pagoda.matchmeal.model.dto.ChallengeSearchCondition;
 import com.pagoda.matchmeal.model.dto.request.ChallengeCreateRequestDto;
-import com.pagoda.matchmeal.model.dto.response.ActiveChallengeDto;
-import com.pagoda.matchmeal.model.dto.response.ChallengeInvitationResponseDto;
-import com.pagoda.matchmeal.model.dto.response.ChallengeParticipantDto;
-import com.pagoda.matchmeal.model.dto.response.ChallengeResponseDto;
+import com.pagoda.matchmeal.model.dto.response.*;
 import com.pagoda.matchmeal.model.entity.Challenge;
 import com.pagoda.matchmeal.model.entity.ChallengeInvitation;
 import com.pagoda.matchmeal.model.entity.Diet;
 import com.pagoda.matchmeal.model.entity.DietDetail;
+import com.pagoda.matchmeal.model.enums.ChallengeType;
 import com.pagoda.matchmeal.model.enums.MealType;
 import com.pagoda.matchmeal.service.ChallengeService;
 import com.pagoda.matchmeal.service.FollowService;
@@ -31,6 +30,7 @@ public class ChallengeServiceImpl implements ChallengeService {
 
     private final ChallengeMapper challengeMapper;
     private final FollowService followService;
+    private final DietMapper dietMapper;
 
     /**
      * 챌린지 생성
@@ -175,46 +175,60 @@ public class ChallengeServiceImpl implements ChallengeService {
 
         LocalDate today = diet.getEatDate();
 
-        for (ActiveChallengeDto uc : activeChallenges) {
+        // [1] 하루 누적 데이터 계산 (칼로리 챌린지용)
+        // 방금 기록한 식단이 포함된 오늘의 모든 식단을 가져옵니다.
+        List<DietResponseDto> todayDiets = dietMapper.findAllByDate(userId, today.toString());
+        double dailyTotalCalories = todayDiets.stream()
+                .mapToDouble(DietResponseDto::getTotalCalories)
+                .sum();
 
-            // 1. 기간 체크
+        for (ActiveChallengeDto uc : activeChallenges) {
+            // 기간 체크
             if (today.isBefore(uc.getStartDate()) || today.isAfter(uc.getEndDate())) {
                 continue;
             }
 
-            // 2. 오늘 이미 성공했는지 체크 (1일 1회 성공 제한)
-            if (uc.getLastSuccessDate() != null && uc.getLastSuccessDate().equals(today)) {
-                continue;
-            }
+            boolean isConditionMet = false;
 
-            boolean isSuccess = false;
-
-            // 3. 타입별 성공 조건 체크
+            // [2] 챌린지 타입별 조건 체크
             switch (uc.getType()) {
-                // 기록형: 무엇이든 기록하면 성공 (특정 식사 타입 강제 제거)
                 case RECORD_FREQUENCY:
-                    isSuccess = true;
+                    // 기록형: 기록만 하면 무조건 성공
+                    isConditionMet = true;
                     break;
 
-                // 칼로리 제한형: 해당 식사가 목표 칼로리 이내인지
-                // (참고: 엄밀히 하려면 '하루 총 섭취 칼로리'를 계산해서 비교해야 하지만, 현재 로직은 '한 끼' 기준임)
                 case CALORIE_LIMIT:
-                    if (diet.getTotalCalories() <= uc.getTargetValue()) {
-                        isSuccess = true;
+                    // 칼로리형: '하루 누적 칼로리'가 목표치 이하여야 함
+                    if (dailyTotalCalories <= uc.getTargetValue()) {
+                        isConditionMet = true;
                     }
                     break;
 
-                // 타임 어택: 지정 시간 이전에 식사했는지
                 case TIME_RANGE:
-                    // [수정] 아침식사 강제 조건 제거 -> 모든 식사에 대해 시간 체크
+                    // 타임어택: 방금 먹은 식사의 시간이 목표 시간 이전이어야 함
+                    // (주의: 하루에 여러 끼니 중 하나라도 시간 어기면 실패로 볼지, 성공한 끼니가 있으면 성공으로 볼지 정책 결정 필요)
+                    // 현재 정책: 이번 식사가 시간을 지켰으면 성공으로 간주
                     if (diet.getEatTime().getHour() < uc.getTargetValue()) {
-                        isSuccess = true;
+                        isConditionMet = true;
                     }
                     break;
             }
 
-            if (isSuccess) {
-                updateUserChallengeStatus(uc, today);
+            // [3] 상태 업데이트 로직 (성공 처리 OR 성공 취소)
+            boolean alreadySucceededToday = uc.getLastSuccessDate() != null && uc.getLastSuccessDate().equals(today);
+
+            if (isConditionMet) {
+                // 조건 만족 & 아직 오늘 성공 처리 안 됨 -> 성공 처리 (카운트 증가)
+                if (!alreadySucceededToday) {
+                    updateUserChallengeStatus(uc, today, true);
+                }
+                // 조건 만족 & 이미 성공 처리 됨 -> 유지 (아무것도 안 함)
+            } else {
+                // 조건 불만족 & 이미 오늘 성공 처리 됨 -> **성공 취소 (Rollback)**
+                // 예: 아침에 적게 먹어서 성공했는데, 저녁에 폭식해서 누적 칼로리 초과한 경우
+                if (alreadySucceededToday && uc.getType() == ChallengeType.CALORIE_LIMIT) {
+                    updateUserChallengeStatus(uc, today, false);
+                }
             }
         }
     }
@@ -253,33 +267,57 @@ public class ChallengeServiceImpl implements ChallengeService {
     }
 
     /**
-     * 카운트 및 스트릭 업데이트 (내부 메서드 통합 완료)
+     * 카운트/스트릭 증가 또는 감소(취소) 처리
+     * @param isSuccess true: 성공 처리, false: 성공 취소
      */
-    private void updateUserChallengeStatus(ActiveChallengeDto uc, LocalDate today) {
-        int newCurrentCount = uc.getCurrentCount() + 1;
-        int newCurrentStreak = 1;
+    private void updateUserChallengeStatus(ActiveChallengeDto uc, LocalDate today, boolean isSuccess) {
+        if (isSuccess) {
+            // [성공 처리]
+            int newCurrentCount = uc.getCurrentCount() + 1;
+            int newCurrentStreak = 1;
 
-        // 스트릭 계산 (마지막 성공일이 어제라면 연속 성공)
-        if (uc.getLastSuccessDate() != null) {
-            if (uc.getLastSuccessDate().equals(today.minusDays(1))) {
+            // 스트릭 계산
+            if (uc.getLastSuccessDate() != null && uc.getLastSuccessDate().equals(today.minusDays(1))) {
                 newCurrentStreak = uc.getCurrentStreak() + 1;
             }
-        }
 
-        int newMaxStreak = Math.max(uc.getMaxStreak(), newCurrentStreak);
+            int newMaxStreak = Math.max(uc.getMaxStreak(), newCurrentStreak);
 
-        // DTO 값 갱신
-        uc.setCurrentCount(newCurrentCount);
-        uc.setCurrentStreak(newCurrentStreak);
-        uc.setMaxStreak(newMaxStreak);
-        uc.setLastSuccessDate(today);
+            uc.setCurrentCount(newCurrentCount);
+            uc.setCurrentStreak(newCurrentStreak);
+            uc.setMaxStreak(newMaxStreak);
+            uc.setLastSuccessDate(today); // 오늘 날짜로 갱신
 
-        // DB 업데이트
-        challengeMapper.updateProgress(uc);
+            // DB 업데이트
+            challengeMapper.updateProgress(uc);
 
-        // 목표 달성(졸업) 체크
-        if (newCurrentCount >= uc.getGoalCount()) {
-            challengeMapper.updateStatusToSuccess(uc.getUserChallengeId());
+            // 목표 달성 체크
+            if (newCurrentCount >= uc.getGoalCount()) {
+                challengeMapper.updateStatusToSuccess(uc.getUserChallengeId());
+            }
+
+        } else {
+            // [성공 취소 - Rollback]
+            int newCurrentCount = Math.max(0, uc.getCurrentCount() - 1);
+            int newCurrentStreak = Math.max(0, uc.getCurrentStreak() - 1);
+
+            // 날짜 롤백 처리 (간소화: 스트릭이 0이 되면 날짜도 초기화, 아니면 유지)
+            LocalDate rollbackDate = (newCurrentStreak > 0) ? uc.getLastSuccessDate() : null;
+            // *참고: 더 정확히 하려면 '어제 날짜'를 계산해야 하지만, DTO에 없으므로 유지하거나 null 처리
+
+            uc.setCurrentCount(newCurrentCount);
+            uc.setCurrentStreak(newCurrentStreak);
+            uc.setLastSuccessDate(rollbackDate);
+
+            // 1. 수치 업데이트
+            challengeMapper.updateProgress(uc);
+
+            // 2. 상태 롤백 (SUCCESS -> PROGRESS)
+            // 목표 횟수를 달성해서 'SUCCESS' 상태였는데,
+            // 이번 취소로 인해 횟수가 부족해졌다면 다시 'PROGRESS'로 되돌림
+            if (newCurrentCount < uc.getGoalCount()) {
+                challengeMapper.updateStatusToProgress(uc.getUserChallengeId());
+            }
         }
     }
 

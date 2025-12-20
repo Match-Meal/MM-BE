@@ -77,4 +77,21 @@ public class DietController {
 
         return ApiResponseUtil.success(dietService.getDietStats(searchUserId, dietStatsRequestDto));
     }
+
+    /**
+     * [기간 조회] 챌린지 기간 등 특정 기간의 식단 기록 조회
+     * - 본인 또는 타인의 식단 기록을 기간 단위로 조회
+     */
+    @GetMapping("/diet/period")
+    public CommonResponse<List<DietResponseDto>> getDietListByPeriod(
+            @AuthenticationPrincipal UserDto userDto,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(value = "userId", required = false) Long targetUserId) {
+
+        // targetUserId가 있으면 그 유저를, 없으면 로그인한 유저 본인을 조회
+        Long searchUserId = (targetUserId != null) ? targetUserId : userDto.getId();
+
+        return ApiResponseUtil.success(dietService.getDietListByPeriod(searchUserId, startDate, endDate));
+    }
 }

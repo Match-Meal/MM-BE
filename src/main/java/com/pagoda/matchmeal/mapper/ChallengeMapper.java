@@ -184,4 +184,6 @@ public interface ChallengeMapper {
      * @param status (ACCEPTED / REJECTED)
      */
     void updateInvitationStatus(@Param("invitationId") Long invitationId, @Param("status") String status);
+
+    void updateStatusToProgress(Long userChallengeId);
 }
