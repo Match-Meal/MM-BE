@@ -7,9 +7,12 @@ import com.pagoda.matchmeal.model.dto.request.DietRequestDto;
 import com.pagoda.matchmeal.model.dto.request.DietStatsRequestDto;
 import com.pagoda.matchmeal.model.dto.response.DietResponseDto;
 import com.pagoda.matchmeal.model.dto.response.DietStatsResponseDto;
+import com.pagoda.matchmeal.model.dto.response.FoodAnalysisResponseDto;
+import com.pagoda.matchmeal.service.AiFoodVisionService;
 import com.pagoda.matchmeal.service.DietService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -22,6 +25,15 @@ import java.util.List;
 public class DietController {
 
     private final DietService dietService;
+    private final AiFoodVisionService aiFoodVisionService;
+
+    @PostMapping(value = "/diet/analyze", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public CommonResponse<FoodAnalysisResponseDto> analyzeDietImage(
+            @RequestPart("file") MultipartFile file
+    ) {
+        // AiFoodService.analyzeAndFindFood 호출
+        return ApiResponseUtil.success(aiFoodVisionService.analyzeAndFindFood(file));
+    }
 
     @PostMapping("/diet")
     public CommonResponse<Long> addDiet(

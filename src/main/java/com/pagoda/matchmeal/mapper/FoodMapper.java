@@ -47,6 +47,8 @@ public interface FoodMapper {
      */
     FoodDetailResponseDto findFoodDetail(Long foodId);
 
+    List<FoodDetailResponseDto> findFoodDetailByFoodName(String foodName);
+
     /**
      * 음식 수정 (UPDATE - 부분 수정)
      * - Food 객체에 값이 존재하는 필드만 골라서 업데이트합니다 (Dynamic Update).
