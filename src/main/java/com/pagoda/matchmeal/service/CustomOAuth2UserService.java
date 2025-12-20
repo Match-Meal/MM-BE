@@ -23,7 +23,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequest, OAuth2User> {
 
-    private final UserService userService;
+    private final AuthService authService;
 
     @Override
     public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
@@ -51,7 +51,7 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
         try {
             // resultType = null로 1차 시도
             // 탈퇴 유저인 경우 CustomException(USER_WITHDRAWN_WAITING)이 발생
-            Map<String, Object> result = userService.processLoginOrRegister(socialId, email, name, registrationId, picture, null);
+            Map<String, Object> result = authService.processLoginOrRegister(socialId, email, name, registrationId, picture, null);
 
             user = (User) result.get("user");
             isNew = (boolean) result.get("isNew");
