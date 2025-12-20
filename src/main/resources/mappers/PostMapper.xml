@@ -68,7 +68,6 @@
         <if test="startDate != null">
             AND p.created_at >= #{startDate}
         </if>
-
         <if test="endDate != null">
             <![CDATA[ AND p.created_at < #{endDate} ]]>
         </if>
@@ -76,17 +75,23 @@
         <if test="keyword != null and keyword != ''">
             <choose>
                 <when test="searchType == 'TITLE'">
-                    AND p.title LIKE CONCAT('%', #{keyword}, '%')
+                    AND REPLACE(p.title, ' ', '') LIKE CONCAT('%', REPLACE(#{keyword}, ' ', ''), '%')
                 </when>
+
                 <when test="searchType == 'CONTENT'">
-                    AND p.content LIKE CONCAT('%', #{keyword}, '%')
+                    AND REPLACE(p.content, ' ', '') LIKE CONCAT('%', REPLACE(#{keyword}, ' ', ''), '%')
                 </when>
+
                 <when test="searchType == 'WRITER'">
-                    AND u.user_name LIKE CONCAT('%', #{keyword}, '%')
+                    AND REPLACE(u.user_name, ' ', '') LIKE CONCAT('%', REPLACE(#{keyword}, ' ', ''), '%')
                 </when>
+
                 <otherwise>
-                    AND (p.title LIKE CONCAT('%', #{keyword}, '%')
-                    OR p.content LIKE CONCAT('%', #{keyword}, '%'))
+                    AND (
+                    REPLACE(p.title, ' ', '') LIKE CONCAT('%', REPLACE(#{keyword}, ' ', ''), '%')
+                    OR
+                    REPLACE(p.content, ' ', '') LIKE CONCAT('%', REPLACE(#{keyword}, ' ', ''), '%')
+                    )
                 </otherwise>
             </choose>
         </if>
