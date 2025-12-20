@@ -9,6 +9,7 @@ import com.pagoda.matchmeal.model.dto.response.ActiveChallengeDto;
 import com.pagoda.matchmeal.model.dto.response.ChallengeParticipantDto;
 import com.pagoda.matchmeal.model.dto.response.ChallengeResponseDto;
 import com.pagoda.matchmeal.model.entity.Challenge;
+import com.pagoda.matchmeal.model.entity.ChallengeInvitation;
 import com.pagoda.matchmeal.model.entity.Diet;
 import com.pagoda.matchmeal.model.entity.DietDetail;
 import com.pagoda.matchmeal.model.enums.MealType;
@@ -54,6 +55,7 @@ public class ChallengeServiceImpl implements ChallengeService {
                 .maxParticipants(dto.getMaxParticipants())
                 .isPublic(dto.isPublic())
                 .invitationCode(inviteCode)
+                .currentHeadCount(1)
                 .build();
 
         // 챌린지 저장
@@ -167,43 +169,44 @@ public class ChallengeServiceImpl implements ChallengeService {
      */
     @Override
     public void updateChallengeProgress(Long userId, Diet diet, List<DietDetail> details) {
-        // 유저가 참여 중인 챌린지 조회(DTO에 챌린지 마스터 정보 포함)
         List<ActiveChallengeDto> activeChallenges = challengeMapper.findActiveChallengesByUserId(userId);
         if (activeChallenges.isEmpty()) return;
 
-        LocalDate today = LocalDate.now();
+        LocalDate today = diet.getEatDate();
 
-        for (ActiveChallengeDto uc: activeChallenges) {
-            // 챌린지 기간 아니면 스킵
+        for (ActiveChallengeDto uc : activeChallenges) {
+
+            // 1. 기간 체크
             if (today.isBefore(uc.getStartDate()) || today.isAfter(uc.getEndDate())) {
                 continue;
             }
 
-            // 오늘 이미 성공했다면 스킵
+            // 2. 오늘 이미 성공했는지 체크 (1일 1회 성공 제한)
             if (uc.getLastSuccessDate() != null && uc.getLastSuccessDate().equals(today)) {
                 continue;
             }
 
             boolean isSuccess = false;
 
-            // 챌린지 타입별 로직
+            // 3. 타입별 성공 조건 체크
             switch (uc.getType()) {
-                // 습관형
+                // 기록형: 무엇이든 기록하면 성공 (특정 식사 타입 강제 제거)
                 case RECORD_FREQUENCY:
                     isSuccess = true;
                     break;
 
-                // 칼로리형
+                // 칼로리 제한형: 해당 식사가 목표 칼로리 이내인지
+                // (참고: 엄밀히 하려면 '하루 총 섭취 칼로리'를 계산해서 비교해야 하지만, 현재 로직은 '한 끼' 기준임)
                 case CALORIE_LIMIT:
-                    if (diet.getTotalCalories() < uc.getTargetValue()) {
+                    if (diet.getTotalCalories() <= uc.getTargetValue()) {
                         isSuccess = true;
                     }
                     break;
 
-                // 시간형
+                // 타임 어택: 지정 시간 이전에 식사했는지
                 case TIME_RANGE:
-                    if (diet.getMealType() == MealType.BREAKFAST &&
-                        diet.getEatTime().getHour() < uc.getTargetValue()) {
+                    // [수정] 아침식사 강제 조건 제거 -> 모든 식사에 대해 시간 체크
+                    if (diet.getEatTime().getHour() < uc.getTargetValue()) {
                         isSuccess = true;
                     }
                     break;
@@ -249,40 +252,33 @@ public class ChallengeServiceImpl implements ChallengeService {
     }
 
     /**
-     * 스트릭 계산 및 상태 업데이트
-     * @param uc
-     * @param today
+     * 카운트 및 스트릭 업데이트 (내부 메서드 통합 완료)
      */
     private void updateUserChallengeStatus(ActiveChallengeDto uc, LocalDate today) {
         int newCurrentCount = uc.getCurrentCount() + 1;
         int newCurrentStreak = 1;
 
-        // 연속 달성 로직
+        // 스트릭 계산 (마지막 성공일이 어제라면 연속 성공)
         if (uc.getLastSuccessDate() != null) {
-            // 마지막 성공일 어제? -> 연속 성공
             if (uc.getLastSuccessDate().equals(today.minusDays(1))) {
                 newCurrentStreak = uc.getCurrentStreak() + 1;
             }
-            
-            // 어제가 아니면 Streak은 1로 초기화
         }
 
-        // 최대 스트릭 갱신
         int newMaxStreak = Math.max(uc.getMaxStreak(), newCurrentStreak);
 
-        // DB 업데이트를 위한 파라미터 세팅
+        // DTO 값 갱신
         uc.setCurrentCount(newCurrentCount);
         uc.setCurrentStreak(newCurrentStreak);
         uc.setMaxStreak(newMaxStreak);
         uc.setLastSuccessDate(today);
 
-        // DB 업데이트 실행
+        // DB 업데이트
         challengeMapper.updateProgress(uc);
 
-        // 목표 달성 체크
+        // 목표 달성(졸업) 체크
         if (newCurrentCount >= uc.getGoalCount()) {
             challengeMapper.updateStatusToSuccess(uc.getUserChallengeId());
-
         }
     }
 
@@ -344,5 +340,82 @@ public class ChallengeServiceImpl implements ChallengeService {
         challengeMapper.deleteInvitationsByChallengeId(challengeId);
         challengeMapper.deleteUserChallengesByChallengeId(challengeId);
         challengeMapper.deleteChallengeById(challengeId);
+    }
+
+    /**
+     * 챌린지 떠나기
+     * @param userId
+     * @param challengeId
+     */
+    @Override
+    public void leaveChallenge(Long userId, Long challengeId) {
+        Challenge challenge = challengeMapper.findById(challengeId);
+        if (challenge == null) {
+            throw new CustomException(ErrorResponseCode.CHALLENGE_NOT_FOUND);
+        }
+
+        // 방장은 나가는것이 아닌 챌린지 삭제를 해야함
+        if (challenge.getOwnerId().equals(userId)) {
+            throw new CustomException(ErrorResponseCode.OWNER_CANNOT_LEAVE);
+        }
+
+        // 참여 여부 확인
+        if (!challengeMapper.existsByUserIdAndChallengeId(userId, challengeId)) {
+            throw new CustomException(ErrorResponseCode.NOT_JOINED_USER);
+        }
+
+        // 참여 기록 삭제
+        challengeMapper.deleteUserChallenge(userId, challengeId);
+
+        // 인원 수 감소
+        challengeMapper.decreaseHeadCount(challengeId);
+    }
+
+    /**
+     * 초대 응답 (승인/거절)
+     * @param userId
+     * @param invitationId
+     * @param isAccepted
+     */
+    @Override
+    public void respondInvitation(Long userId, Long invitationId, boolean isAccepted) {
+        // 초대장 조회
+        ChallengeInvitation invitation = challengeMapper.findInvitationById(invitationId);
+        if (invitation == null) {
+            throw new CustomException(ErrorResponseCode.INVITATION_NOT_FOUND);
+        }
+
+        // 본인 확인
+        if (!invitation.getInviteeId().equals(userId)) {
+            throw new CustomException(ErrorResponseCode.UNAUTHORIZED);
+        }
+
+        // 이미 처리된 초대장인지 확인
+        if (!"PENDING".equals(invitation.getStatus())) {
+            throw new CustomException(ErrorResponseCode.ALREADY_PROCESSED_INVITATION);
+        }
+
+        if (isAccepted) {
+            // 승인
+            Challenge challenge = challengeMapper.findById(invitation.getChallengeId());
+            if (challenge == null) {
+                // 삭제된 경우
+                challengeMapper.updateInvitationStatus(invitationId,"EXPIRED");
+                throw new CustomException(ErrorResponseCode.CHALLENGE_NOT_FOUND);
+            }
+
+            // 참여로직 호출
+            try {
+                joinChallengeLogic(userId, challenge);
+                // 상태 업데이트
+                challengeMapper.updateInvitationStatus(invitationId, "ACCEPTED");
+            } catch (CustomException e) {
+                // 실패 처리
+                throw e;
+            }
+        } else {
+            // 거절
+            challengeMapper.updateInvitationStatus(invitationId, "REJECTED");
+        }
     }
 }

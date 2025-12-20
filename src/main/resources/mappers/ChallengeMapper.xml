@@ -117,23 +117,20 @@
 
     <select id="findActiveChallengesByUserId" resultType="com.pagoda.matchmeal.model.dto.response.ActiveChallengeDto">
         SELECT
-            -- [유저 기록]
+            /* UserChallenge 정보 */
             uc.user_challenge_id AS userChallengeId,
             uc.current_count     AS currentCount,
             uc.current_streak    AS currentStreak,
             uc.max_streak        AS maxStreak,
             uc.last_success_date AS lastSuccessDate,
-
-            -- [챌린지 조건]
-            c.challenge_id       AS challengeId,
-            c.type               AS type,
+            uc.status            AS status,        /* Challenge 정보 */
+            c.challenge_id       AS challengeId,   c.title              AS title,         c.type               AS type,
             c.target_value       AS targetValue,
             c.start_date         AS startDate,
             c.end_date           AS endDate,
             c.goal_count         AS goalCount
-
         FROM user_challenges uc
-        JOIN challenges c ON uc.challenge_id = c.challenge_id
+                 JOIN challenges c ON uc.challenge_id = c.challenge_id
         WHERE uc.user_id = #{userId}
           AND uc.status = 'PROGRESS'
     </select>
@@ -296,4 +293,33 @@
         DELETE FROM challenges
         WHERE challenge_id = #{challengeId}
     </delete>
+
+    <delete id="deleteUserChallenge">
+        DELETE FROM user_challenges
+        WHERE user_id = #{userId} AND challenge_id = #{challengeId}
+    </delete>
+
+    <update id="decreaseHeadCount">
+        UPDATE challenges
+        SET current_head_count = current_head_count - 1
+        WHERE challenge_id = #{challengeId}
+    </update>
+
+    <select id="findInvitationById" resultType="com.pagoda.matchmeal.model.entity.ChallengeInvitation">
+        SELECT
+            invitation_id AS invitationId,
+            challenge_id  AS challengeId,
+            inviter_id    AS inviterId,
+            invitee_id    AS inviteeId,
+            status,
+            created_at    AS createdAt
+        FROM invitations
+        WHERE invitation_id = #{invitationId}
+    </select>
+
+    <update id="updateInvitationStatus">
+        UPDATE invitations
+        SET status = #{status}
+        WHERE invitation_id = #{invitationId}
+    </update>
 </mapper>

@@ -5,6 +5,7 @@ import com.pagoda.matchmeal.model.dto.response.ActiveChallengeDto;
 import com.pagoda.matchmeal.model.dto.response.ChallengeParticipantDto;
 import com.pagoda.matchmeal.model.dto.response.ChallengeResponseDto;
 import com.pagoda.matchmeal.model.entity.Challenge;
+import com.pagoda.matchmeal.model.entity.ChallengeInvitation;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -150,4 +151,31 @@ public interface ChallengeMapper {
      * @param challengeId
      */
     void deleteChallengeById(Long challengeId);
+
+    /**
+     * 유저 챌린지 기록 삭제 (나가기)
+     * @param userId
+     * @param challengeId
+     */
+    void deleteUserChallenge(@Param("userId") Long userId, @Param("challengeId") Long challengeId);
+
+    /**
+     * 챌린지 인원수 감소
+     * @param challengeId
+     */
+    void decreaseHeadCount(Long challengeId);
+    
+    /**
+     * 초대장 조회 (ID)
+     * @param invitationId
+     * @return 챌린지 초대 정보
+     */
+    ChallengeInvitation findInvitationById(Long invitationId);
+
+    /**
+     * 초대장 상태 업데이트
+     * @param invitationId
+     * @param status (ACCEPTED / REJECTED)
+     */
+    void updateInvitationStatus(@Param("invitationId") Long invitationId, @Param("status") String status);
 }

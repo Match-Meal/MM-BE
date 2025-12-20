@@ -11,6 +11,7 @@ import com.pagoda.matchmeal.model.dto.response.*;
 import com.pagoda.matchmeal.model.entity.Diet;
 import com.pagoda.matchmeal.model.entity.DietDetail;
 import com.pagoda.matchmeal.model.entity.Food;
+import com.pagoda.matchmeal.service.ChallengeService;
 import com.pagoda.matchmeal.service.DietService;
 import com.pagoda.matchmeal.service.FoodService;
 import com.pagoda.matchmeal.service.S3Service;
@@ -38,6 +39,7 @@ public class DietServiceImpl implements DietService {
     private final FoodMapper foodMapper;
     private final S3Service s3Service;
     private final FoodService foodService;
+    private final ChallengeService challengeService;
 
     /**
      * [식단 기록]
@@ -197,6 +199,9 @@ public class DietServiceImpl implements DietService {
         if (!finalDetails.isEmpty()) {
             dietMapper.insertDietDetails(finalDetails);
         }
+
+        // 챌린지 반영
+        challengeService.updateChallengeProgress(userId, diet, finalDetails);
 
         // 11. 생성된 ID 반환
         return diet.getDietId();

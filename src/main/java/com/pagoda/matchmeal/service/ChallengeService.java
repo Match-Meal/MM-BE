@@ -2,10 +2,12 @@ package com.pagoda.matchmeal.service;
 
 import com.pagoda.matchmeal.model.dto.ChallengeSearchCondition;
 import com.pagoda.matchmeal.model.dto.request.ChallengeCreateRequestDto;
+import com.pagoda.matchmeal.model.dto.response.ActiveChallengeDto;
 import com.pagoda.matchmeal.model.dto.response.ChallengeResponseDto;
 import com.pagoda.matchmeal.model.entity.Diet;
 import com.pagoda.matchmeal.model.entity.DietDetail;
 
+import java.time.LocalDate;
 import java.util.List;
 
 public interface ChallengeService {
@@ -61,4 +63,21 @@ public interface ChallengeService {
      * 챌린지 삭제
      */
     void deleteChallenge(Long userId, Long challengeId);
+
+    /**
+     * 챌린지 떠나기
+     * @param userId
+     * @param challengeId
+     */
+    void leaveChallenge(Long userId, Long challengeId);
+
+    /**
+     * 초대 응답(수락, 거부)
+      * @param userId
+     * @param invitationId
+     * @param isAccepted
+     */    
+    void respondInvitation(Long userId, Long invitationId, boolean isAccepted);
+
+
 }
