@@ -3,9 +3,11 @@ package com.pagoda.matchmeal.service;
 import com.pagoda.matchmeal.common.exception.CustomException;
 import com.pagoda.matchmeal.common.exception.ErrorResponseCode;
 import com.pagoda.matchmeal.mapper.ChallengeMapper;
+import com.pagoda.matchmeal.mapper.DietMapper;
 import com.pagoda.matchmeal.model.dto.ChallengeSearchCondition;
 import com.pagoda.matchmeal.model.dto.request.ChallengeCreateRequestDto;
 import com.pagoda.matchmeal.model.dto.response.ActiveChallengeDto;
+import com.pagoda.matchmeal.model.dto.response.DietResponseDto;
 import com.pagoda.matchmeal.model.entity.Challenge;
 import com.pagoda.matchmeal.model.entity.ChallengeInvitation;
 import com.pagoda.matchmeal.model.entity.Diet;
@@ -43,6 +45,9 @@ public class ChallengeServiceTest {
 
     @Mock
     private FollowService followService;
+
+    @Mock
+    private DietMapper dietMapper;
 
     @Test
     @DisplayName("챌린지 생성 성공")
@@ -158,6 +163,12 @@ public class ChallengeServiceTest {
                 .eatDate(today)
                 .build();
 
+        // findAllByDate가 400kcal짜리 식단 리스트를 반환한다고 가정
+        given(dietMapper.findAllByDate(eq(userId), anyString()))
+                .willReturn(List.of(
+                        DietResponseDto.builder().totalCalories(400).build()
+                ));
+
         given(challengeMapper.findActiveChallengesByUserId(userId))
                 .willReturn(List.of(activeDto));
 
@@ -195,6 +206,11 @@ public class ChallengeServiceTest {
                 .totalCalories(600)
                 .eatDate(today)
                 .build();
+
+        given(dietMapper.findAllByDate(eq(userId), anyString()))
+                .willReturn(List.of(
+                        DietResponseDto.builder().totalCalories(600).build()
+                ));
 
         given(challengeMapper.findActiveChallengesByUserId(userId))
                 .willReturn(List.of(activeDto));
@@ -273,6 +289,9 @@ public class ChallengeServiceTest {
                 .mealType(MealType.DINNER) // 아침이 아니어도 성공해야 함
                 .build();
 
+        given(dietMapper.findAllByDate(eq(userId), anyString()))
+                .willReturn(Collections.emptyList());
+
         given(challengeMapper.findActiveChallengesByUserId(userId))
                 .willReturn(List.of(activeDto));
 
@@ -307,6 +326,9 @@ public class ChallengeServiceTest {
                 .eatDate(today)
                 .mealType(MealType.LUNCH)
                 .build();
+
+        given(dietMapper.findAllByDate(eq(userId), anyString()))
+                .willReturn(Collections.emptyList());
 
         given(challengeMapper.findActiveChallengesByUserId(userId))
                 .willReturn(List.of(activeDto));
