@@ -3,21 +3,16 @@ package com.pagoda.matchmeal.mapper;
 import com.pagoda.matchmeal.model.dto.FoodSearchCond;
 import com.pagoda.matchmeal.model.dto.response.FoodListResponseDto;
 import com.pagoda.matchmeal.model.entity.Food;
+import com.pagoda.matchmeal.support.MapperTestSupport;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest
-@AutoConfigureMockMvc
-@Transactional // 테스트 끝나고 DB 롤백
-class FoodMapperTest {
+class FoodMapperTest extends MapperTestSupport {
 
     @Autowired
     private FoodMapper foodMapper;

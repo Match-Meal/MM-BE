@@ -71,4 +71,36 @@ public interface DietMapper {
     List<DailyDietStatDto> getDailyDietStats(@Param("userId") Long userId,
                                              @Param("startDate") LocalDate startDate,
                                              @Param("endDate") LocalDate endDate);
+
+    /**
+     * 특정 기간의 식단 목록을 조회합니다. (기간 조회)
+     * - 챌린지 상세 화면에서 특정 유저의 기록을 볼 때 사용
+     */
+    List<DietResponseDto> findAllByPeriod(
+            @Param("userId") Long userId,
+            @Param("startDate") String startDate,
+            @Param("endDate") String endDate
+    );
+
+    // 1. 기간별 Diet 조회 (칼로리, 나트륨 합계용)
+
+    /**
+     * 기간 별 식단 목록 조회
+     */
+    List<Diet> selectDietsByPeriod(@Param("userId") Long userId,
+                                   @Param("startDate") String startDate,
+                                   @Param("endDate") String endDate);
+
+    /**
+     * 기간 별 식단 Detail 조회
+     */
+    List<DietDetail> selectDietDetailsByPeriod(@Param("userId") Long userId,
+                                               @Param("startDate") String startDate,
+                                               @Param("endDate") String endDate);
+
+    /**
+     * 오늘 식단 조회 (추천 로직용)
+     */
+    List<Diet> selectDietsByDate(@Param("userId") Long userId,
+                                 @Param("date") String date);
 }

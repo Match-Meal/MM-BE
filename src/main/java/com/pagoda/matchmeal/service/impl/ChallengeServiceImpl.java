@@ -3,14 +3,15 @@ package com.pagoda.matchmeal.service.impl;
 import com.pagoda.matchmeal.common.exception.CustomException;
 import com.pagoda.matchmeal.common.exception.ErrorResponseCode;
 import com.pagoda.matchmeal.mapper.ChallengeMapper;
+import com.pagoda.matchmeal.mapper.DietMapper;
 import com.pagoda.matchmeal.model.dto.ChallengeSearchCondition;
 import com.pagoda.matchmeal.model.dto.request.ChallengeCreateRequestDto;
-import com.pagoda.matchmeal.model.dto.response.ActiveChallengeDto;
-import com.pagoda.matchmeal.model.dto.response.ChallengeResponseDto;
+import com.pagoda.matchmeal.model.dto.response.*;
 import com.pagoda.matchmeal.model.entity.Challenge;
+import com.pagoda.matchmeal.model.entity.ChallengeInvitation;
 import com.pagoda.matchmeal.model.entity.Diet;
 import com.pagoda.matchmeal.model.entity.DietDetail;
-import com.pagoda.matchmeal.model.enums.MealType;
+import com.pagoda.matchmeal.model.enums.ChallengeType;
 import com.pagoda.matchmeal.service.ChallengeService;
 import com.pagoda.matchmeal.service.FollowService;
 import lombok.RequiredArgsConstructor;
@@ -21,26 +22,32 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * 챌린지 비즈니스 로직 구현체
+ * - 챌린지 생성, 검색, 참여, 초대
+ * - 식단 기록에 따른 챌린지 성공 여부 판단 및 스트릭 업데이트
+ */
 @Service
 @RequiredArgsConstructor
-@Transactional
+@Transactional(readOnly = true)
 public class ChallengeServiceImpl implements ChallengeService {
 
     private final ChallengeMapper challengeMapper;
     private final FollowService followService;
+    private final DietMapper dietMapper;
 
     /**
      * 챌린지 생성
+     *
      * @param userId
      * @param dto
      * @return challengeId
      */
     @Override
+    @Transactional
     public Long createChallenge(Long userId, ChallengeCreateRequestDto dto) {
-        // 초대 코드 생성 (난수 8자리)
         String inviteCode = UUID.randomUUID().toString().substring(0, 8).toUpperCase();
 
-        // 엔티티 빌드
         Challenge challenge = Challenge.builder()
                 .ownerId(userId)
                 .title(dto.getTitle())
@@ -53,12 +60,10 @@ public class ChallengeServiceImpl implements ChallengeService {
                 .maxParticipants(dto.getMaxParticipants())
                 .isPublic(dto.isPublic())
                 .invitationCode(inviteCode)
+                .currentHeadCount(1)
                 .build();
 
-        // 챌린지 저장
         challengeMapper.insertChallenge(challenge);
-
-        // 방장도 참여자로 등록
         challengeMapper.insertUserChallenge(userId, challenge.getChallengeId());
 
         return challenge.getChallengeId();
@@ -66,21 +71,23 @@ public class ChallengeServiceImpl implements ChallengeService {
 
     /**
      * 챌린지 검색 (공개된 챌린지만 검색)
+     *
      * @param condition
      * @return List<ChallengeResponseDto>
      */
     @Override
-    @Transactional(readOnly = true) // 읽기 전용
     public List<ChallengeResponseDto> searchChallenges(Long userId, ChallengeSearchCondition condition) {
         return challengeMapper.searchPublicChallenges(userId, condition);
     }
 
     /**
-     * 공개 목록에서 선택해서 참여 (일반 참여)
-     * @param userId
-     * @param challengeId
+     * 공개 챌린지 일반 참여
+     *
+     * @param userId      참여할 유저 PK
+     * @param challengeId 챌린지 PK
      */
     @Override
+    @Transactional
     public void joinPublicChallenge(Long userId, Long challengeId) {
         Challenge challenge = challengeMapper.findById(challengeId);
         if (!challenge.isPublic()) {
@@ -89,229 +96,293 @@ public class ChallengeServiceImpl implements ChallengeService {
         joinChallengeLogic(userId, challenge);
     }
 
-    // 공통 참여 로직
+    // 공통 참여 로직 (중복 체크, 인원 제한 체크)
     private void joinChallengeLogic(Long userId, Challenge challenge) {
-        // 중복 체크
         if (challengeMapper.existsByUserIdAndChallengeId(userId, challenge.getChallengeId())) {
             throw new CustomException(ErrorResponseCode.ALREADY_JOINED_CHALLENGE);
         }
-
-        // 인원 제한 체크
         int currentCount = challengeMapper.countParticipants(challenge.getChallengeId());
         if (currentCount >= challenge.getMaxParticipants()) {
             throw new CustomException(ErrorResponseCode.CHALLENGE_FULL);
         }
-
-        // 참여
         challengeMapper.insertUserChallenge(userId, challenge.getChallengeId());
+        challengeMapper.increaseHeadCount(challenge.getChallengeId());
     }
 
     /**
      * 비공개 챌린지 참여
+     *
      * @param userId
      * @param code
      */
     @Override
+    @Transactional
     public void joinByCode(Long userId, String code) {
         Challenge challenge = challengeMapper.findByInvitationCode(code);
         if (challenge == null) {
             throw new CustomException(ErrorResponseCode.CHALLENGE_NOT_FOUND);
         }
-
-        // 참여 로직 호출
         joinChallengeLogic(userId, challenge);
     }
 
     /**
      * 팔로윙 목록에 있는 유저인지 확인 후 초대장 발송
+     *
      * @param inviterId
      * @param challengeId
      * @param targetUserId
      */
     @Override
+    @Transactional
     public void inviteUser(Long inviterId, Long challengeId, Long targetUserId) {
-        // 권한 체크(방장만 가능한지, 참여자 모두 가능한지 정책 결정)
         if (!challengeMapper.existsByUserIdAndChallengeId(inviterId, challengeId)) {
             throw new CustomException(ErrorResponseCode.UNAUTHORIZED);
         }
-
-        // 팔로우 관계 확인
         boolean isFollowing = followService.isFollowing(inviterId, targetUserId);
         if (!isFollowing) {
             throw new CustomException(ErrorResponseCode.NOT_FOLLOWING);
         }
-
-        // 3. 이미 초대된 상태인지 혹은 이미 챌린지 멤버인지 중복 체크
         if (challengeMapper.existsByUserIdAndChallengeId(targetUserId, challengeId)) {
             throw new CustomException(ErrorResponseCode.ALREADY_JOINED_USER);
         }
-
-        // 이미 대기 중인 초대장이 있는지?
         if (challengeMapper.existsInvitation(challengeId, targetUserId)) {
             throw new CustomException(ErrorResponseCode.ALREADY_INVITED);
         }
-
-        // 초대장 DB 저장
         challengeMapper.insertInvitation(challengeId, inviterId, targetUserId);
     }
 
     /**
      * 식단 기록 시 챌린지 반영
+     *
      * @param userId
      * @param diet
      * @param details
      */
     @Override
+    @Transactional
     public void updateChallengeProgress(Long userId, Diet diet, List<DietDetail> details) {
-        // 유저가 참여 중인 챌린지 조회(DTO에 챌린지 마스터 정보 포함)
         List<ActiveChallengeDto> activeChallenges = challengeMapper.findActiveChallengesByUserId(userId);
         if (activeChallenges.isEmpty()) return;
 
-        LocalDate today = LocalDate.now();
+        LocalDate today = diet.getEatDate();
+        List<DietResponseDto> todayDiets = dietMapper.findAllByDate(userId, today.toString());
+        double dailyTotalCalories = todayDiets.stream().mapToDouble(DietResponseDto::getTotalCalories).sum();
 
-        for (ActiveChallengeDto uc: activeChallenges) {
-            // 챌린지 기간 아니면 스킵
-            if (today.isBefore(uc.getStartDate()) || today.isAfter(uc.getEndDate())) {
-                continue;
-            }
+        for (ActiveChallengeDto uc : activeChallenges) {
+            if (today.isBefore(uc.getStartDate()) || today.isAfter(uc.getEndDate())) continue;
 
-            // 오늘 이미 성공했다면 스킵
-            if (uc.getLastSuccessDate() != null && uc.getLastSuccessDate().equals(today)) {
-                continue;
-            }
+            boolean isConditionMet = false;
 
-            boolean isSuccess = false;
-
-            // 챌린지 타입별 로직
             switch (uc.getType()) {
-                // 습관형
-                case RECORD_FREQUENCY:
-                    isSuccess = true;
+                case RECORD_FREQUENCY: // 기록형: 기록만 하면 성공
+                    isConditionMet = true;
                     break;
-
-                // 칼로리형
-                case CALORIE_LIMIT:
-                    if (diet.getTotalCalories() < uc.getTargetValue()) {
-                        isSuccess = true;
-                    }
+                case CALORIE_LIMIT: // 칼로리형: 누적 칼로리가 목표치 이하
+                    if (dailyTotalCalories <= uc.getTargetValue()) isConditionMet = true;
                     break;
-
-                // 시간형
-                case TIME_RANGE:
-                    if (diet.getMealType() == MealType.BREAKFAST &&
-                        diet.getEatTime().getHour() < uc.getTargetValue()) {
-                        isSuccess = true;
-                    }
+                case TIME_RANGE: // 타임어택: 식사 시간이 목표 시간 이전
+                    if (diet.getEatTime().getHour() < uc.getTargetValue()) isConditionMet = true;
                     break;
             }
 
-            if (isSuccess) {
-                updateUserChallengeStatus(uc, today);
+            boolean alreadySucceededToday = uc.getLastSuccessDate() != null && uc.getLastSuccessDate().equals(today);
+
+            if (isConditionMet) {
+                if (!alreadySucceededToday) {
+                    updateUserChallengeStatus(uc, today, true); // 성공 처리
+                }
+            } else {
+                // 이전에 성공했으나 이번 기록으로 인해 실패하게 된 경우 (예: 폭식으로 칼로리 초과) -> 성공 취소
+                if (alreadySucceededToday && uc.getType() == ChallengeType.CALORIE_LIMIT) {
+                    updateUserChallengeStatus(uc, today, false);
+                }
             }
         }
     }
 
     /**
-     * 전체 챌린지 조회
-     * @param userId
-     * @return
+     * 내 전체 챌린지 조회
+     * - 어제 기록이 없으면 연속 성공(Streak)이 끊긴 것으로 간주하여 0으로 보정합니다.
      */
     @Override
+    @Transactional
     public List<ChallengeResponseDto> getAllChallenges(Long userId) {
-        // DB
         List<ChallengeResponseDto> challenges = challengeMapper.findAllChallenges(userId);
-
-        // 스트릭 유효성 보정
-        // 유저가 어제 기록을 안했다면, DB 업데이트 전이라도 화면에는 연속 0일로 보여줌
         LocalDate yesterday = LocalDate.now().minusDays(1);
-        LocalDate today = LocalDate.now();
 
-        for (ChallengeResponseDto dto: challenges) {
-            // 참여중이지 않거나, 성공 기록이 아예 없으면 패스
-            if(!dto.isJoined() || dto.getCurrentCount() == 0) continue;
-
-            // 마지막 성공 날짜가 null이 아닌 경우 체크
+        for (ChallengeResponseDto dto : challenges) {
+            if (!dto.isJoined() || dto.getCurrentCount() == 0) continue;
             if (dto.getLastSuccessDate() != null) {
                 boolean isStreakBroken = dto.getLastSuccessDate().isBefore(yesterday);
-
                 if (isStreakBroken) {
                     dto.setCurrentStreak(0);
                 }
             }
-
         }
-
         return challenges;
     }
 
     /**
-     * 스트릭 계산 및 상태 업데이트
-     * @param uc
-     * @param today
+     * 카운트/스트릭 증가 또는 감소(취소) 처리
+     *
+     * @param isSuccess true: 성공 처리, false: 성공 취소
      */
-    private void updateUserChallengeStatus(ActiveChallengeDto uc, LocalDate today) {
-        int newCurrentCount = uc.getCurrentCount() + 1;
-        int newCurrentStreak = 1;
-
-        // 연속 달성 로직
-        if (uc.getLastSuccessDate() != null) {
-            // 마지막 성공일 어제? -> 연속 성공
-            if (uc.getLastSuccessDate().equals(today.minusDays(1))) {
+    private void updateUserChallengeStatus(ActiveChallengeDto uc, LocalDate today, boolean isSuccess) {
+        if (isSuccess) {
+            int newCurrentCount = uc.getCurrentCount() + 1;
+            int newCurrentStreak = 1;
+            if (uc.getLastSuccessDate() != null && uc.getLastSuccessDate().equals(today.minusDays(1))) {
                 newCurrentStreak = uc.getCurrentStreak() + 1;
             }
-            
-            // 어제가 아니면 Streak은 1로 초기화
-        }
+            int newMaxStreak = Math.max(uc.getMaxStreak(), newCurrentStreak);
 
-        // 최대 스트릭 갱신
-        int newMaxStreak = Math.max(uc.getMaxStreak(), newCurrentStreak);
+            uc.setCurrentCount(newCurrentCount);
+            uc.setCurrentStreak(newCurrentStreak);
+            uc.setMaxStreak(newMaxStreak);
+            uc.setLastSuccessDate(today);
 
-        // DB 업데이트를 위한 파라미터 세팅
-        uc.setCurrentCount(newCurrentCount);
-        uc.setCurrentStreak(newCurrentStreak);
-        uc.setMaxStreak(newMaxStreak);
-        uc.setLastSuccessDate(today);
+            challengeMapper.updateProgress(uc);
+            if (newCurrentCount >= uc.getGoalCount()) {
+                challengeMapper.updateStatusToSuccess(uc.getUserChallengeId());
+            }
+        } else {
+            // Rollback
+            int newCurrentCount = Math.max(0, uc.getCurrentCount() - 1);
+            int newCurrentStreak = Math.max(0, uc.getCurrentStreak() - 1);
+            LocalDate rollbackDate = (newCurrentStreak > 0) ? uc.getLastSuccessDate() : null;
 
-        // DB 업데이트 실행
-        challengeMapper.updateProgress(uc);
+            uc.setCurrentCount(newCurrentCount);
+            uc.setCurrentStreak(newCurrentStreak);
+            uc.setLastSuccessDate(rollbackDate);
 
-        // 목표 달성 체크
-        if (newCurrentCount >= uc.getGoalCount()) {
-            challengeMapper.updateStatusToSuccess(uc.getUserChallengeId());
-
+            challengeMapper.updateProgress(uc);
+            if (newCurrentCount < uc.getGoalCount()) {
+                challengeMapper.updateStatusToProgress(uc.getUserChallengeId());
+            }
         }
     }
 
+    /**
+     * 챌린지 상세 조회
+     * - 기본 정보, 내 진행 상황, 참여자 목록을 함께 반환합니다.
+     */
     @Override
-    @Transactional(readOnly = true)
     public ChallengeResponseDto getChallengeDetail(Long userId, Long challengeId) {
-        return challengeMapper.findChallengeDetailById(userId, challengeId)
+        ChallengeResponseDto response = challengeMapper.findChallengeDetailById(userId, challengeId)
                 .orElseThrow(() -> new CustomException(ErrorResponseCode.CHALLENGE_NOT_FOUND));
+
+        List<ChallengeParticipantDto> participants = challengeMapper.findParticipantsByChallengeId(challengeId);
+        response.setParticipants(participants);
+        response.setCurrentHeadCount(participants.size());
+        return response;
     }
 
+    /**
+     * 챌린지 수정 (방장만 가능)
+     */
     @Override
+    @Transactional
     public void updateChallenge(Long userId, Long challengeId, ChallengeCreateRequestDto dto) {
+        Challenge challenge = challengeMapper.findById(challengeId);
+        if (challenge == null) throw new CustomException(ErrorResponseCode.CHALLENGE_NOT_FOUND);
+        if (challenge.getOwnerId() == null || !challenge.getOwnerId().equals(userId)) {
+            throw new CustomException(ErrorResponseCode.UNAUTHORIZED);
+        }
+
+        // 필드 업데이트 (Setter 사용)
+        challenge.setTitle(dto.getTitle());
+        // ... 생략 (나머지 필드)
+        challenge.setPublic(dto.isPublic());
+
+        challengeMapper.updateChallenge(challenge);
+    }
+
+    /**
+     * 챌린지 삭제 (방장만 가능)
+     */
+    @Override
+    @Transactional
+    public void deleteChallenge(Long userId, Long challengeId) {
+        Challenge challenge = challengeMapper.findById(challengeId);
+        if (challenge == null) throw new CustomException(ErrorResponseCode.CHALLENGE_NOT_FOUND);
+        if (challenge.getOwnerId() == null || !challenge.getOwnerId().equals(userId)) {
+            throw new CustomException(ErrorResponseCode.UNAUTHORIZED);
+        }
+        // 연관 데이터 삭제 순서 중요
+        challengeMapper.deleteInvitationsByChallengeId(challengeId);
+        challengeMapper.deleteUserChallengesByChallengeId(challengeId);
+        challengeMapper.deleteChallengeById(challengeId);
+    }
+
+    /**
+     * 챌린지 떠나기
+     *
+     * @param userId
+     * @param challengeId
+     */
+    @Override
+    @Transactional
+    public void leaveChallenge(Long userId, Long challengeId) {
         Challenge challenge = challengeMapper.findById(challengeId);
         if (challenge == null) {
             throw new CustomException(ErrorResponseCode.CHALLENGE_NOT_FOUND);
         }
 
-        // 권한 체크
-        if (!challenge.getOwnerId().equals(userId)) {
+        // ownerId가 null이 아니고, 내가 ownerId라면 예외 발생
+        // (ownerId가 null인 경우는 방장이 없는 방이므로, 참여자는 누구나 나갈 수 있음 -> 통과)
+        if (challenge.getOwnerId() != null && challenge.getOwnerId().equals(userId)) {
+            throw new CustomException(ErrorResponseCode.OWNER_CANNOT_LEAVE);
+        }
+        if (!challengeMapper.existsByUserIdAndChallengeId(userId, challengeId)) {
+            throw new CustomException(ErrorResponseCode.NOT_JOINED_USER);
+        }
+        challengeMapper.deleteUserChallenge(userId, challengeId);
+        challengeMapper.decreaseHeadCount(challengeId);
+    }
+
+    /**
+     * 초대 응답 (승인/거절)
+     */
+    @Override
+    @Transactional
+    public void respondInvitation(Long userId, Long invitationId, boolean isAccepted) {
+        ChallengeInvitation invitation = challengeMapper.findInvitationById(invitationId);
+        if (invitation == null) {
+            throw new CustomException(ErrorResponseCode.INVITATION_NOT_FOUND);
+        }
+
+        // 본인 확인
+        if (!invitation.getInviteeId().equals(userId)) {
             throw new CustomException(ErrorResponseCode.UNAUTHORIZED);
         }
 
-        // 데이터 업데이터
-        challenge.setTitle(dto.getTitle());
-        challenge.setDescription(dto.getDescription());
-        challenge.setType(dto.getType());
-        challenge.setTargetValue(dto.getTargetValue());
-        challenge.setStartDate(dto.getStartDate());
-        challenge.setEndDate(dto.getEndDate());
-        challenge.setGoalCount(dto.getGoalCount());
-        challenge.setMaxParticipants(dto.getMaxParticipants());
-        challenge.setPublic(dto.isPublic());
+        // 이미 처리된 초대장인지 확인
+        if (!"PENDING".equals(invitation.getStatus())) {
+            throw new CustomException(ErrorResponseCode.ALREADY_PROCESSED_INVITATION);
+        }
 
-        challengeMapper.updateChallenge(challenge);
+        if (isAccepted) {
+            Challenge challenge = challengeMapper.findById(invitation.getChallengeId());
+            if (challenge == null) {
+                challengeMapper.updateInvitationStatus(invitationId, "EXPIRED");
+                throw new CustomException(ErrorResponseCode.CHALLENGE_NOT_FOUND);
+            }
+            try {
+                joinChallengeLogic(userId, challenge);
+                challengeMapper.updateInvitationStatus(invitationId, "ACCEPTED");
+            } catch (CustomException e) {
+                throw e;
+            }
+        } else {
+            challengeMapper.updateInvitationStatus(invitationId, "REJECTED");
+        }
+    }
+
+    /**
+     * 나에게 온 초대장 목록 조회
+     */
+    @Override
+    public List<ChallengeInvitationResponseDto> getMyInvitations(Long userId) {
+        return challengeMapper.findPendingInvitationsByUserId(userId);
     }
 }

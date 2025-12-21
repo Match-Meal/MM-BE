@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.pagoda.matchmeal.mapper.AiChatbotMapper">
+
+    <insert id="insertChatLog" useGeneratedKeys="true" keyProperty="aiChatbotId">
+        INSERT INTO ai_chatbot (
+            user_id, ref_date, ai_type, user_question, ai_response, created_at
+        ) VALUES (
+                     #{userId}, #{refDate}, #{aiType}, #{userQuestion}, #{aiResponse}, NOW()
+                 )
+    </insert>
+
+    <select id="selectHistoryByUserId" resultType="com.pagoda.matchmeal.model.entity.AiChatbot">
+        SELECT
+            ai_type        as aiType,
+            user_question  as userQuestion,
+            ai_response    as aiResponse,
+            ref_date       as refDate,
+            created_at     as createdAt
+        FROM ai_chatbot
+        WHERE user_id = #{userId}
+        ORDER BY created_at DESC
+    </select>
+
+</mapper>

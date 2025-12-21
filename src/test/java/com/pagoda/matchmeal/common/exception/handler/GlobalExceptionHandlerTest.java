@@ -1,10 +1,10 @@
 package com.pagoda.matchmeal.common.exception.handler;
 
+import com.pagoda.matchmeal.common.config.jwt.JwtAuthenticationFilter;
+import com.pagoda.matchmeal.common.config.jwt.JwtTokenProvider;
+import com.pagoda.matchmeal.common.config.oauth.OAuth2SuccessHandler;
 import com.pagoda.matchmeal.common.exception.CustomException;
 import com.pagoda.matchmeal.common.exception.ErrorResponseCode;
-import com.pagoda.matchmeal.config.jwt.JwtAuthenticationFilter;
-import com.pagoda.matchmeal.config.jwt.JwtTokenProvider;
-import com.pagoda.matchmeal.config.oauth.OAuth2SuccessHandler;
 import com.pagoda.matchmeal.service.CustomOAuth2UserService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -17,7 +17,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
@@ -121,7 +120,7 @@ class GlobalExceptionHandlerTest {
         result.andExpect(status().isBadRequest()) // 400 Expect
                 .andExpect(jsonPath("$.status").value(400))
                 // GlobalExceptionHandler에서 "필드명 : 메세지" 형태로 가공했는지 확인
-                .andExpect(jsonPath("$.message").value("name : 널이어서는 안됩니다")) 
+                .andExpect(jsonPath("$.message").value("name : 널이어서는 안됩니다"))
                 .andDo(print());
     }
 

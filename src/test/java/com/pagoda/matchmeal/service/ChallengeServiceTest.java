@@ -3,10 +3,13 @@ package com.pagoda.matchmeal.service;
 import com.pagoda.matchmeal.common.exception.CustomException;
 import com.pagoda.matchmeal.common.exception.ErrorResponseCode;
 import com.pagoda.matchmeal.mapper.ChallengeMapper;
+import com.pagoda.matchmeal.mapper.DietMapper;
 import com.pagoda.matchmeal.model.dto.ChallengeSearchCondition;
 import com.pagoda.matchmeal.model.dto.request.ChallengeCreateRequestDto;
 import com.pagoda.matchmeal.model.dto.response.ActiveChallengeDto;
+import com.pagoda.matchmeal.model.dto.response.DietResponseDto;
 import com.pagoda.matchmeal.model.entity.Challenge;
+import com.pagoda.matchmeal.model.entity.ChallengeInvitation;
 import com.pagoda.matchmeal.model.entity.Diet;
 import com.pagoda.matchmeal.model.entity.Follow;
 import com.pagoda.matchmeal.model.enums.ChallengeType;
@@ -21,6 +24,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.Collections;
 import java.util.List;
 
@@ -41,6 +45,9 @@ public class ChallengeServiceTest {
 
     @Mock
     private FollowService followService;
+
+    @Mock
+    private DietMapper dietMapper;
 
     @Test
     @DisplayName("챌린지 생성 성공")
@@ -151,7 +158,16 @@ public class ChallengeServiceTest {
                 .build();
 
         // 400kcal 식단 (성공 조건)
-        Diet diet = Diet.builder().totalCalories(400).build();
+        Diet diet = Diet.builder()
+                .totalCalories(400)
+                .eatDate(today)
+                .build();
+
+        // findAllByDate가 400kcal짜리 식단 리스트를 반환한다고 가정
+        given(dietMapper.findAllByDate(eq(userId), anyString()))
+                .willReturn(List.of(
+                        DietResponseDto.builder().totalCalories(400).build()
+                ));
 
         given(challengeMapper.findActiveChallengesByUserId(userId))
                 .willReturn(List.of(activeDto));
@@ -186,7 +202,15 @@ public class ChallengeServiceTest {
                 .build();
 
         // 600kcal 식단 (실패 조건)
-        Diet diet = Diet.builder().totalCalories(600).build();
+        Diet diet = Diet.builder()
+                .totalCalories(600)
+                .eatDate(today)
+                .build();
+
+        given(dietMapper.findAllByDate(eq(userId), anyString()))
+                .willReturn(List.of(
+                        DietResponseDto.builder().totalCalories(600).build()
+                ));
 
         given(challengeMapper.findActiveChallengesByUserId(userId))
                 .willReturn(List.of(activeDto));
@@ -236,5 +260,214 @@ public class ChallengeServiceTest {
         // then
         // Mapper가 올바른 인자(userId, condition)로 호출되었는지 검증
         verify(challengeMapper).searchPublicChallenges(eq(userId), eq(condition));
+    }
+
+    /* =======================================================
+       [NEW] 1. 진척도 업데이트 테스트 (로직 변경 반영)
+       ======================================================= */
+
+    @Test
+    @DisplayName("진척도 업데이트 - 성공: 타임 어택 (모든 식사 시간 체크)")
+    void updateChallengeProgress_Success_TimeRange() {
+        // given
+        Long userId = 1L;
+        LocalDate today = LocalDate.now();
+
+        ActiveChallengeDto activeDto = ActiveChallengeDto.builder()
+                .userChallengeId(100L)
+                .type(ChallengeType.TIME_RANGE)
+                .targetValue(20) // 20시(저녁 8시) 이전 식사 목표
+                .startDate(today.minusDays(1))
+                .endDate(today.plusDays(5))
+                .currentCount(0)
+                .build();
+
+        // 19:30에 먹은 저녁 식사 (성공 조건)
+        Diet diet = Diet.builder()
+                .eatDate(today)
+                .eatTime(LocalTime.of(19, 30))
+                .mealType(MealType.DINNER) // 아침이 아니어도 성공해야 함
+                .build();
+
+        given(dietMapper.findAllByDate(eq(userId), anyString()))
+                .willReturn(Collections.emptyList());
+
+        given(challengeMapper.findActiveChallengesByUserId(userId))
+                .willReturn(List.of(activeDto));
+
+        // when
+        challengeService.updateChallengeProgress(userId, diet, Collections.emptyList());
+
+        // then
+        verify(challengeMapper).updateProgress(argThat(dto ->
+                dto.getCurrentCount() == 1 // 카운트 1 증가 확인
+        ));
+    }
+
+    @Test
+    @DisplayName("진척도 업데이트 - 성공: 기록형 (어떤 식사든 성공)")
+    void updateChallengeProgress_Success_RecordFrequency() {
+        // given
+        Long userId = 1L;
+        LocalDate today = LocalDate.now();
+
+        ActiveChallengeDto activeDto = ActiveChallengeDto.builder()
+                .userChallengeId(200L)
+                .type(ChallengeType.RECORD_FREQUENCY)
+                .targetValue(0)
+                .startDate(today)
+                .endDate(today.plusDays(5))
+                .currentCount(5)
+                .goalCount(10)
+                .build();
+
+        // 점심 식사 기록
+        Diet diet = Diet.builder()
+                .eatDate(today)
+                .mealType(MealType.LUNCH)
+                .build();
+
+        given(dietMapper.findAllByDate(eq(userId), anyString()))
+                .willReturn(Collections.emptyList());
+
+        given(challengeMapper.findActiveChallengesByUserId(userId))
+                .willReturn(List.of(activeDto));
+
+        // when
+        challengeService.updateChallengeProgress(userId, diet, Collections.emptyList());
+
+        // then
+        verify(challengeMapper).updateProgress(any());
+    }
+
+    /* =======================================================
+       [NEW] 2. 챌린지 나가기 테스트
+       ======================================================= */
+
+    @Test
+    @DisplayName("챌린지 나가기 - 성공")
+    void leaveChallenge_Success() {
+        // given
+        Long userId = 10L;
+        Long challengeId = 50L;
+        Long ownerId = 99L; // 방장은 다른 사람
+
+        Challenge challenge = Challenge.builder()
+                .challengeId(challengeId)
+                .ownerId(ownerId)
+                .build();
+
+        given(challengeMapper.findById(challengeId)).willReturn(challenge);
+        given(challengeMapper.existsByUserIdAndChallengeId(userId, challengeId)).willReturn(true);
+
+        // when
+        challengeService.leaveChallenge(userId, challengeId);
+
+        // then
+        verify(challengeMapper).deleteUserChallenge(userId, challengeId);
+        verify(challengeMapper).decreaseHeadCount(challengeId);
+    }
+
+    @Test
+    @DisplayName("챌린지 나가기 - 실패: 방장은 나갈 수 없음")
+    void leaveChallenge_Fail_Owner() {
+        // given
+        Long userId = 10L;
+        Long challengeId = 50L;
+
+        Challenge challenge = Challenge.builder()
+                .challengeId(challengeId)
+                .ownerId(userId) // 내가 방장
+                .build();
+
+        given(challengeMapper.findById(challengeId)).willReturn(challenge);
+
+        // when & then
+        assertThatThrownBy(() -> challengeService.leaveChallenge(userId, challengeId))
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue("code", ErrorResponseCode.OWNER_CANNOT_LEAVE);
+    }
+
+    /* =======================================================
+       [NEW] 3. 초대 응답 테스트
+       ======================================================= */
+
+    @Test
+    @DisplayName("초대 승인 - 성공")
+    void respondInvitation_Accept_Success() {
+        // given
+        Long userId = 10L;
+        Long invitationId = 1L;
+        Long challengeId = 100L;
+
+        ChallengeInvitation invitation = ChallengeInvitation.builder()
+                .invitationId(invitationId)
+                .inviteeId(userId)
+                .challengeId(challengeId)
+                .status("PENDING")
+                .build();
+
+        Challenge challenge = Challenge.builder()
+                .challengeId(challengeId)
+                .maxParticipants(10)
+                .build();
+
+        given(challengeMapper.findInvitationById(invitationId)).willReturn(invitation);
+        given(challengeMapper.findById(challengeId)).willReturn(challenge);
+        // 참여 가능 상태 가정 (중복X, 인원초과X)
+        given(challengeMapper.existsByUserIdAndChallengeId(userId, challengeId)).willReturn(false);
+        given(challengeMapper.countParticipants(challengeId)).willReturn(5);
+
+        // when
+        challengeService.respondInvitation(userId, invitationId, true);
+
+        // then
+        verify(challengeMapper).insertUserChallenge(userId, challengeId); // 참여
+        verify(challengeMapper).increaseHeadCount(challengeId); // 인원 증가
+        verify(challengeMapper).updateInvitationStatus(invitationId, "ACCEPTED"); // 상태 변경
+    }
+
+    @Test
+    @DisplayName("초대 거절 - 성공")
+    void respondInvitation_Reject_Success() {
+        // given
+        Long userId = 10L;
+        Long invitationId = 1L;
+
+        ChallengeInvitation invitation = ChallengeInvitation.builder()
+                .invitationId(invitationId)
+                .inviteeId(userId)
+                .status("PENDING")
+                .build();
+
+        given(challengeMapper.findInvitationById(invitationId)).willReturn(invitation);
+
+        // when
+        challengeService.respondInvitation(userId, invitationId, false); // 거절(false)
+
+        // then
+        verify(challengeMapper, never()).insertUserChallenge(anyLong(), anyLong()); // 참여 안 함
+        verify(challengeMapper).updateInvitationStatus(invitationId, "REJECTED"); // 거절 상태 변경
+    }
+
+    @Test
+    @DisplayName("초대 응답 - 실패: 본인 초대가 아님")
+    void respondInvitation_Fail_NotOwner() {
+        // given
+        Long userId = 10L;
+        Long otherUserId = 20L;
+        Long invitationId = 1L;
+
+        ChallengeInvitation invitation = ChallengeInvitation.builder()
+                .invitationId(invitationId)
+                .inviteeId(otherUserId) // 다른 사람이 받은 초대
+                .build();
+
+        given(challengeMapper.findInvitationById(invitationId)).willReturn(invitation);
+
+        // when & then
+        assertThatThrownBy(() -> challengeService.respondInvitation(userId, invitationId, true))
+                .isInstanceOf(CustomException.class)
+                .hasFieldOrPropertyWithValue("code", ErrorResponseCode.UNAUTHORIZED);
     }
 }

@@ -117,23 +117,20 @@
 
     <select id="findActiveChallengesByUserId" resultType="com.pagoda.matchmeal.model.dto.response.ActiveChallengeDto">
         SELECT
-            -- [유저 기록]
+            /* UserChallenge 정보 */
             uc.user_challenge_id AS userChallengeId,
             uc.current_count     AS currentCount,
             uc.current_streak    AS currentStreak,
             uc.max_streak        AS maxStreak,
             uc.last_success_date AS lastSuccessDate,
-
-            -- [챌린지 조건]
-            c.challenge_id       AS challengeId,
-            c.type               AS type,
+            uc.status            AS status,        /* Challenge 정보 */
+            c.challenge_id       AS challengeId,   c.title              AS title,         c.type               AS type,
             c.target_value       AS targetValue,
             c.start_date         AS startDate,
             c.end_date           AS endDate,
             c.goal_count         AS goalCount
-
         FROM user_challenges uc
-        JOIN challenges c ON uc.challenge_id = c.challenge_id
+                 JOIN challenges c ON uc.challenge_id = c.challenge_id
         WHERE uc.user_id = #{userId}
           AND uc.status = 'PROGRESS'
     </select>
@@ -186,6 +183,12 @@
         WHERE user_challenge_id = #{userChallengeId}
     </update>
 
+    <update id="updateStatusToProgress">
+        UPDATE user_challenges
+        SET status = 'PROGRESS'
+        WHERE user_challenge_id = #{userChallengeId}
+    </update>
+
     <update id="updateStatusToFail">
         UPDATE user_challenges
         SET status = 'FAIL',
@@ -216,8 +219,9 @@
             c.start_date       AS startDate,
             c.end_date         AS endDate,
             c.goal_count       AS goalCount,
-            c.max_participants AS maxParticipants, c.is_public        AS isPublic,
+            c.max_participants AS maxParticipants, c.is_public AS isPublic,
             c.invitation_code  AS invitationCode,
+            c.current_head_count AS currentHeadCount,
 
             (SELECT COUNT(*) FROM user_challenges uc_count WHERE uc_count.challenge_id = c.challenge_id) as currentHeadCount,
 
@@ -256,4 +260,99 @@
             is_public = #{isPublic}
         WHERE challenge_id = #{challengeId}
     </update>
+
+    <select id="findParticipantsByChallengeId" resultType="com.pagoda.matchmeal.model.dto.response.ChallengeParticipantDto">
+        SELECT
+            u.user_id      AS userId,
+            u.user_name    AS userName,
+            u.profile_image AS profileImage,
+
+            CASE
+                WHEN c.goal_count > 0 THEN
+                    TRUNCATE((uc.current_count * 100) / c.goal_count, 0)
+                ELSE 0
+                END AS progressPercent
+
+        FROM user_challenges uc
+                 JOIN users u ON uc.user_id = u.user_id
+                 JOIN challenges c ON uc.challenge_id = c.challenge_id  WHERE uc.challenge_id = #{challengeId}
+        ORDER BY uc.created_at ASC
+    </select>
+
+    <update id="increaseHeadCount">
+        UPDATE challenges
+        SET current_head_count = current_head_count + 1
+        WHERE challenge_id = #{challengeId}
+    </update>
+
+    <delete id="deleteUserChallengesByChallengeId">
+        DELETE FROM user_challenges
+        WHERE challenge_id = #{challengeId}
+    </delete>
+
+    <delete id="deleteChallengeById">
+        DELETE FROM challenges
+        WHERE challenge_id = #{challengeId}
+    </delete>
+
+    <delete id="deleteUserChallenge">
+        DELETE FROM user_challenges
+        WHERE user_id = #{userId} AND challenge_id = #{challengeId}
+    </delete>
+
+    <update id="decreaseHeadCount">
+        UPDATE challenges
+        SET current_head_count = current_head_count - 1
+        WHERE challenge_id = #{challengeId}
+    </update>
+
+    <delete id="deleteInvitationsByChallengeId">
+        DELETE FROM challenge_invitations
+        WHERE challenge_id = #{challengeId}
+    </delete>
+
+    <select id="findInvitationById" resultType="com.pagoda.matchmeal.model.entity.ChallengeInvitation">
+        SELECT
+            invitation_id AS invitationId,
+            challenge_id  AS challengeId,
+            inviter_id    AS inviterId,
+            invitee_id    AS inviteeId,
+            status,
+            created_at    AS createdAt
+        FROM challenge_invitations
+        WHERE invitation_id = #{invitationId}
+    </select>
+
+    <update id="updateInvitationStatus">
+        UPDATE challenge_invitations
+        SET status = #{status}
+        WHERE invitation_id = #{invitationId}
+    </update>
+
+    <select id="findPendingInvitationsByUserId" resultType="com.pagoda.matchmeal.model.dto.response.ChallengeInvitationResponseDto">
+        SELECT
+            i.invitation_id       AS invitationId,
+            i.created_at          AS sentAt,
+
+            /* 보낸 사람 정보 (User 테이블 조인) */
+            u.user_id             AS inviterId,
+            u.user_name           AS inviterName,
+            u.profile_image       AS inviterProfileImage,
+
+            /* 챌린지 정보 (Challenge 테이블 조인) */
+            c.challenge_id        AS challengeId,
+            c.title               AS challengeTitle,
+            c.type                AS type,
+            c.target_value        AS targetValue,
+            c.goal_count          AS goalCount,
+            c.current_head_count  AS currentHeadCount,
+            c.max_participants    AS maxParticipants
+
+        FROM challenge_invitations i   JOIN users u ON i.inviter_id = u.user_id
+                                       JOIN challenges c ON i.challenge_id = c.challenge_id
+
+        WHERE i.invitee_id = #{userId}
+          AND i.status = 'PENDING'
+        ORDER BY i.created_at DESC
+    </select>
 </mapper>

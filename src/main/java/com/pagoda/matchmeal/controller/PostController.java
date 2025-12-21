@@ -20,6 +20,10 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDate;
 import java.util.List;
 
+/**
+ * 커뮤니티 게시글 컨트롤러
+ * - 게시글 CRUD, 검색, 좋아요, 조회수 증가(쿠키 기반)
+ */
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/community")
@@ -27,6 +31,9 @@ public class PostController {
 
     private final PostService postService;
 
+    /**
+     * 게시글 작성
+     */
     @PostMapping("/posts")
     public CommonResponse<Long> writePost(
             @AuthenticationPrincipal UserDto userDto,
@@ -37,6 +44,9 @@ public class PostController {
         return ApiResponseUtil.created(postService.writePost(userId, postRequestDto, files));
     }
 
+    /**
+     * 게시글 목록 조회 (검색 및 필터링)
+     */
     @GetMapping("/posts")
     public CommonResponse<PageInfoResponseDto<PostDetailResponseDto>> getAllPosts(
             @AuthenticationPrincipal UserDto userDto,
@@ -52,6 +62,9 @@ public class PostController {
         return ApiResponseUtil.success(postService.getPost(userId, keyword, searchType, category, startDate, endDate, sortType, pageable));
     }
 
+    /**
+     * 게시글 상세 조회 (조회수 증가 로직 포함)
+     */
     @GetMapping("/posts/{postId}")
     public CommonResponse<PostDetailResponseDto> getPost(
             @AuthenticationPrincipal UserDto userDto,
@@ -61,11 +74,15 @@ public class PostController {
     ) {
         Long userId = (userDto != null) ? userDto.getId() : null;
 
+        // 조회수 증가 (중복 방지 처리)
         viewCountUp(postId, request, response);
 
         return ApiResponseUtil.success(postService.getPostDetail(userId, postId));
     }
 
+    /**
+     * 게시글 수정
+     */
     @PutMapping("/posts/{postId}")
     public CommonResponse<Long> updatePost(
             @AuthenticationPrincipal UserDto userDto,
@@ -77,6 +94,9 @@ public class PostController {
         return ApiResponseUtil.success(postService.updatePost(userId, postId, postRequestDto, files));
     }
 
+    /**
+     * 게시글 삭제
+     */
     @DeleteMapping("/posts/{postId}")
     public CommonResponse<Void> deletePost(
             @AuthenticationPrincipal UserDto userDto,
@@ -87,6 +107,9 @@ public class PostController {
         return ApiResponseUtil.success();
     }
 
+    /**
+     * 게시글 좋아요 토글
+     */
     @PostMapping("/posts/{postId}/like")
     public CommonResponse<Boolean> toggleLike(
             @AuthenticationPrincipal UserDto userDto,
@@ -97,6 +120,11 @@ public class PostController {
         return ApiResponseUtil.success(postService.toggleLike(userId, postId));
     }
 
+    /**
+     * 조회수 증가 로직 (쿠키 기반 중복 방지)
+     * - 클라이언트 쿠키에 "postView=[1][2]..." 형태로 읽은 게시글 ID를 저장
+     * - 해당 ID가 쿠키에 없을 때만 DB 조회수를 1 증가시킴 (24시간 유효)
+     */
     private void viewCountUp(Long postId, HttpServletRequest request, HttpServletResponse response) {
         Cookie oldCookie = null;
 
@@ -115,7 +143,7 @@ public class PostController {
                 postService.increaseViewCount(postId); //DB 업뎃
                 oldCookie.setValue(oldCookie.getValue() + "_[" + postId + "]");
                 oldCookie.setPath("/");
-                oldCookie.setMaxAge(60 * 60 * 24);
+                oldCookie.setMaxAge(60 * 60 * 24); // 24시간
                 response.addCookie(oldCookie);
             }
         } else {

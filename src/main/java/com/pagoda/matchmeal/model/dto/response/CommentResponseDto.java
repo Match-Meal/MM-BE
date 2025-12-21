@@ -27,5 +27,6 @@ public class CommentResponseDto {
 
     private Long parentCommentId;
 
+    @Builder.Default
     private List<CommentResponseDto> children = new ArrayList<>();
 }

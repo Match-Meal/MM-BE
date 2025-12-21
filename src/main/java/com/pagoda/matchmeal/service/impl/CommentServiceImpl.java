@@ -18,6 +18,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * 댓글(Comment) 비즈니스 로직 구현체
+ * - 댓글 CRUD 및 계층형(대댓글) 구조 처리
+ * - 댓글 좋아요 기능 포함
+ */
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -26,11 +31,19 @@ public class CommentServiceImpl implements CommentService {
     private final CommentMapper commentMapper;
     private final PostMapper postMapper;
 
+    /**
+     * 댓글 작성
+     * - 부모 댓글 ID가 존재하면 대댓글로 저장하며, 깊이(Depth) 제한 정책에 따라 부모 ID를 조정합니다.
+     *
+     * @param userId            작성자 PK
+     * @param postId            게시글 PK
+     * @param commentRequestDto 댓글 내용 및 부모 댓글 ID
+     * @return 생성된 댓글 ID
+     */
     @Override
     @Transactional
     public Long writeComment(Long userId, Long postId, CommentRequestDto commentRequestDto) {
         validateUser(userId);
-
         existingPost(postId);
 
         Long parentCommentId = commentRequestDto.getParentCommentId();
@@ -39,7 +52,7 @@ public class CommentServiceImpl implements CommentService {
             if (parent == null) {
                 throw new CustomException(ErrorResponseCode.COMMENT_NOT_FOUND);
             }
-            // 부모의 부모가 있다면?
+            // 대댓글의 대댓글(3뎁스 이상) 방지: 부모의 부모가 있다면 그 ID를 사용 (2뎁스로 평탄화)
             if (parent.getParentCommentId() != null) {
                 parentCommentId = parent.getParentCommentId();
             }
@@ -56,10 +69,18 @@ public class CommentServiceImpl implements CommentService {
         return comment.getCommentId();
     }
 
+    /**
+     * 댓글 목록 조회
+     * - DB에서 평탄화된 리스트를 조회한 후, 애플리케이션 메모리에서 계층형(부모-자식) 구조로 변환합니다.
+     * - 삭제된 댓글(Soft Deleted)의 경우 내용을 마스킹 처리합니다.
+     *
+     * @param userId 요청자 PK (좋아요 여부 확인용)
+     * @param postId 게시글 PK
+     * @return 계층 구조가 적용된 댓글 리스트 (Roots)
+     */
     @Override
     public List<CommentResponseDto> getComments(Long userId, Long postId) {
         validateUser(userId);
-
         existingPost(postId);
 
         List<CommentResponseDto> allByPostId = commentMapper.findAllByPostId(userId, postId);
@@ -68,40 +89,43 @@ public class CommentServiceImpl implements CommentService {
         Map<Long, CommentResponseDto> map = new HashMap<>(); // id값으로 객체를 찾기 위한 맵
 
         for (CommentResponseDto comment : allByPostId) {
-
             if (comment.isDeleted()) {
-                comment.setContent("삭제된 댓글입니다."); // 프론트 요구사항에 맞춰 텍스트 변경 or null
-                comment.setUser(null); // 작성자 정보 제거 (개인정보 보호)
+                comment.setContent("삭제된 댓글입니다.");
+                comment.setUser(null); // 개인정보 보호
             }
 
             map.put(comment.getCommentId(), comment);
             if (comment.getChildren() == null) {
                 comment.setChildren(new ArrayList<>());
             }
+
             if (comment.getParentCommentId() == null) {
-                // 부모 ID가 없으면 -> 최상위 댓글 (Root)
-                roots.add(comment);
+                roots.add(comment); // 최상위 댓글
             } else {
-                // 부모 ID가 있으면 -> 부모를 찾아서 그 자식 리스트에 추가
                 CommentResponseDto parent = map.get(comment.getParentCommentId());
                 if (parent != null) {
-                    parent.getChildren().add(comment);
+                    parent.getChildren().add(comment); // 자식 댓글 추가
                 } else {
-                    // (예외 케이스) 부모가 없는데 자식만 있는 경우 (DB 정합성 문제 등)
-                    // 안전하게 Root로 처리하거나 무시
-                    roots.add(comment);
+                    roots.add(comment); // 부모를 못 찾은 경우 안전하게 Root로 처리
                 }
             }
         }
-
         return roots;
     }
 
+    /**
+     * 댓글 수정
+     *
+     * @param userId            요청자 PK (본인 확인)
+     * @param commentId         수정할 댓글 PK
+     * @param commentRequestDto 수정할 내용
+     * @return 수정된 댓글 ID
+     */
     @Override
     @Transactional
     public Long updateComment(Long userId, Long commentId, CommentRequestDto commentRequestDto) {
         validateUser(userId);
-        CommentResponseDto existingComment = validateCommentOwner(userId, commentId);
+        validateCommentOwner(userId, commentId);
 
         Comment newComment = Comment.builder()
                 .commentId(commentId)
@@ -109,10 +133,15 @@ public class CommentServiceImpl implements CommentService {
                 .build();
 
         commentMapper.update(newComment);
-
         return commentId;
     }
 
+    /**
+     * 댓글 삭제
+     *
+     * @param userId    요청자 PK (본인 확인)
+     * @param commentId 삭제할 댓글 PK
+     */
     @Override
     @Transactional
     public void deleteComment(Long userId, Long commentId) {
@@ -121,6 +150,13 @@ public class CommentServiceImpl implements CommentService {
         commentMapper.delete(commentId);
     }
 
+    /**
+     * 댓글 좋아요 토글
+     *
+     * @param userId    요청자 PK
+     * @param commentId 댓글 PK
+     * @return true(좋아요 등록됨), false(좋아요 취소됨)
+     */
     @Override
     @Transactional
     public boolean toggleComment(Long userId, Long commentId) {
@@ -141,6 +177,8 @@ public class CommentServiceImpl implements CommentService {
         }
     }
 
+    // --- Helper Methods ---
+
     private static void validateUser(Long userId) {
         if (userId == null) {
             throw new CustomException(ErrorResponseCode.UNAUTHORIZED);
@@ -154,18 +192,16 @@ public class CommentServiceImpl implements CommentService {
         }
     }
 
-    private CommentResponseDto validateCommentOwner(Long userId, Long commentId) {
+    private void validateCommentOwner(Long userId, Long commentId) {
         CommentResponseDto comment = commentMapper.findByCommentId(commentId);
-
         if (comment == null) {
             throw new CustomException(ErrorResponseCode.COMMENT_NOT_FOUND);
         }
-
-        // 작성자 ID 비교
+        if (comment.getUser() == null || comment.getUser().getUserId() == null) {
+            throw new CustomException(ErrorResponseCode.UNAUTHORIZED);
+        }
         if (!comment.getUser().getUserId().equals(userId)) {
             throw new CustomException(ErrorResponseCode.UNAUTHORIZED);
         }
-
-        return comment;
     }
 }

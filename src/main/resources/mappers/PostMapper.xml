@@ -29,12 +29,6 @@
                     select="selectPostVideos"/>
     </resultMap>
 
-    <resultMap id="PostDetailFileMap" type="com.pagoda.matchmeal.model.dto.response.PostFileResponseDto">
-        <id property="fileId" column="file_id"/>
-        <result property="fileUrl" column="file_url"/>
-        <result property="fileType" column="file_type"/>
-    </resultMap>
-
     <insert id="savePost" parameterType="com.pagoda.matchmeal.model.entity.Post"
             useGeneratedKeys="true" keyProperty="postId">
         INSERT INTO posts(user_id, category, title, content, view_count, created_at, updated_at, deleted_at)
@@ -74,7 +68,6 @@
         <if test="startDate != null">
             AND p.created_at >= #{startDate}
         </if>
-
         <if test="endDate != null">
             <![CDATA[ AND p.created_at < #{endDate} ]]>
         </if>
@@ -82,17 +75,23 @@
         <if test="keyword != null and keyword != ''">
             <choose>
                 <when test="searchType == 'TITLE'">
-                    AND p.title LIKE CONCAT('%', #{keyword}, '%')
+                    AND REPLACE(p.title, ' ', '') LIKE CONCAT('%', REPLACE(#{keyword}, ' ', ''), '%')
                 </when>
+
                 <when test="searchType == 'CONTENT'">
-                    AND p.content LIKE CONCAT('%', #{keyword}, '%')
+                    AND REPLACE(p.content, ' ', '') LIKE CONCAT('%', REPLACE(#{keyword}, ' ', ''), '%')
                 </when>
+
                 <when test="searchType == 'WRITER'">
-                    AND u.user_name LIKE CONCAT('%', #{keyword}, '%')
+                    AND REPLACE(u.user_name, ' ', '') LIKE CONCAT('%', REPLACE(#{keyword}, ' ', ''), '%')
                 </when>
+
                 <otherwise>
-                    AND (p.title LIKE CONCAT('%', #{keyword}, '%')
-                    OR p.content LIKE CONCAT('%', #{keyword}, '%'))
+                    AND (
+                    REPLACE(p.title, ' ', '') LIKE CONCAT('%', REPLACE(#{keyword}, ' ', ''), '%')
+                    OR
+                    REPLACE(p.content, ' ', '') LIKE CONCAT('%', REPLACE(#{keyword}, ' ', ''), '%')
+                    )
                 </otherwise>
             </choose>
         </if>
@@ -110,14 +109,14 @@
         p.category AS category,
 
         u.user_id AS "user.userId",
-        u.user_name AS "user.userName",
+        IFNULL(u.user_name, '알 수 없음') AS "user.userName",
         u.profile_image AS "user.profileImage",
 
         (SELECT COUNT(*) FROM post_likes pl WHERE pl.post_id = p.post_id) AS likeCount,
         (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.post_id AND c.deleted_at IS NULL) AS commentCount
 
         FROM posts p
-        JOIN users u ON p.user_id = u.user_id
+        LEFT JOIN users u ON p.user_id = u.user_id
 
         <where>
             <include refid="searchCondition"/>
@@ -161,19 +160,19 @@
                (SELECT COUNT(*) FROM comments c WHERE c.post_id = p.post_id AND c.deleted_at IS NULL) AS comment_count
 
         FROM posts p
-                 JOIN users u ON p.user_id = u.user_id
+                 LEFT JOIN users u ON p.user_id = u.user_id
         WHERE p.post_id = #{postId}
           AND p.deleted_at IS NULL
     </select>
 
-    <select id="selectPostImages" resultMap="PostDetailFileMap">
+    <select id="selectPostImages" resultType="com.pagoda.matchmeal.model.dto.response.PostFileResponseDto">
         SELECT file_id, file_url, file_type
         FROM post_files
         WHERE post_id = #{postId}
           AND file_type = 'IMAGE' -- 이미지만 골라오기
     </select>
 
-    <select id="selectPostVideos" resultMap="PostDetailFileMap">
+    <select id="selectPostVideos" resultType="com.pagoda.matchmeal.model.dto.response.PostFileResponseDto">
         SELECT file_id, file_url, file_type
         FROM post_files
         WHERE post_id = #{postId}
@@ -239,14 +238,7 @@
           AND user_id = #{userId}
     </delete>
 
-    <resultMap id="PostFileMap" type="com.pagoda.matchmeal.model.entity.PostFile">
-        <id property="fileId" column="file_id"/>
-        <result property="postId" column="post_id"/>
-        <result property="fileUrl" column="file_url"/>
-        <result property="fileType" column="file_type"/>
-    </resultMap>
-
-    <select id="getPostFilesByFileIds" resultMap="PostFileMap">
+    <select id="getPostFilesByFileIds" resultType="com.pagoda.matchmeal.model.entity.PostFile">
         SELECT * FROM post_files
         WHERE file_id IN
         <foreach item="id" collection="fileIds" open="(" separator="," close=")">

@@ -9,7 +9,9 @@ import org.mybatis.spring.batch.MyBatisBatchItemWriter;
 import org.mybatis.spring.batch.builder.MyBatisBatchItemWriterBuilder;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
+import org.springframework.batch.core.configuration.annotation.StepScope;
 import org.springframework.batch.core.job.builder.JobBuilder;
+import org.springframework.batch.core.launch.support.RunIdIncrementer;
 import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.item.ItemProcessor;
@@ -20,8 +22,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.transaction.PlatformTransactionManager;
-
-import java.util.UUID;
 
 /**
  * [음식 데이터 대량 등록 배치 설정]
@@ -55,9 +55,11 @@ public class FoodBatchConfig {
      */
     @Bean
     public Job foodJob() {
-        return new JobBuilder("foodJob", jobRepository)
+        // 기존: "foodJob" -> 수정: "foodJob_v2"
+        return new JobBuilder("foodJob_v2", jobRepository)
                 .start(foodStepA())
                 .next(foodStepB())
+                .incrementer(new RunIdIncrementer())
                 .build();
     }
 
@@ -145,36 +147,38 @@ public class FoodBatchConfig {
      * - "N/A", "-", 공백 등 더러운 데이터를 0.0으로 정제하는 로직이 포함됩니다.
      */
     @Bean
+    @StepScope // ★ 필수: 매 실행마다 index 0부터 시작
     public ItemProcessor<FoodCsvDto, Food> foodProcessorA() {
-        return item -> {
+        return new ItemProcessor<FoodCsvDto, Food>() {
 
-            String generatedCode = "FOOD_" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
+            private int index = 0; // 카운터 변수
 
-            String rawServingSize = item.getServingSize(); // 예: "200ml", "100g"
-            // 단위 판별 로직
-            String unit = "g"; // 기본값
-            if (rawServingSize != null && rawServingSize.toLowerCase().contains("ml")) {
-                unit = "ml";
+            @Override
+            public Food process(FoodCsvDto item) throws Exception {
+                index++;
+                String generatedCode = String.format("A%03d", index); // A001, A002...
+
+                String rawServingSize = item.getServingSize();
+                String unit = "g";
+                if (rawServingSize != null && rawServingSize.toLowerCase().contains("ml")) {
+                    unit = "ml";
+                }
+
+                return Food.builder()
+                        .userId(null)
+                        .foodCode(generatedCode) // A001 적용
+                        .foodName(item.getFoodName().replace("_", " "))
+                        .category("기타") // 혹은 CSV의 카테고리
+                        .servingSize(parseDoubleSafe(rawServingSize))
+                        .unit(unit)
+                        .calories(parseDoubleSafe(item.getCalories()))
+                        .protein(parseDoubleSafe(item.getProtein()))
+                        .fat(parseDoubleSafe(item.getFat()))
+                        .carbohydrate(parseDoubleSafe(item.getCarbohydrate()))
+                        .sugars(parseDoubleSafe(item.getSugars()))
+                        .sodium(parseDoubleSafe(item.getSodium()))
+                        .build();
             }
-
-            // Builder 패턴을 사용하여 Food 엔티티 생성
-            return Food.builder()
-                    .userId(null)
-                    .foodCode(generatedCode)
-                    .foodName(item.getFoodName().replace("_", " ")) // foodName의 언더바(_) 공백 치환
-                    .category("외식류")
-                    // [데이터 정제]
-                    // CSV에는 "1,200"(쉼표), "N/A"(문자), ""(공백) 등이 섞여 있습니다.
-                    // 이를 안전하게 Double(숫자)로 바꾸는 헬퍼 메소드를 사용합니다.
-                    .servingSize(parseDoubleSafe(rawServingSize))
-                    .unit(unit)
-                    .calories(parseDoubleSafe(item.getCalories()))
-                    .protein(parseDoubleSafe(item.getProtein()))
-                    .fat(parseDoubleSafe(item.getFat()))
-                    .carbohydrate(parseDoubleSafe(item.getCarbohydrate()))
-                    .sugars(parseDoubleSafe(item.getSugars()))
-                    .sodium(parseDoubleSafe(item.getSodium()))
-                    .build();
         };
     }
 

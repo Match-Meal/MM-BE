@@ -2,6 +2,7 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.pagoda.matchmeal.mapper.FoodMapper">
+
     <insert id="saveFood" parameterType="com.pagoda.matchmeal.model.entity.Food"
             useGeneratedKeys="true" keyProperty="foodId">
         INSERT INTO foods (user_id,
@@ -35,7 +36,6 @@
     </insert>
 
     <sql id="searchConditions">
-
         <choose>
             <when test="userOnly == true">
                 AND f.user_id = #{userId}
@@ -46,28 +46,52 @@
         </choose>
 
         <if test="keyword != null and keyword != ''">
-            AND f.food_name LIKE CONCAT('%', #{keyword}, '%')
+            AND REPLACE(f.food_name, ' ', '') LIKE CONCAT('%', REPLACE(#{keyword}, ' ', ''), '%')
         </if>
 
         <if test="category != null and category != ''">
             AND f.category = #{category}
         </if>
-
     </sql>
 
     <select id="findFoodList" resultType="com.pagoda.matchmeal.model.dto.response.FoodListResponseDto">
-        SELECT f.food_id AS foodId,
-        f.food_name AS foodName,
-        f.category AS category,
+        SELECT f.food_id      AS foodId,
+        f.food_name    AS foodName,
+        f.category     AS category,
         f.serving_size AS servingSize,
-        f.unit AS unit,
-        f.calories AS calories
+        f.unit         AS unit,
+        f.calories     AS calories
         FROM foods f
         <where>
             f.deleted_at IS NULL
             <include refid="searchConditions"/>
         </where>
-        ORDER BY f.created_at DESC
+
+        <choose>
+            <when test="keyword != null and keyword != ''">
+                ORDER BY
+                -- 1순위: 띄어쓰기 무시하고 이름이 완전히 똑같은 것 (예: "닭 가슴살" == "닭가슴살")
+                CASE WHEN REPLACE(f.food_name, ' ', '') = REPLACE(#{keyword}, ' ', '') THEN 1
+
+                -- 2순위: 검색어로 시작하는 것 (예: "닭가슴살 샐러드")
+                WHEN REPLACE(f.food_name, ' ', '') LIKE CONCAT(REPLACE(#{keyword}, ' ', ''), '%') THEN 2
+
+                -- 3순위: 중간에 포함된 것 (예: "훈제 닭가슴살")
+                ELSE 3
+                END ASC,
+
+                -- 4순위: 글자 길이가 짧은 순 (더 일반적인 음식일 확률이 높음)
+                LENGTH(REPLACE(f.food_name, ' ', '')) ASC,
+
+                -- 5순위: 가나다순
+                f.food_name ASC
+            </when>
+
+            <otherwise>
+                ORDER BY f.created_at DESC
+            </otherwise>
+        </choose>
+
         LIMIT #{limit}
         OFFSET #{offset}
     </select>
@@ -100,6 +124,45 @@
         FROM foods
         WHERE food_id = #{foodId}
           AND deleted_at IS NULL
+    </select>
+
+    <select id="findFoodDetailByFoodName" resultType="com.pagoda.matchmeal.model.dto.response.FoodDetailResponseDto">
+        SELECT food_id      AS foodId,
+               food_code    AS foodCode,
+               food_name    AS foodName,
+               category     AS category,
+               serving_size AS servingSize,
+               unit         AS unit,
+               calories     AS calories,
+               carbohydrate AS carbohydrate,
+               protein      AS protein,
+               fat          AS fat,
+               sugars       AS sugars,
+               sodium       AS sodium,
+               user_id      AS userId,
+               created_at   AS createdAt,
+               updated_at   AS updatedAt
+        FROM foods
+        WHERE REPLACE(food_name, ' ', '') LIKE CONCAT('%', REPLACE(#{foodName}, ' ', ''), '%')
+          AND deleted_at IS NULL
+        ORDER BY
+            -- 1순위: 이름이 정확히 일치하는 것 (예: "김치찌개")
+            CASE WHEN REPLACE(food_name, ' ', '') = REPLACE(#{foodName}, ' ', '') THEN 1
+
+                -- 2순위: 검색어로 시작하는 것 (예: "김치찌개 정식")
+                 WHEN REPLACE(food_name, ' ', '') LIKE CONCAT(REPLACE(#{foodName}, ' ', ''), '%') THEN 2
+
+                -- 3순위: 검색어가 중간/뒤에 포함된 것 (예: "돼지고기 김치찌개")
+                 ELSE 3
+                END ASC,
+
+            -- 4순위: 같은 우선순위라면 글자 길이가 짧은 순 (더 일반적인 음식일 확률 높음)
+            LENGTH(REPLACE(food_name, ' ', '')) ASC,
+
+            -- 5순위: 가나다순
+            food_name ASC
+
+            LIMIT 5
     </select>
 
     <update id="updateFood" parameterType="com.pagoda.matchmeal.model.entity.Food">

@@ -45,6 +45,9 @@ class PostServiceImplTest {
     @Mock
     private S3Service s3Service;
 
+    @Mock
+    private CommentService commentService;
+
     // 테스트용 상수
     private final Long USER_ID = 1L;
     private final Long POST_ID = 100L;
@@ -107,8 +110,7 @@ class PostServiceImplTest {
         // given
         // 1. 기존 게시글 정보 Mocking (본인 확인 및 존재 여부 확인용)
         PostDetailResponseDto existingPost = new PostDetailResponseDto();
-        UserSimpleDto userDto = new UserSimpleDto();
-        ReflectionTestUtils.setField(userDto, "userId", USER_ID); // 작성자 ID 일치시키기
+        UserSimpleDto userDto = UserSimpleDto.builder().userId(USER_ID).build();
         ReflectionTestUtils.setField(existingPost, "user", userDto);
 
         given(postMapper.getPostByPostId(POST_ID)).willReturn(existingPost);
@@ -184,8 +186,7 @@ class PostServiceImplTest {
         // given
         // 1. 게시글 존재 및 권한 확인
         PostDetailResponseDto targetPost = new PostDetailResponseDto();
-        UserSimpleDto userDto = new UserSimpleDto();
-        ReflectionTestUtils.setField(userDto, "userId", USER_ID);
+        UserSimpleDto userDto = UserSimpleDto.builder().userId(USER_ID).build();
         ReflectionTestUtils.setField(targetPost, "user", userDto);
 
         given(postMapper.getPostByPostId(POST_ID)).willReturn(targetPost);
@@ -212,9 +213,11 @@ class PostServiceImplTest {
     @DisplayName("게시글 삭제 실패 - 존재하지 않는 게시글")
     void deletePost_Fail_NotFound() {
         // given
+        // 없는 게시글 조회 시 null 반환
         given(postMapper.getPostByPostId(POST_ID)).willReturn(null);
 
         // when & then
+        // 이제 서비스 코드 순서를 바꿨으므로 NPE가 아니라 POST_NOT_FOUND가 떠야 함
         assertThatThrownBy(() -> postService.deletePost(USER_ID, POST_ID))
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("code", ErrorResponseCode.POST_NOT_FOUND);

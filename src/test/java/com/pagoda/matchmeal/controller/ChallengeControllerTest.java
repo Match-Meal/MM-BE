@@ -2,7 +2,7 @@ package com.pagoda.matchmeal.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pagoda.matchmeal.annotation.WithCustomMockUser;
-import com.pagoda.matchmeal.config.jwt.JwtTokenProvider;
+import com.pagoda.matchmeal.common.config.jwt.JwtTokenProvider;
 import com.pagoda.matchmeal.model.dto.ChallengeSearchCondition;
 import com.pagoda.matchmeal.model.dto.request.ChallengeCreateRequestDto;
 import com.pagoda.matchmeal.model.dto.request.ChallengeInviteRequestDto;

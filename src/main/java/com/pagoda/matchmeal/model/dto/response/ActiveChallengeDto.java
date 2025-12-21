@@ -18,7 +18,12 @@ public class ActiveChallengeDto {
     private int maxStreak;
     private LocalDate lastSuccessDate;
 
+    private String status;
+
     // challenges 테이블 정보 (JOIN 데이터)
+    private Long challengeId;
+    private String title;
+
     private ChallengeType type;
     private int targetValue;
     private LocalDate startDate;

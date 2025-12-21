@@ -4,6 +4,7 @@ import com.pagoda.matchmeal.model.dto.response.CommentResponseDto;
 import com.pagoda.matchmeal.model.entity.Comment;
 import com.pagoda.matchmeal.model.entity.Post;
 import com.pagoda.matchmeal.model.enums.PostCategory;
+import com.pagoda.matchmeal.support.MapperTestSupport;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -17,10 +18,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest
-@AutoConfigureMockMvc
-@Transactional // 테스트 종료 후 롤백
-class CommentMapperTest {
+class CommentMapperTest extends MapperTestSupport {
 
     @Autowired
     private CommentMapper commentMapper;

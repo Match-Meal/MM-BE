@@ -6,11 +6,14 @@ import com.pagoda.matchmeal.mapper.DietMapper;
 import com.pagoda.matchmeal.mapper.FoodMapper;
 import com.pagoda.matchmeal.model.dto.request.DietRequestDto;
 import com.pagoda.matchmeal.model.dto.request.DietStatsRequestDto;
+import com.pagoda.matchmeal.model.dto.request.FoodRequestDto;
 import com.pagoda.matchmeal.model.dto.response.*;
 import com.pagoda.matchmeal.model.entity.Diet;
 import com.pagoda.matchmeal.model.entity.DietDetail;
 import com.pagoda.matchmeal.model.entity.Food;
+import com.pagoda.matchmeal.service.ChallengeService;
 import com.pagoda.matchmeal.service.DietService;
+import com.pagoda.matchmeal.service.FoodService;
 import com.pagoda.matchmeal.service.S3Service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,7 +24,6 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -36,6 +38,8 @@ public class DietServiceImpl implements DietService {
     private final DietMapper dietMapper;
     private final FoodMapper foodMapper;
     private final S3Service s3Service;
+    private final FoodService foodService;
+    private final ChallengeService challengeService;
 
     /**
      * [식단 기록]
@@ -106,9 +110,7 @@ public class DietServiceImpl implements DietService {
 
                 // ★ 체크박스 로직: "음식 DB에 저장해주세요" 라고 했나요?
                 if (item.isSaveToMyFoods()) {
-                    Food newCustomFood = Food.builder()
-                            .userId(userId) // 내 음식
-                            .foodCode("CUSTOM_" + UUID.randomUUID().toString().substring(0, 8))
+                    FoodRequestDto newFoodRequest = FoodRequestDto.builder()
                             .foodName(item.getFoodName())
                             .category("사용자등록")
                             .servingSize(item.getQuantity()) // 입력한 양을 1회 제공량으로 기준 잡음
@@ -121,8 +123,7 @@ public class DietServiceImpl implements DietService {
                             .sodium(item.getSodium())
                             .build();
 
-                    foodMapper.saveFood(newCustomFood); // DB 저장
-                    finalFoodId = newCustomFood.getFoodId(); // 생성된 ID 확보
+                    finalFoodId = foodService.addFood(userId, newFoodRequest);
                 }
                 // 체크 안 했으면 finalFoodId는 그냥 null 상태로 남음 (일회성 기록)
             }
@@ -199,6 +200,9 @@ public class DietServiceImpl implements DietService {
             dietMapper.insertDietDetails(finalDetails);
         }
 
+        // 챌린지 반영
+        challengeService.updateChallengeProgress(userId, diet, finalDetails);
+
         // 11. 생성된 ID 반환
         return diet.getDietId();
     }
@@ -222,9 +226,10 @@ public class DietServiceImpl implements DietService {
         if (diet == null) {
             throw new CustomException(ErrorResponseCode.DIET_NOT_FOUND);
         }
-        if (!diet.getUserId().equals(userId)) {
-            throw new CustomException(ErrorResponseCode.UNAUTHORIZED);
-        }
+        // 챌린지 참여자간 공유 목적으로 임시 비활성화
+//        if (!diet.getUserId().equals(userId)) {
+//            throw new CustomException(ErrorResponseCode.UNAUTHORIZED);
+//        }
         return diet;
     }
 
@@ -512,5 +517,14 @@ public class DietServiceImpl implements DietService {
 
         // 6. [기본] 밸런스 양호 (모든 오차가 10% 이내)
         return "탄단지 비율이 황금 밸런스입니다! 아주 훌륭해요! 🌿";
+    }
+
+    /**
+     * [기간 조회] 특정 기간(Start~End)의 식단 리스트 반환
+     */
+    @Override
+    public List<DietResponseDto> getDietListByPeriod(Long userId, LocalDate startDate, LocalDate endDate) {
+        // LocalDate -> String 변환하여 Mapper 호출
+        return dietMapper.findAllByPeriod(userId, startDate.toString(), endDate.toString());
     }
 }

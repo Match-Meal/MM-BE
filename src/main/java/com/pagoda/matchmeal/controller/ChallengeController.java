@@ -6,6 +6,7 @@ import com.pagoda.matchmeal.model.dto.ChallengeSearchCondition;
 import com.pagoda.matchmeal.model.dto.UserDto;
 import com.pagoda.matchmeal.model.dto.request.ChallengeCreateRequestDto;
 import com.pagoda.matchmeal.model.dto.request.ChallengeInviteRequestDto;
+import com.pagoda.matchmeal.model.dto.response.ChallengeInvitationResponseDto;
 import com.pagoda.matchmeal.model.dto.response.ChallengeResponseDto;
 import com.pagoda.matchmeal.service.ChallengeService;
 import lombok.RequiredArgsConstructor;
@@ -129,4 +130,64 @@ public class ChallengeController {
 
         return ApiResponseUtil.success();
     }
+
+    /**
+     * 챌린지 삭제
+     */
+    @DeleteMapping("/{challengeId}")
+    public CommonResponse<Void> deleteChallenge(
+            @AuthenticationPrincipal UserDto user,
+            @PathVariable Long challengeId) {
+
+        challengeService.deleteChallenge(user.getId(), challengeId);
+
+        return ApiResponseUtil.success();
+    }
+
+    /**
+     * 챌린지 떠나기
+     */
+    @PostMapping("/{challengeId}/leave")
+    public CommonResponse<Void> leaveChallenge(
+            @AuthenticationPrincipal UserDto user,
+            @PathVariable("challengeId") Long challengeid) {
+
+        challengeService.leaveChallenge(user.getId(), challengeid);
+        return ApiResponseUtil.success();
+    }
+
+    /**
+     * 초대 승인
+     */
+    @PostMapping("invite/{invitationId}/accept")
+    public CommonResponse<Void> acceptInvitation(
+            @AuthenticationPrincipal UserDto user,
+            @PathVariable Long invitationId) {
+
+        challengeService.respondInvitation(user.getId(), invitationId, true);
+        return ApiResponseUtil.success();
+    }
+
+    /**
+     * 초대 거절
+     */
+    @PostMapping("invite/{invitationId}/reject")
+    public CommonResponse<Void> rejectInvitation(
+            @AuthenticationPrincipal UserDto user,
+            @PathVariable Long invitationId) {
+
+        challengeService.respondInvitation(user.getId(), invitationId, false);
+        return ApiResponseUtil.success();
+    }
+
+    /**
+     * 나에게 온 초대장 목록 조회
+     */
+    @GetMapping("/invitations")
+    public CommonResponse<List<ChallengeInvitationResponseDto>> getMyInvitations(
+            @AuthenticationPrincipal UserDto user) {
+
+        return ApiResponseUtil.success(challengeService.getMyInvitations(user.getId()));
+    }
+
 }

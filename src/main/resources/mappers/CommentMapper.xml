@@ -4,41 +4,12 @@
 
 <mapper namespace="com.pagoda.matchmeal.mapper.CommentMapper">
 
-    <resultMap id="CommentResultMap" type="com.pagoda.matchmeal.model.entity.Comment">
-        <id property="commentId" column="comment_id"/>
-        <result property="userId" column="user_id"/>
-        <result property="postId" column="post_id"/>
-        <result property="content" column="content"/>
-        <result property="parentCommentId" column="parent_comment_id"/>
-        <result property="createdAt" column="created_at"/>
-        <result property="updatedAt" column="updated_at"/>
-        <result property="deletedAt" column="deleted_at"/>
-
-    </resultMap>
-
-    <resultMap id="CommentDtoMap" type="com.pagoda.matchmeal.model.dto.response.CommentResponseDto">
-        <id property="commentId" column="comment_id"/>
-        <result property="content" column="content"/>
-        <result property="createdAt" column="created_at"/>
-        <result property="updatedAt" column="updated_at"/>
-        <result property="parentCommentId" column="parent_comment_id"/>
-        <result property="likeCount" column="like_count"/>
-
-        <result property="isDeleted" column="is_deleted"/>
-
-        <association property="user" javaType="com.pagoda.matchmeal.model.dto.UserSimpleDto">
-            <id property="userId" column="user_id"/>
-            <result property="userName" column="user_name"/>
-            <result property="profileImage" column="profile_image"/>
-        </association>
-    </resultMap>
-
     <insert id="save" useGeneratedKeys="true" keyProperty="commentId">
         INSERT INTO comments (post_id, user_id, content, parent_comment_id, created_at, updated_at)
         VALUES (#{postId}, #{userId}, #{content}, #{parentCommentId}, NOW(), NOW())
     </insert>
 
-    <select id="findAllByPostId" resultMap="CommentDtoMap">
+    <select id="findAllByPostId" resultType="com.pagoda.matchmeal.model.dto.response.CommentResponseDto">
         SELECT c.comment_id,
                c.post_id,
                c.content,
@@ -49,18 +20,18 @@
                CASE
                    WHEN c.deleted_at IS NOT NULL THEN 1
                    ELSE 0
-                   END                                                                    AS is_deleted,
+                   END                                                                    AS isDeleted,
 
                -- 작성자 정보
-               u.user_id,
-               u.user_name,
-               u.profile_image,
+               u.user_id                                                                  AS "user.userId",
+               IFNULL(u.user_name, '탈퇴한 사용자')            AS "user.userName",
+               u.profile_image                                                            AS "user.profileImage",
 
                -- 좋아요 개수 (서브쿼리)
                (SELECT COUNT(*) FROM comment_likes cl WHERE cl.comment_id = c.comment_id) AS like_count
 
         FROM comments c
-                 JOIN users u ON c.user_id = u.user_id
+                 LEFT JOIN users u ON c.user_id = u.user_id
         WHERE c.post_id = #{postId}
         -- 삭제된 댓글도 대댓글이 있으면 '삭제된 댓글입니다'로 보여줘야 하므로
         -- 일단 다 가져오거나, 정책에 따라 AND c.deleted_at IS NULL 추가
@@ -73,7 +44,7 @@
             c.created_at ASC
     </select>
 
-    <select id="findByCommentId" resultMap="CommentDtoMap">
+    <select id="findByCommentId" resultType="com.pagoda.matchmeal.model.dto.response.CommentResponseDto">
         SELECT c.comment_id,
                c.post_id,
                c.content,
@@ -82,15 +53,15 @@
                c.updated_at,
 
                -- 작성자 정보 (User)
-               u.user_id,
-               u.user_name,
-               u.profile_image,
+               u.user_id                                                                  AS "user.userId",
+               u.user_name                                                                AS "user.userName",
+               u.profile_image                                                            AS "user.profileImage",
 
                -- 좋아요 개수
                (SELECT COUNT(*) FROM comment_likes cl WHERE cl.comment_id = c.comment_id) AS like_count
 
         FROM comments c
-                 JOIN users u ON c.user_id = u.user_id
+                 LEFT JOIN users u ON c.user_id = u.user_id
         WHERE c.comment_id = #{commentId}
     </select>
 

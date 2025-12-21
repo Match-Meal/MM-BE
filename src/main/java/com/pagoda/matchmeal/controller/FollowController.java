@@ -1,5 +1,6 @@
 package com.pagoda.matchmeal.controller;
 
+import com.pagoda.matchmeal.common.exception.ErrorResponseCode;
 import com.pagoda.matchmeal.common.response.CommonResponse;
 import com.pagoda.matchmeal.common.util.ApiResponseUtil;
 import com.pagoda.matchmeal.model.dto.UserDto;
@@ -7,7 +8,6 @@ import com.pagoda.matchmeal.model.dto.response.FollowListDto;
 import com.pagoda.matchmeal.model.dto.response.FollowResponseDto;
 import com.pagoda.matchmeal.service.FollowService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,23 +22,24 @@ public class FollowController {
 
     /**
      * 팔로우/언팔로우 토글
+     *
      * @param userDto
      * @param targetId
      */
     @PostMapping("/{targetId}/follow")
-    public ResponseEntity<FollowResponseDto> toggleFollow(
+    public CommonResponse<FollowResponseDto> toggleFollow(
             @AuthenticationPrincipal UserDto userDto,
             @PathVariable Long targetId
     ) {
         if (userDto == null) {
-            return ResponseEntity.status(401).build();
+            return ApiResponseUtil.failure(ErrorResponseCode.UNAUTHORIZED);
         }
-        FollowResponseDto response = followService.toggleFollow(userDto.getId(), targetId);
-        return ResponseEntity.ok(response);
+        return ApiResponseUtil.success(followService.toggleFollow(userDto.getId(), targetId));
     }
 
     /**
      * 팔로워 목록 조회
+     *
      * @param userDto
      * @param userId
      */
@@ -56,6 +57,7 @@ public class FollowController {
 
     /**
      * 팔로잉 목록 조회
+     *
      * @param userDto
      * @param userId
      */

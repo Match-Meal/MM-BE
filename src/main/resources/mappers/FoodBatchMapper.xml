@@ -2,6 +2,7 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.pagoda.matchmeal.mapper.FoodBatchMapper">
+
     <insert id="insertFood" parameterType="com.pagoda.matchmeal.model.entity.Food">
         INSERT INTO foods (food_code,
                            food_name,
@@ -38,23 +39,6 @@
         VALUES (fat), carbohydrate =
         VALUES (carbohydrate), sugars =
         VALUES (sugars), sodium =
-        VALUES (sodium), updated_at = NOW()
-    </insert>
-
-    <select id="countAll" resultType="int">
-        SELECT COUNT(*)
-        FROM foods
-    </select>
-
-    <select id="findAll" resultType="com.pagoda.matchmeal.model.entity.Food">
-        SELECT *
-        FROM foods LIMIT 50  </select>
-
-
-    <delete id="deleteAll">
-        DELETE
-        FROM foods
-    </delete>
-
+        VALUES (sodium), updated_at = NOW() </insert>
 
 </mapper>
