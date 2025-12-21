@@ -11,6 +11,7 @@ import com.pagoda.matchmeal.model.dto.response.*;
 import com.pagoda.matchmeal.model.entity.Diet;
 import com.pagoda.matchmeal.model.entity.DietDetail;
 import com.pagoda.matchmeal.model.entity.Food;
+import com.pagoda.matchmeal.service.ChallengeService;
 import com.pagoda.matchmeal.service.DietService;
 import com.pagoda.matchmeal.service.FoodService;
 import com.pagoda.matchmeal.service.S3Service;
@@ -38,6 +39,7 @@ public class DietServiceImpl implements DietService {
     private final FoodMapper foodMapper;
     private final S3Service s3Service;
     private final FoodService foodService;
+    private final ChallengeService challengeService;
 
     /**
      * [식단 기록]
@@ -198,6 +200,9 @@ public class DietServiceImpl implements DietService {
             dietMapper.insertDietDetails(finalDetails);
         }
 
+        // 챌린지 반영
+        challengeService.updateChallengeProgress(userId, diet, finalDetails);
+
         // 11. 생성된 ID 반환
         return diet.getDietId();
     }
@@ -221,9 +226,10 @@ public class DietServiceImpl implements DietService {
         if (diet == null) {
             throw new CustomException(ErrorResponseCode.DIET_NOT_FOUND);
         }
-        if (!diet.getUserId().equals(userId)) {
-            throw new CustomException(ErrorResponseCode.UNAUTHORIZED);
-        }
+        // 챌린지 참여자간 공유 목적으로 임시 비활성화
+//        if (!diet.getUserId().equals(userId)) {
+//            throw new CustomException(ErrorResponseCode.UNAUTHORIZED);
+//        }
         return diet;
     }
 
@@ -511,5 +517,14 @@ public class DietServiceImpl implements DietService {
 
         // 6. [기본] 밸런스 양호 (모든 오차가 10% 이내)
         return "탄단지 비율이 황금 밸런스입니다! 아주 훌륭해요! 🌿";
+    }
+
+    /**
+     * [기간 조회] 특정 기간(Start~End)의 식단 리스트 반환
+     */
+    @Override
+    public List<DietResponseDto> getDietListByPeriod(Long userId, LocalDate startDate, LocalDate endDate) {
+        // LocalDate -> String 변환하여 Mapper 호출
+        return dietMapper.findAllByPeriod(userId, startDate.toString(), endDate.toString());
     }
 }

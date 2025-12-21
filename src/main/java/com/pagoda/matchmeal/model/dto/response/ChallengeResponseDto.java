@@ -5,6 +5,7 @@ import com.pagoda.matchmeal.model.enums.ChallengeType;
 import lombok.*;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @Getter
 @Setter
@@ -22,6 +23,10 @@ public class ChallengeResponseDto {
     private LocalDate startDate;
     private LocalDate endDate;
     private int goalCount; // 목표 횟수
+
+    // 인원 현황
+    private int currentHeadCount;
+    private int maxParticipants;
     
     // 유저별 진행상황
     private Long userChallengeId;
@@ -36,4 +41,6 @@ public class ChallengeResponseDto {
     private int progressPercent; // 현재 달성 횟수
 
     private LocalDate lastSuccessDate;
+
+    private List<ChallengeParticipantDto> participants;
 }

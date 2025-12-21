@@ -144,4 +144,27 @@
         GROUP BY eat_date
         ORDER BY eat_date ASC
     </select>
+
+    <select id="findAllByPeriod" resultType="com.pagoda.matchmeal.model.dto.response.DietResponseDto">
+        SELECT
+            d.diet_id           AS dietId,
+            d.user_id           AS userId,
+            d.eat_date          AS eatDate,
+            d.eat_time          AS eatTime,
+            d.meal_type         AS mealType,
+            d.memo,
+            d.diet_img_url      AS dietImgUrl,
+
+            /* 영양소 정보 */
+            d.total_calories    AS totalCalories,
+            d.total_carbohydrate AS totalCarbohydrate,
+            d.total_protein     AS totalProtein,
+            d.total_fat         AS totalFat,
+            d.total_sugars      AS totalSugars,
+            d.total_sodium      AS totalSodium
+
+        FROM diet_records d  WHERE d.user_id = #{userId}
+                               AND d.eat_date BETWEEN #{startDate} AND #{endDate}
+        ORDER BY d.eat_date DESC, d.eat_time DESC
+    </select>
 </mapper>

@@ -2,10 +2,13 @@ package com.pagoda.matchmeal.service;
 
 import com.pagoda.matchmeal.model.dto.ChallengeSearchCondition;
 import com.pagoda.matchmeal.model.dto.request.ChallengeCreateRequestDto;
+import com.pagoda.matchmeal.model.dto.response.ActiveChallengeDto;
+import com.pagoda.matchmeal.model.dto.response.ChallengeInvitationResponseDto;
 import com.pagoda.matchmeal.model.dto.response.ChallengeResponseDto;
 import com.pagoda.matchmeal.model.entity.Diet;
 import com.pagoda.matchmeal.model.entity.DietDetail;
 
+import java.time.LocalDate;
 import java.util.List;
 
 public interface ChallengeService {
@@ -47,9 +50,41 @@ public interface ChallengeService {
      */
     List<ChallengeResponseDto> getAllChallenges(Long userId);
 
-    // 상세 조회
+    /**
+     * 상세 조회
+     */
     ChallengeResponseDto getChallengeDetail(Long userId, Long challengeId);
 
-    // 챌린지 수정
+    /**
+     * 챌린지 수정
+     */
     void updateChallenge(Long userId, Long challengeId, ChallengeCreateRequestDto dto);
+
+    /**
+     * 챌린지 삭제
+     */
+    void deleteChallenge(Long userId, Long challengeId);
+
+    /**
+     * 챌린지 떠나기
+     * @param userId
+     * @param challengeId
+     */
+    void leaveChallenge(Long userId, Long challengeId);
+
+    /**
+     * 초대 응답(수락, 거부)
+      * @param userId
+     * @param invitationId
+     * @param isAccepted
+     */    
+    void respondInvitation(Long userId, Long invitationId, boolean isAccepted);
+
+    /**
+     * 초대받은 챌린지 관리
+     * @param userId
+     * @return 초대받은 챌린지 정보 리스트
+     */
+    List<ChallengeInvitationResponseDto> getMyInvitations(Long userId);
+
 }

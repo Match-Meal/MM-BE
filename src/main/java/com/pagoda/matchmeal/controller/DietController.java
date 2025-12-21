@@ -44,13 +44,19 @@ public class DietController {
     }
 
     @GetMapping("/diet")
-    public CommonResponse<List<DietResponseDto>> getDailyDiet(@AuthenticationPrincipal UserDto userDto,
-                                                              @RequestParam(value = "date", required = false)
-                                                              @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+    public CommonResponse<List<DietResponseDto>> getDailyDiet(
+            @AuthenticationPrincipal UserDto userDto,
+            @RequestParam(value = "date", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            @RequestParam(value = "userId", required = false) Long targetUserId) { // [추가]
+
         if (date == null) {
             date = LocalDate.now();
         }
-        return ApiResponseUtil.success(dietService.getDailyDiet(userDto.getId(), date));
+
+        // 타겟 ID가 있으면 그 사람 것을, 없으면 내 것을 조회
+        Long searchUserId = (targetUserId != null) ? targetUserId : userDto.getId();
+
+        return ApiResponseUtil.success(dietService.getDailyDiet(searchUserId, date));
     }
 
     @GetMapping("/diet/{dietId}")
@@ -76,8 +82,28 @@ public class DietController {
     @GetMapping("/diet/stats")
     public CommonResponse<DietStatsResponseDto> getDietStats(
             @AuthenticationPrincipal UserDto userDto,
-            @ModelAttribute DietStatsRequestDto dietStatsRequestDto
-    ) {
-        return ApiResponseUtil.success(dietService.getDietStats(userDto.getId(), dietStatsRequestDto));
+            @ModelAttribute DietStatsRequestDto dietStatsRequestDto,
+            @RequestParam(value = "userId", required = false) Long targetUserId) { // [추가]
+
+        Long searchUserId = (targetUserId != null) ? targetUserId : userDto.getId();
+
+        return ApiResponseUtil.success(dietService.getDietStats(searchUserId, dietStatsRequestDto));
+    }
+
+    /**
+     * [기간 조회] 챌린지 기간 등 특정 기간의 식단 기록 조회
+     * - 본인 또는 타인의 식단 기록을 기간 단위로 조회
+     */
+    @GetMapping("/diet/period")
+    public CommonResponse<List<DietResponseDto>> getDietListByPeriod(
+            @AuthenticationPrincipal UserDto userDto,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate,
+            @RequestParam(value = "userId", required = false) Long targetUserId) {
+
+        // targetUserId가 있으면 그 유저를, 없으면 로그인한 유저 본인을 조회
+        Long searchUserId = (targetUserId != null) ? targetUserId : userDto.getId();
+
+        return ApiResponseUtil.success(dietService.getDietListByPeriod(searchUserId, startDate, endDate));
     }
 }
