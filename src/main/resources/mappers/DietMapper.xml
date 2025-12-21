@@ -167,4 +167,26 @@
                                AND d.eat_date BETWEEN #{startDate} AND #{endDate}
         ORDER BY d.eat_date DESC, d.eat_time DESC
     </select>
+
+    <select id="selectDietsByPeriod" resultType="com.pagoda.matchmeal.model.entity.Diet">
+        SELECT * FROM diet_records
+        WHERE user_id = #{userId}
+          AND eat_date BETWEEN #{startDate} AND #{endDate}
+          AND deleted_at IS NULL
+    </select>
+
+    <select id="selectDietDetailsByPeriod" resultType="com.pagoda.matchmeal.model.entity.DietDetail">
+        SELECT dd.* FROM diet_details dd
+                             JOIN diet_records d ON dd.diet_id = d.diet_id
+        WHERE d.user_id = #{userId}
+          AND d.eat_date BETWEEN #{startDate} AND #{endDate}
+          AND d.deleted_at IS NULL
+    </select>
+
+    <select id="selectDietsByDate" resultType="com.pagoda.matchmeal.model.entity.Diet">
+        SELECT * FROM diet_records
+        WHERE user_id = #{userId}
+          AND eat_date = #{date}
+          AND deleted_at IS NULL
+    </select>
 </mapper>

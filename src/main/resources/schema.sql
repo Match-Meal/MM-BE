@@ -5,6 +5,8 @@ DROP TABLE IF EXISTS comments;
 DROP TABLE IF EXISTS post_files;
 DROP TABLE IF EXISTS posts;
 
+DROP TABLE IF EXISTS ai_chatbot;
+
 DROP TABLE IF EXISTS challenge_invitations;
 DROP TABLE IF EXISTS user_challenges;
 DROP TABLE IF EXISTS challenges;
@@ -255,4 +257,60 @@ CREATE TABLE comment_likes (
 
     -- [핵심] SET NULL
                                CONSTRAINT fk_comment_likes_user_id FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE SET NULL
+);
+
+CREATE TABLE ai_chatbot (
+                            id            BIGINT AUTO_INCREMENT PRIMARY KEY,
+                            user_id       BIGINT NOT NULL,
+                            ref_date      DATE NOT NULL,
+                            ai_type       VARCHAR(20) NOT NULL, -- 'FEEDBACK' or 'RECOMMENDATION'
+                            user_question TEXT,
+                            ai_response   TEXT,
+                            created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+    -- [핵심] 유저 삭제 시 관련 채팅 기록도 자동 삭제
+                            CONSTRAINT fk_ai_chatbot_user FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE
+);
+
+-- 10. 알림 테이블 (유저 탈퇴 시 알림 기록도 함께 삭제)
+CREATE TABLE notifications (
+                               notification_id   BIGINT AUTO_INCREMENT PRIMARY KEY,
+                               receiver_id       BIGINT NOT NULL,          -- 알림을 받는 유저
+                               sender_id         BIGINT,                   -- 알림을 발생시킨 유저 (시스템 알림일 경우 NULL 가능)
+
+                               notification_type VARCHAR(30) NOT NULL,     -- DIET_FEEDBACK, FOLLOW, COMMENT, CHALLENGE_INVITE
+                               content           TEXT NOT NULL,            -- 알림 메시지 내용
+
+                               related_id        BIGINT,                   -- 이동할 상세 페이지 ID (post_id, challenge_id 등)
+                               related_url       VARCHAR(500),             -- 이동할 상세 경로
+
+                               is_read           BOOLEAN DEFAULT 0,        -- 읽음 여부
+                               created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    -- 유저(수신자) 탈퇴 시 알림 자동 삭제
+                               CONSTRAINT fk_noti_receiver FOREIGN KEY (receiver_id) REFERENCES users (user_id) ON DELETE CASCADE,
+    -- 알림 발생시킨 유저 탈퇴 시 해당 컬럼만 NULL 처리 (알림 기록 자체는 유지)
+                               CONSTRAINT fk_noti_sender FOREIGN KEY (sender_id) REFERENCES users (user_id) ON DELETE SET NULL
+);
+
+CREATE INDEX idx_noti_receiver_read ON notifications (receiver_id, is_read);
+
+
+-- 11. 정기 결제 정보 테이블 (기존 테이블 수정 버전)
+-- 테이블이 이미 존재할 경우를 대비해 DROP 후 재생성 로직 권장
+DROP TABLE IF EXISTS user_subscriptions;
+
+CREATE TABLE user_subscriptions (
+                                    subscription_id   BIGINT AUTO_INCREMENT PRIMARY KEY,
+                                    user_id           BIGINT NOT NULL,
+                                    sid               VARCHAR(100) NOT NULL, -- 정기 결제 고유번호 (SID)
+                                    cid               VARCHAR(20) NOT NULL,  -- 가맹점 코드 (TCSUBSCRIP)
+                                    item_name         VARCHAR(100),          -- 상품명
+                                    total_amount      INT NOT NULL,          -- 결제 금액
+                                    status            VARCHAR(20) DEFAULT 'ACTIVE', -- ACTIVE, INACTIVE
+                                    next_billing_date DATE,                  -- 다음 결제 예정일
+                                    created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    -- [핵심] 유저 탈퇴 시 구독 정보도 삭제 (결제 보안 및 데이터 정합성)
+                                    CONSTRAINT fk_sub_user FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE
 );
