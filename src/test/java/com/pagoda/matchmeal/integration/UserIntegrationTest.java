@@ -1,11 +1,11 @@
 package com.pagoda.matchmeal.integration;
 
-import com.pagoda.matchmeal.common.config.jwt.JwtTokenProvider; // [수정] 클래스명 변경
+import com.pagoda.matchmeal.common.config.jwt.JwtTokenProvider;
 import com.pagoda.matchmeal.mapper.UserMapper;
 import com.pagoda.matchmeal.model.dto.UserDto;
 import com.pagoda.matchmeal.model.dto.UserProfileDto;
 import com.pagoda.matchmeal.model.entity.User;
-import com.pagoda.matchmeal.model.enums.UserRole; // [수정] 클래스명 변경
+import com.pagoda.matchmeal.model.enums.UserRole;
 import com.pagoda.matchmeal.support.IntegrationTestSupport;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -84,7 +85,12 @@ class UserIntegrationTest extends IntegrationTestSupport {
     @DisplayName("토큰 없이 호출하면 302 리다이렉트(로그인페이지) 혹은 401 에러가 발생해야 한다")
     void getMyInfo_Fail_NoToken() throws Exception {
         mockMvc.perform(get("/user/me"))
-                .andExpect(status().is3xxRedirection());
+                .andExpect(result -> {
+                    int status = result.getResponse().getStatus();
+                    // 상태 코드가 401이거나 302인지 확인
+                    assertTrue(status == 401 || status == 302,
+                            "상태 코드는 401 또는 302여야 하는데, 실제로는 " + status + "입니다.");
+                });
     }
 
     @Test
