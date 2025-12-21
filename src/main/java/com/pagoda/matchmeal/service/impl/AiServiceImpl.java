@@ -7,6 +7,7 @@ import com.pagoda.matchmeal.mapper.AiChatbotMapper;
 import com.pagoda.matchmeal.mapper.DietMapper;
 import com.pagoda.matchmeal.mapper.UserMapper;
 import com.pagoda.matchmeal.model.dto.ai.*;
+import com.pagoda.matchmeal.model.dto.response.AiChatbotResponseDto;
 import com.pagoda.matchmeal.model.entity.AiChatbot;
 import com.pagoda.matchmeal.model.entity.Diet;
 import com.pagoda.matchmeal.model.entity.DietDetail;
@@ -124,6 +125,25 @@ public class AiServiceImpl implements AiService {
         saveAiLog(userId, today, AiType.RECOMMENDATION, mealType + " 추천", aiResponse);
 
         return aiResponse;
+    }
+
+    @Override
+    public List<AiChatbotResponseDto> getChatHistory(Long userId) {
+        // 1. 이미 있는 Mapper 메서드 호출 (SQL 수정 불필요)
+        List<AiChatbot> logs = aiChatbotMapper.selectHistoryByUserId(userId);
+
+        // 2. Entity(AiChatbot) -> DTO(AiResponseDto) 변환
+        return logs.stream().map(log -> AiChatbotResponseDto.builder()
+                .aiType(log.getAiType())
+
+                // ★ 여기가 핵심: Entity의 필드를 DTO의 필드에 매핑
+                .question(log.getUserQuestion()) // SQL의 user_question
+                .answer(log.getAiResponse())     // SQL의 ai_response
+                .date(String.valueOf(log.getRefDate()))          // SQL의 ref_date
+
+                .createdAt(log.getCreatedAt())
+                .build()
+        ).collect(Collectors.toList());
     }
 
     // Helper Methods
