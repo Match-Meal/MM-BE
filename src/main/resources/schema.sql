@@ -5,6 +5,8 @@ DROP TABLE IF EXISTS comments;
 DROP TABLE IF EXISTS post_files;
 DROP TABLE IF EXISTS posts;
 
+DROP TABLE IF EXISTS ai_chatbot;
+
 DROP TABLE IF EXISTS challenge_invitations;
 DROP TABLE IF EXISTS user_challenges;
 DROP TABLE IF EXISTS challenges;
@@ -255,4 +257,17 @@ CREATE TABLE comment_likes (
 
     -- [핵심] SET NULL
                                CONSTRAINT fk_comment_likes_user_id FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE SET NULL
+);
+
+CREATE TABLE ai_chatbot (
+                            id            BIGINT AUTO_INCREMENT PRIMARY KEY,
+                            user_id       BIGINT NOT NULL,
+                            ref_date      DATE NOT NULL,
+                            ai_type       VARCHAR(20) NOT NULL, -- 'FEEDBACK' or 'RECOMMENDATION'
+                            user_question TEXT,
+                            ai_response   TEXT,
+                            created_at    DATETIME DEFAULT CURRENT_TIMESTAMP,
+
+    -- [핵심] 유저 삭제 시 관련 채팅 기록도 자동 삭제
+                            CONSTRAINT fk_ai_chatbot_user FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE
 );
