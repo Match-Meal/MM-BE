@@ -22,6 +22,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * AI 음식 이미지 분석 서비스 구현체
+ * - 외부 AI 서버(FastAPI)와 통신하여 음식 이미지를 분석하고,
+ * - 분석된 음식 이름으로 내부 DB에서 일치하는 영양 정보를 검색합니다.
+ */
 @Service
 @Transactional(readOnly = true)
 @RequiredArgsConstructor
@@ -34,6 +39,14 @@ public class AiFoodVisionServiceImpl implements AiFoodVisionService {
     @Value("${ai.url}")
     private String FASTAPI_URL;
 
+    /**
+     * 음식 이미지 분석 및 정보 검색
+     * 1. FastAPI 서버로 이미지 전송 -> 예측된 음식 이름 수신
+     * 2. 예측된 이름으로 DB 검색 -> 영양 정보 리스트 확보
+     *
+     * @param image 분석할 음식 이미지 파일 (MultipartFile)
+     * @return 분석된 음식 이름(Best Candidate), 후보군, 그리고 DB에서 매칭된 음식 정보 리스트를 포함한 DTO
+     */
     @Override
     public FoodAnalysisResponseDto analyzeAndFindFood(MultipartFile image) {
         // 1. [유효성 검사] 이미지가 비어있는지 확인
@@ -74,7 +87,6 @@ public class AiFoodVisionServiceImpl implements AiFoodVisionService {
         String predictedName = aiResult.getBestCandidate(); // 예: "김치찌개"
 
         // 3. [DB 검색] AI가 알려준 이름으로 DB에서 음식 찾기
-        // (Repository 메소드는 findByNameContaining(String name) 가정)
         List<FoodDetailResponseDto> foodEntities = foodMapper.findFoodDetailByFoodName(predictedName);
 
         // 4. [Entity -> DTO 변환] MatchedFoodDto 리스트 생성

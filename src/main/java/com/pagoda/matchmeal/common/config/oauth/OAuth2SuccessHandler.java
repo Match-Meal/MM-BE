@@ -22,6 +22,13 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.io.IOException;
 import java.time.Duration;
 
+/**
+ * OAuth2 로그인 성공 핸들러
+ * - 소셜 인증 성공 후 실행됨
+ * - Access/Refresh Token 생성 및 발급
+ * - Refresh Token을 Redis에 저장
+ * - 프론트엔드 URL로 리다이렉트 (토큰 정보 포함)
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -34,6 +41,13 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
     @Value("${cors.url}")
     private String corsUrl;
 
+    /**
+     * 인증 성공 시 호출되는 메서드
+     *
+     * @param request        HttpServletRequest
+     * @param response       HttpServletResponse
+     * @param authentication 인증된 사용자 정보 객체
+     */
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response, Authentication authentication) throws IOException, ServletException {
         OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();

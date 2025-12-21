@@ -20,6 +20,10 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDate;
 import java.util.List;
 
+/**
+ * 식단 관리 컨트롤러
+ * - 식단 CRUD, AI 이미지 분석, 통계 조회 API 제공
+ */
 @RestController
 @RequiredArgsConstructor
 public class DietController {
@@ -27,6 +31,9 @@ public class DietController {
     private final DietService dietService;
     private final AiFoodVisionService aiFoodVisionService;
 
+    /**
+     * 식단 이미지 AI 분석 요청
+     */
     @PostMapping(value = "/diet/analyze", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public CommonResponse<FoodAnalysisResponseDto> analyzeDietImage(
             @RequestPart("file") MultipartFile file
@@ -35,6 +42,9 @@ public class DietController {
         return ApiResponseUtil.success(aiFoodVisionService.analyzeAndFindFood(file));
     }
 
+    /**
+     * 식단 기록 저장
+     */
     @PostMapping("/diet")
     public CommonResponse<Long> addDiet(
             @AuthenticationPrincipal UserDto userDto,
@@ -43,11 +53,14 @@ public class DietController {
         return ApiResponseUtil.created(dietService.recordDiet(userDto.getId(), dietRequestDto, file));
     }
 
+    /**
+     * 일별 식단 조회
+     */
     @GetMapping("/diet")
     public CommonResponse<List<DietResponseDto>> getDailyDiet(
             @AuthenticationPrincipal UserDto userDto,
             @RequestParam(value = "date", required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
-            @RequestParam(value = "userId", required = false) Long targetUserId) { // [추가]
+            @RequestParam(value = "userId", required = false) Long targetUserId) {
 
         if (date == null) {
             date = LocalDate.now();
@@ -59,11 +72,17 @@ public class DietController {
         return ApiResponseUtil.success(dietService.getDailyDiet(searchUserId, date));
     }
 
+    /**
+     * 식단 상세 조회
+     */
     @GetMapping("/diet/{dietId}")
     public CommonResponse<DietResponseDto> getDietById(@AuthenticationPrincipal UserDto userDto, @PathVariable Long dietId) {
         return ApiResponseUtil.success(dietService.getDietDetail(userDto.getId(), dietId));
     }
 
+    /**
+     * 식단 수정
+     */
     @PutMapping("/diet/{dietId}")
     public CommonResponse<Void> updateDiet(@AuthenticationPrincipal UserDto userDto,
                                            @PathVariable Long dietId,
@@ -73,17 +92,23 @@ public class DietController {
         return ApiResponseUtil.success();
     }
 
+    /**
+     * 식단 삭제
+     */
     @DeleteMapping("/diet/{dietId}")
     public CommonResponse<Void> deleteDiet(@AuthenticationPrincipal UserDto userDto, @PathVariable Long dietId) {
         dietService.deleteDiet(userDto.getId(), dietId);
         return ApiResponseUtil.success();
     }
 
+    /**
+     * 식단 통계 조회
+     */
     @GetMapping("/diet/stats")
     public CommonResponse<DietStatsResponseDto> getDietStats(
             @AuthenticationPrincipal UserDto userDto,
             @ModelAttribute DietStatsRequestDto dietStatsRequestDto,
-            @RequestParam(value = "userId", required = false) Long targetUserId) { // [추가]
+            @RequestParam(value = "userId", required = false) Long targetUserId) {
 
         Long searchUserId = (targetUserId != null) ? targetUserId : userDto.getId();
 
@@ -91,8 +116,7 @@ public class DietController {
     }
 
     /**
-     * [기간 조회] 챌린지 기간 등 특정 기간의 식단 기록 조회
-     * - 본인 또는 타인의 식단 기록을 기간 단위로 조회
+     * 기간별 식단 리스트 조회 (챌린지용 등)
      */
     @GetMapping("/diet/period")
     public CommonResponse<List<DietResponseDto>> getDietListByPeriod(

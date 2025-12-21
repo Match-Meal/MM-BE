@@ -27,6 +27,11 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Spring Security 설정 클래스
+ * - HTTP 보안 설정, CORS, CSRF 비활성화, 세션 미사용(Stateless) 설정
+ * - JWT 필터 등록 및 OAuth2 로그인 핸들러 구성
+ */
 @Slf4j
 @Configuration
 @EnableWebSecurity
@@ -43,6 +48,10 @@ public class SecurityConfig {
 
     private final HttpCookieOAuth2AuthorizationRequestRepository cookieOAuth2AuthorizationRequestRepository;
 
+    /**
+     * SecurityFilterChain 빈 등록
+     * 요청 URL별 권한 설정, 예외 처리, OAuth2 로그인, JWT 필터 추가 등 보안 로직을 체이닝 방식으로 구성
+     */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
         http
@@ -60,7 +69,7 @@ public class SecurityConfig {
                         .requestMatchers("/user/reactivate").hasRole("WITHDRAWN") // 임시 토큰 가진 사람만 접근 가능
                         .requestMatchers("/user/**").hasRole("USER") // 일반 유저
                         .requestMatchers("/auth/**").permitAll()
-                        .requestMatchers("/", "/css/**", "/images/**", "/js/**", "/login/**","/favicon.ico", "/error").permitAll()
+                        .requestMatchers("/", "/css/**", "/images/**", "/js/**", "/login/**", "/favicon.ico", "/error").permitAll()
                         .requestMatchers("/h2-console/**", "/test/**").permitAll()
                         .anyRequest().authenticated()
                 )
@@ -85,7 +94,10 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // 401 Unauthorized: 인증되지 않은 사용자 (토큰 없음, 만료됨 등)
+    /**
+     * 인증되지 않은 사용자(401) 처리 핸들러
+     * - 유효한 토큰이 없거나 만료된 경우 JSON 형태의 에러 응답 반환
+     */
     @Bean
     public AuthenticationEntryPoint unauthorizedEntryPoint() {
         return (request, response, authException) -> {
@@ -103,7 +115,10 @@ public class SecurityConfig {
         };
     }
 
-    // 403 Forbidden: 권한 없는 사용자 (ROLE_WITHDRAWN이 일반 API 접근 시 등)
+    /**
+     * 접근 권한이 없는 사용자(403) 처리 핸들러
+     * - 로그인했으나 해당 리소스에 대한 접근 권한(Role)이 부족한 경우 JSON 에러 응답 반환
+     */
     @Bean
     public AccessDeniedHandler accessDeniedHandler() {
         return (request, response, accessDeniedException) -> {
@@ -121,6 +136,10 @@ public class SecurityConfig {
         };
     }
 
+    /**
+     * CORS 설정 빈
+     * - 프론트엔드 도메인에서의 요청 허용, 헤더 및 메서드 허용, 자격 증명(Cookie 등) 허용 설정
+     */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();

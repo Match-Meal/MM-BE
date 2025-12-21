@@ -16,6 +16,11 @@ import java.io.IOException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 
+/**
+ * OAuth2 로그인 실패 핸들러
+ * - 소셜 로그인 과정에서 예외 발생 시 실행됨
+ * - 단순 실패와 '탈퇴한 유저의 재로그인 시도'를 구분하여 처리
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -23,6 +28,13 @@ public class OAuth2FailureHandler extends SimpleUrlAuthenticationFailureHandler 
 
     private final JwtTokenProvider jwtTokenProvider;
 
+    /**
+     * 인증 실패 시 호출되는 메서드
+     *
+     * @param request   HttpServletRequest
+     * @param response  HttpServletResponse
+     * @param exception 발생한 인증 예외
+     */
     @Override
     public void onAuthenticationFailure(HttpServletRequest request, HttpServletResponse response, AuthenticationException exception) throws IOException, ServletException {
         // 기본 타겟: 로그인 페이지 (에러 파라미터 포함)
