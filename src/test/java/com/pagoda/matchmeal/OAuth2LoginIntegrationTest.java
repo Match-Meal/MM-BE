@@ -1,5 +1,6 @@
 package com.pagoda.matchmeal;
 
+import com.pagoda.matchmeal.support.IntegrationTestSupport;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,9 +13,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest
-@AutoConfigureMockMvc
-public class OAuth2LoginIntegrationTest {
+public class OAuth2LoginIntegrationTest extends IntegrationTestSupport {
 
     @Autowired
     private MockMvc mockMvc;

@@ -58,4 +58,31 @@
         WHERE user_id = #{userId}
     </update>
 
+    <update id="softDeleteUser">
+        UPDATE users
+        SET deleted_at = NOW(),
+            status = 'INACTIVE',
+            updated_at = NOW()
+        WHERE user_id = #{userId}
+    </update>
+
+    <update id="restoreUser">
+        UPDATE users
+        SET deleted_at = NULL,
+            status = 'ACTIVE',
+            updated_at = NOW()
+        WHERE user_id = #{userId}
+    </update>
+
+    <delete id="hardDeleteExpiredUsers">
+        DELETE FROM users
+        WHERE deleted_at IS NOT NULL
+          AND deleted_at &lt; #{thresholdDate}
+    </delete>
+
+    <delete id="hardDeleteUserById">
+        DELETE FROM users
+        WHERE user_id = #{userId}
+    </delete>
+
 </mapper>

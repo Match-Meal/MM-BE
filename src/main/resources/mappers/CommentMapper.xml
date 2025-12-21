@@ -24,14 +24,14 @@
 
                -- 작성자 정보
                u.user_id                                                                  AS "user.userId",
-               u.user_name                                                                AS "user.userName",
+               IFNULL(u.user_name, '탈퇴한 사용자')            AS "user.userName",
                u.profile_image                                                            AS "user.profileImage",
 
                -- 좋아요 개수 (서브쿼리)
                (SELECT COUNT(*) FROM comment_likes cl WHERE cl.comment_id = c.comment_id) AS like_count
 
         FROM comments c
-                 JOIN users u ON c.user_id = u.user_id
+                 LEFT JOIN users u ON c.user_id = u.user_id
         WHERE c.post_id = #{postId}
         -- 삭제된 댓글도 대댓글이 있으면 '삭제된 댓글입니다'로 보여줘야 하므로
         -- 일단 다 가져오거나, 정책에 따라 AND c.deleted_at IS NULL 추가
@@ -61,7 +61,7 @@
                (SELECT COUNT(*) FROM comment_likes cl WHERE cl.comment_id = c.comment_id) AS like_count
 
         FROM comments c
-                 JOIN users u ON c.user_id = u.user_id
+                 LEFT JOIN users u ON c.user_id = u.user_id
         WHERE c.comment_id = #{commentId}
     </select>
 

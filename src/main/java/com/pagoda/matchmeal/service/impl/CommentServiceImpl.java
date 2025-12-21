@@ -161,7 +161,12 @@ public class CommentServiceImpl implements CommentService {
             throw new CustomException(ErrorResponseCode.COMMENT_NOT_FOUND);
         }
 
-        // 작성자 ID 비교
+        // 1. [Null Safety] 작성자 정보가 없으면(탈퇴한 회원) 수정/삭제 불가
+        if (comment.getUser() == null || comment.getUser().getUserId() == null) {
+            throw new CustomException(ErrorResponseCode.UNAUTHORIZED);
+        }
+
+        // 2. 작성자 ID와 요청자 ID가 일치하는지 확인
         if (!comment.getUser().getUserId().equals(userId)) {
             throw new CustomException(ErrorResponseCode.UNAUTHORIZED);
         }

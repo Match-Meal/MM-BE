@@ -1,25 +1,37 @@
 package com.pagoda.matchmeal.controller;
 
+import com.pagoda.matchmeal.common.config.jwt.JwtTokenProvider;
 import com.pagoda.matchmeal.common.exception.ErrorResponseCode;
 import com.pagoda.matchmeal.common.response.CommonResponse;
 import com.pagoda.matchmeal.common.util.ApiResponseUtil;
 import com.pagoda.matchmeal.model.dto.UserDto;
 import com.pagoda.matchmeal.model.dto.UserProfileDto;
+import com.pagoda.matchmeal.model.entity.User;
+import com.pagoda.matchmeal.service.AuthService;
 import com.pagoda.matchmeal.service.UserService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClient;
+import org.springframework.security.oauth2.client.OAuth2AuthorizedClientService;
+import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.HashMap;
 import java.util.Map;
 
+@Slf4j
 @RestController
 @RequestMapping("/user")
 @RequiredArgsConstructor
 public class UserController {
 
     private final UserService userService;
+    private final AuthService authService;
+    private final JwtTokenProvider jwtTokenProvider;
+    private final OAuth2AuthorizedClientService authorizedClientService;
 
     /**
      * 내 정보 조회
@@ -80,4 +92,55 @@ public class UserController {
         return ApiResponseUtil.success();
     }
 
+    /**
+     * 탈퇴 회원 복구 또는 재가입 (임시 토큰 필요)
+     * Header: Authorization: Bearer {tempToken}
+     */
+    @PostMapping("/reactivate")
+    public CommonResponse<Map<String, Object>> reactivateUser(
+            @AuthenticationPrincipal UserDto tempUser, // 임시 토큰에서 파싱된 정보
+            @RequestBody Map<String, String> request // { "decision": "RESTORE" or "RESET" }
+    ) {
+        // 1. 보안 검증: 이 토큰이 진짜 ROLE_WITHDRAWN 인지 확인
+        if (!"ROLE_WITHDRAWN".equals(tempUser.getRole())) {
+            return ApiResponseUtil.failure(ErrorResponseCode.UNAUTHORIZED);
+        }
+
+        String decision = request.get("decision"); // "RESTORE" or "RESET"
+        String socialId = tempUser.getSocialId(); // 토큰 subject에 있음
+
+        // 2. 서비스 호출 (기존 processLoginOrRegister 재활용)
+        // socialId는 토큰에서 꺼냈으므로 안전함. 나머지는 null로 넘겨도 DB 조회로 처리됨.
+        Map<String, Object> result = authService.processLoginOrRegister(
+                socialId,
+                null, null, null, null, // 이미 DB에 있거나 토큰에 정보가 있으므로 생략 가능
+                decision
+        );
+
+        // 3. 정식 Access Token 발급 (이제 ROLE_USER)
+        User user = (User) result.get("user");
+
+        // DTO 변환 및 정식 토큰 생성 로직 (OAuth2SuccessHandler와 유사)
+        UserDto userDto = userService.convertUserToDto(user); // DTO 변환 메서드 필요
+        String newAccessToken = jwtTokenProvider.createAccessToken(userDto);
+
+        // 결과 반환
+        Map<String, Object> responseMap = new HashMap<>();
+        responseMap.put("accessToken", newAccessToken);
+        responseMap.put("user", userDto);
+
+        return ApiResponseUtil.success(responseMap);
+    }
+
+    @DeleteMapping("/withdraw")
+    public CommonResponse<Void> withdrawUser(
+            @AuthenticationPrincipal UserDto userDto
+    ) {
+        log.info("회원 탈퇴 요청 - UserID: {}", userDto.getId());
+
+        // 소셜 토큰 추출 로직 삭제 -> 서비스 레이어에서 DB 정보로 처리하거나 생략
+        userService.withdrawUser(userDto.getId());
+
+        return ApiResponseUtil.success();
+    }
 }

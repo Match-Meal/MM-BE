@@ -18,7 +18,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
 
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -40,30 +39,15 @@ public class UserServiceTest {
     @Mock
     private FollowMapper followMapper;
 
+    @Mock
+    private SocialUnlinkService socialUnlinkService;
+
+    @Mock
+    private RedisService redisService;
+
     @InjectMocks
     private UserServiceImpl userService;
 
-    @Test
-    @DisplayName("신규 회원이면 save가 호출되어야 함")
-    void processLoginNewUserTest() {
-        // given
-        String socialId = "12345";
-        String email = "test@gmail.com";
-        String pictureUrl = "https://google.com/picture.jpg";
-
-        given(userMapper.findBySocialId(socialId)).willReturn(Optional.empty());
-
-        // when
-        Map<String, Object> result = userService.processLoginOrRegister(socialId, email, "테스트유저", "google", pictureUrl);
-
-        // then
-        verify(userMapper, times(1)).save(argThat(user ->
-                user.getProfileImage().equals(pictureUrl) // 이미지가 잘 들어갔는지 확인
-        ));
-
-        assertThat(result.get("isNew")).isEqualTo(true);
-        assertThat(((User) result.get("user")).getSocialId()).isEqualTo(socialId);
-    }
 
     @Test
     @DisplayName("내 정보 조회 시 문자열로 저장된 알레르기가 리스트로 변환되어야 함")
@@ -223,6 +207,41 @@ public class UserServiceTest {
         verify(userMapper).updateProfile(argThat(user ->
                 user.getProfileImage().equals("original_url.jpg") // 기존 URL 유지 확인
         ));
+    }
+
+    @Test
+    @DisplayName("회원 탈퇴 성공 - 소셜 연동 해제 및 DB 삭제")
+    void withdrawUser_Success() {
+        // given
+        Long userId = 1L;
+        User mockUser = User.builder()
+                .userId(userId)
+                .platform("kakao")       // 플랫폼 설정
+                .socialId("123456789")   // 소셜 ID 설정
+                .build();
+
+        // 1. 유저 조회 Mock
+        given(userMapper.findById(userId)).willReturn(Optional.of(mockUser));
+
+        // 2. Redis 삭제 Mock (void 메서드는 willDoNothing 생략 가능하나 명시적 표현)
+        // given(redisService.deleteValues(anyString())).willDoNothing();
+
+        // when
+        userService.withdrawUser(userId); // ★ 파라미터 1개만 전달
+
+        // then
+        // 1. 유저 조회 호출 확인
+        verify(userMapper).findById(userId);
+
+        // 2. 소셜 연동 해제 호출 확인 (파라미터가 socialId로 변경됨)
+        // unlink(String platform, String socialId)
+        verify(socialUnlinkService).unlink("kakao", "123456789");
+
+        // 3. Redis 삭제 호출 확인
+        verify(redisService).deleteValues("RT:" + userId);
+
+        // 4. DB Soft Delete 호출 확인
+        verify(userMapper).softDeleteUser(userId);
     }
 
 }
