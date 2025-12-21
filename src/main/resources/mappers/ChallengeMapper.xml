@@ -285,11 +285,6 @@
         WHERE challenge_id = #{challengeId}
     </update>
 
-    <delete id="deleteInvitationsByChallengeId">
-        DELETE FROM invitations
-        WHERE challenge_id = #{challengeId}
-    </delete>
-
     <delete id="deleteUserChallengesByChallengeId">
         DELETE FROM user_challenges
         WHERE challenge_id = #{challengeId}
@@ -311,6 +306,11 @@
         WHERE challenge_id = #{challengeId}
     </update>
 
+    <delete id="deleteInvitationsByChallengeId">
+        DELETE FROM challenge_invitations
+        WHERE challenge_id = #{challengeId}
+    </delete>
+
     <select id="findInvitationById" resultType="com.pagoda.matchmeal.model.entity.ChallengeInvitation">
         SELECT
             invitation_id AS invitationId,
@@ -319,12 +319,12 @@
             invitee_id    AS inviteeId,
             status,
             created_at    AS createdAt
-        FROM invitations
+        FROM challenge_invitations
         WHERE invitation_id = #{invitationId}
     </select>
 
     <update id="updateInvitationStatus">
-        UPDATE invitations
+        UPDATE challenge_invitations
         SET status = #{status}
         WHERE invitation_id = #{invitationId}
     </update>
@@ -334,12 +334,12 @@
             i.invitation_id       AS invitationId,
             i.created_at          AS sentAt,
 
-            /* 보낸 사람 정보 */
+            /* 보낸 사람 정보 (User 테이블 조인) */
             u.user_id             AS inviterId,
             u.user_name           AS inviterName,
             u.profile_image       AS inviterProfileImage,
 
-            /* 챌린지 정보 */
+            /* 챌린지 정보 (Challenge 테이블 조인) */
             c.challenge_id        AS challengeId,
             c.title               AS challengeTitle,
             c.type                AS type,
@@ -348,9 +348,8 @@
             c.current_head_count  AS currentHeadCount,
             c.max_participants    AS maxParticipants
 
-        FROM invitations i
-                 JOIN users u ON i.inviter_id = u.user_id
-                 JOIN challenges c ON i.challenge_id = c.challenge_id
+        FROM challenge_invitations i   JOIN users u ON i.inviter_id = u.user_id
+                                       JOIN challenges c ON i.challenge_id = c.challenge_id
 
         WHERE i.invitee_id = #{userId}
           AND i.status = 'PENDING'
