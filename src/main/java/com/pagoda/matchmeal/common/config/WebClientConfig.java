@@ -13,9 +13,19 @@ import reactor.netty.http.client.HttpClient;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * WebClient 설정 클래스
+ * - AI 서버 등 외부 서비스와의 비동기 통신을 담당
+ * - 대용량 데이터 전송 및 긴 응답 대기 시간을 고려한 타임아웃/버퍼 설정 포함
+ */
 @Configuration
 public class WebClientConfig {
 
+    /**
+     * WebClient 빈 생성
+     *
+     * @return 설정된 WebClient 객체
+     */
     @Bean
     public WebClient webClient() {
         // 1. [타임아웃 설정] AI 분석이 오래 걸릴 수 있으므로 넉넉하게 잡습니다.

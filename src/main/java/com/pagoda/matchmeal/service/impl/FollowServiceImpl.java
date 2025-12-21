@@ -13,15 +13,22 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
+/**
+ * 팔로우(Follow) 비즈니스 로직 구현체
+ * - 팔로우/언팔로우 토글 기능
+ * - 팔로워 및 팔로잉 목록 조회 기능
+ */
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class FollowServiceImpl implements FollowService {
-    
+
     private final FollowMapper followMapper;
     private final UserMapper userMapper;
 
     /**
      * 팔로우 토글(이미 팔로우 중이면 취소, 아니면 팔로우
+     *
      * @param followerId
      * @param followingId
      */
@@ -32,10 +39,10 @@ public class FollowServiceImpl implements FollowService {
             throw new CustomException(ErrorResponseCode.SELF_FOLLOW_NOT_ALLOWED);
         }
 
-        // 대상 확인
+        // 대상 유저 존재 여부 확인
         userMapper.findById(followingId)
                 .orElseThrow(() -> new CustomException(ErrorResponseCode.USER_NOT_FOUND));
-        
+
         // 이미 팔로우 중인지 확인
         boolean exists = followMapper.existsByFollowerAndFollowing(followerId, followingId);
         boolean currentStatus;
@@ -48,6 +55,7 @@ public class FollowServiceImpl implements FollowService {
             currentStatus = true;
         }
 
+        // 갱신된 카운트 조회
         Long targetFollowerCount = followMapper.countFollowers(followingId);
         Long myFollowingCount = followMapper.countFollowings(followerId);
 
@@ -58,8 +66,14 @@ public class FollowServiceImpl implements FollowService {
                 .build();
     }
 
+    /**
+     * 팔로워 목록 조회 (나를 팔로우 하는 사람들)
+     *
+     * @param targetUserId 조회 대상 유저의 PK (누구의 팔로워를 볼 것인가)
+     * @param viewerId     목록을 보는 유저의 PK (리스트 내 유저들과의 맞팔 여부 확인용)
+     * @return 팔로워 유저 목록 DTO 리스트
+     */
     @Override
-    @Transactional(readOnly = true)
     public List<FollowListDto> getFollowers(Long targetUserId, Long viewerId) {
         // 대상 유저 존재 확인
         userMapper.findById(targetUserId).orElseThrow(() -> new CustomException(ErrorResponseCode.USER_NOT_FOUND));
@@ -67,16 +81,24 @@ public class FollowServiceImpl implements FollowService {
         return followMapper.getFollowers(targetUserId, viewerId);
     }
 
+    /**
+     * 팔로잉 목록 조회 (내가 팔로우 하는 사람들)
+     *
+     * @param targetUserId 조회 대상 유저의 PK (누구의 팔로잉을 볼 것인가)
+     * @param viewerId     목록을 보는 유저의 PK (리스트 내 유저들과의 맞팔 여부 확인용)
+     * @return 팔로잉 유저 목록 DTO 리스트
+     */
     @Override
-    @Transactional(readOnly = true)
     public List<FollowListDto> getFollowings(Long targetUserId, Long viewerId) {
         return followMapper.getFollowings(targetUserId, viewerId);
     }
 
     /**
-     * 팔로윙 확인
-     * @param followerId
-     * @param followingId
+     * 팔로우 여부 단순 확인
+     *
+     * @param followerId  팔로우 하는 유저 PK
+     * @param followingId 팔로우 받는 유저 PK
+     * @return true: 팔로우 중, false: 팔로우 안 함
      */
     @Override
     public boolean isFollowing(Long followerId, Long followingId) {

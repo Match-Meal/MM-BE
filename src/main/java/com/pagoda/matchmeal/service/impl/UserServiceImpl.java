@@ -18,12 +18,18 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * 회원 비즈니스 로직 구현체
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class UserServiceImpl implements UserService {
 
     private final UserMapper userMapper;
@@ -32,40 +38,42 @@ public class UserServiceImpl implements UserService {
     private final SocialUnlinkService socialUnlinkService;
     private final RedisService redisService;
 
+    /**
+     * 내 프로필 상세 조회
+     *
+     * @param userId 로그인한 사용자 PK
+     * @return 사용자 상세 정보 DTO
+     */
     @Override
-    @Transactional(readOnly = true)
     public UserDto getMyProfile(Long userId) {
-        // DB 조회
         User user = userMapper.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 회원입니다."));
-
-        // Entity -> DTO 변환 (Service 내부에서 처리)
         return convertToDto(user);
     }
 
+    /**
+     * 프로필 정보 수정
+     *
+     * @param userId     수정할 사용자 PK
+     * @param profileDto 수정할 텍스트 정보(닉네임, 키, 몸무게 등)가 담긴 DTO
+     * @param imageFile  새로 교체할 프로필 이미지 파일 (null일 경우 이미지 변경 없음)
+     */
     @Override
     @Transactional
     public void updateProfile(Long userId, UserProfileDto profileDto, MultipartFile imageFile) {
-
         User existUser = userMapper.findById(userId).orElseThrow(() -> new CustomException(ErrorResponseCode.USER_NOT_FOUND));
-
         String profileImageUrl = existUser.getProfileImage();
 
-        // 새 이미지가 업로드된 경우
         if (imageFile != null && !imageFile.isEmpty()) {
-            // (선택) 기존 이미지가 있다면 S3에서 삭제 (구글 기본 이미지가 아닐 경우만)
             if (StringUtils.hasText(profileImageUrl) && !profileImageUrl.startsWith("amazonaws.com")) {
-                s3Service.deleteFile(profileImageUrl); // 삭제 메서드 구현 필요
+                s3Service.deleteFile(profileImageUrl);
             }
-
-            // 새 파일 업로드
             profileImageUrl = s3Service.uploadFile(imageFile, "profile");
         }
 
         String allergyStr = convertToString(profileDto.getAllergies());
         String diseaseStr = convertToString(profileDto.getDiseases());
 
-        // 기존 유저 조회
         User user = User.builder()
                 .userId(userId)
                 .userName(profileDto.getUserName())
@@ -82,6 +90,12 @@ public class UserServiceImpl implements UserService {
         userMapper.updateProfile(user);
     }
 
+    /**
+     * 프로필 공개/비공개 전환
+     *
+     * @param userId   사용자 PK
+     * @param isPublic true: 공개, false: 비공개
+     */
     @Override
     @Transactional
     public void updateVisibility(Long userId, boolean isPublic) {
@@ -89,11 +103,15 @@ public class UserServiceImpl implements UserService {
                 .userId(userId)
                 .isPublic(isPublic)
                 .build();
-
         userMapper.updateVisibility(user);
     }
 
-
+    /**
+     * 상대방 프로필 조회
+     *
+     * @param targetUserId 조회할 상대방 사용자 PK
+     * @return 공개 여부에 따라 필터링된 사용자 정보 DTO
+     */
     @Override
     @Transactional
     public UserDto getUserProfile(Long targetUserId) {
@@ -101,7 +119,6 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new CustomException(ErrorResponseCode.USER_NOT_FOUND));
 
         if (Boolean.FALSE.equals(targetUser.getIsPublic())) {
-            // 비공개여도 이름, 사진, 팔로우 숫자는 보여줘야함
             Long followerCount = followMapper.countFollowers(targetUserId);
             Long followingCount = followMapper.countFollowings(targetUserId);
 
@@ -113,53 +130,43 @@ public class UserServiceImpl implements UserService {
                     .followingCount(followingCount)
                     .build();
         }
-
         return convertToDto(targetUser);
     }
 
+    /**
+     * 회원 탈퇴 처리
+     *
+     * @param userId 탈퇴할 사용자 PK
+     */
     @Override
     @Transactional
     public void withdrawUser(Long userId) {
-        // 1. 유저 조회
         User user = userMapper.findById(userId)
                 .orElseThrow(() -> new CustomException(ErrorResponseCode.USER_NOT_FOUND));
 
-        // 2. 이미 탈퇴한 유저인지 체크
         if (user.getDeletedAt() != null) {
             throw new CustomException(ErrorResponseCode.ALREADY_USER_DELETE);
         }
 
-        // 3. 소셜 연결 끊기 (옵션)
-        // JWT 환경에서는 AccessToken을 서버가 가지고 있지 않으므로,
-        // DB에 있는 socialId와 platform 정보를 넘겨서 처리합니다.
-        // (SocialUnlinkService 구현체에서 Admin Key를 쓰거나 로직을 수정해야 할 수 있음)
         if (StringUtils.hasText(user.getPlatform()) && StringUtils.hasText(user.getSocialId())) {
             try {
-                // [변경] accessToken 대신 socialId를 넘기는 방식으로 변경하거나,
-                // 만약 accessToken이 필수라면 이 부분은 스킵하고 로컬 탈퇴만 진행해야 합니다.
                 socialUnlinkService.unlink(user.getPlatform(), user.getSocialId());
             } catch (Exception e) {
-                // 외부 API 연동 실패가 우리 DB 탈퇴를 막으면 안 됨 -> 로그만 찍고 진행
                 log.warn("소셜 연동 해제 실패 (진행은 계속함). userId: {}, error: {}", userId, e.getMessage());
             }
         }
 
-        // 4. Redis Refresh Token 삭제 (강제 로그아웃)
         redisService.deleteValues("RT:" + userId);
-
-        // 5. DB Soft Delete (핵심)
         userMapper.softDeleteUser(userId);
-
         log.info("회원 탈퇴 완료 (Soft Delete). UserID: {}", userId);
     }
 
     @Override
     public UserDto convertUserToDto(User user) {
-        // 기존의 private 메서드를 호출하거나, 로직을 여기로 옮기면 됩니다.
         return convertToDto(user);
     }
 
-    // ---------------- Helper Methods -----------------
+    // --- Helper Methods (Private) ---
 
     private List<String> convertToList(String str) {
         if (!StringUtils.hasText(str)) return Collections.emptyList();
@@ -168,14 +175,12 @@ public class UserServiceImpl implements UserService {
                 .collect(Collectors.toList());
     }
 
-    // List["땅콩", "우유"] -> DB의 "땅콩,우유"
     private String convertToString(List<String> list) {
         if (list == null || list.isEmpty()) return "";
         return String.join(",", list);
     }
 
     private UserDto convertToDto(User user) {
-        // 팔로우/팔로잉 숫자 조회
         Long followerCount = followMapper.countFollowers(user.getUserId());
         Long followingCount = followMapper.countFollowings(user.getUserId());
 
@@ -192,7 +197,6 @@ public class UserServiceImpl implements UserService {
                 .birthDate(user.getBirthDate())
                 .heightCm(user.getHeightCm())
                 .weightKg(user.getWeightKg())
-                // 문자열(DB) -> 리스트(DTO) 변환 헬퍼 사용
                 .allergies(convertToList(user.getAllergies()))
                 .diseases(convertToList(user.getDiseases()))
                 .isPublic(user.getIsPublic())

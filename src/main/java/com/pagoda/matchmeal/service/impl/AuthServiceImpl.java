@@ -21,6 +21,12 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * 인증(Authentication) 비즈니스 로직 구현체
+ * - 로그인/회원가입 분기 처리
+ * - JWT 토큰 재발급 (Access/Refresh Token)
+ * - 로그아웃 (Redis 토큰 삭제)
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -32,6 +38,14 @@ public class AuthServiceImpl implements AuthService {
 
     /**
      * 로그인 또는 회원가입 처리 (UserService에서 이동됨)
+     *
+     * @param socialId    소셜 서비스(ID Provider)의 고유 식별자
+     * @param email       사용자 이메일
+     * @param name        사용자 이름 (닉네임)
+     * @param platform    소셜 플랫폼 정보 (예: kakao, naver, google)
+     * @param picture     프로필 이미지 URL
+     * @param restartType 탈퇴 회원 처리 방식 ("RESTORE": 계정 복구, "RESET": 신규 가입으로 초기화, null: 일반 로그인)
+     * @return 로그인/가입 처리된 User 객체와 신규 가입 여부(isNew)를 담은 Map
      */
     @Override
     @Transactional
@@ -40,20 +54,23 @@ public class AuthServiceImpl implements AuthService {
         User user = userMapper.findBySocialId(socialId).orElse(null);
         boolean isNew = false;
 
-        // 탈퇴 회원 처리 로직 (기존과 동일)
+        // 탈퇴 회원 처리 로직
         if (user != null && user.getDeletedAt() != null) {
             LocalDateTime threeMonthsAgo = LocalDateTime.now().minusMonths(3);
             if (user.getDeletedAt().isBefore(threeMonthsAgo)) {
+                // 3개월 지났으면 완전 삭제 후 신규 가입 유도
                 userMapper.hardDeleteUserById(user.getUserId());
                 user = null;
             } else {
                 if (restartType == null) throw new CustomException(ErrorResponseCode.USER_WITHDRAWN_WAITING);
 
                 if ("RESTORE".equals(restartType)) {
+                    // 복구: 삭제일 제거 및 상태 활성화
                     userMapper.restoreUser(user.getUserId());
                     user.setDeletedAt(null);
                     user.setStatus(UserStatus.ACTIVE);
                 } else if ("RESET".equals(restartType)) {
+                    // 초기화: 기존 데이터 삭제 후 아래에서 신규 가입 진행
                     userMapper.hardDeleteUserById(user.getUserId());
                     user = null;
                 }
@@ -76,8 +93,6 @@ public class AuthServiceImpl implements AuthService {
             userMapper.save(user);
         }
 
-        // ★ 여기서 토큰까지 만들어서 리턴해주는 게 더 깔끔할 수도 있지만,
-        // 기존 구조(핸들러에서 처리)를 유지한다면 user 객체만 넘깁니다.
         result.put("user", user);
         result.put("isNew", isNew);
         return result;
@@ -85,17 +100,19 @@ public class AuthServiceImpl implements AuthService {
 
     /**
      * 토큰 재발급 (RTR 방식: Refresh Token도 함께 갱신)
+     *
+     * @param refreshToken 클라이언트가 보낸 Refresh Token
+     * @return 새로 발급된 accessToken과 refreshToken이 담긴 Map
      */
     @Override
     @Transactional
     public Map<String, String> reissueToken(String refreshToken) {
-        // Refresh Token 유효성 검사(만료 여부, 서명 위조 여부)
+        // Refresh Token 유효성 검사
         if (!jwtTokenProvider.validateToken(refreshToken)) {
-            throw  new CustomException(ErrorResponseCode.UNAUTHORIZED);
+            throw new CustomException(ErrorResponseCode.UNAUTHORIZED);
         }
 
         // 토큰에서 userId 추출
-        // createRefreshToken에서 subject에 userId를 넣었기 때문에 그대로 꺼냄
         String userIdStr = jwtTokenProvider.getSubject(refreshToken);
         Long userId = Long.valueOf(userIdStr);
 
@@ -110,7 +127,7 @@ public class AuthServiceImpl implements AuthService {
         }
 
         if (!saveRefreshToken.equals(refreshToken)) {
-            // redis에 있는 것과 다르면 토큰 탈취 의심 -> 보안상 해당 유저의 redis 정보를 날려버림
+            // redis에 있는 것과 다르면 토큰 탈취 의심 -> 보안상 정보 삭제
             redisService.deleteValues(redisKey);
             throw new CustomException(ErrorResponseCode.UNAUTHORIZED);
         }
@@ -145,6 +162,8 @@ public class AuthServiceImpl implements AuthService {
 
     /**
      * 로그아웃 (Redis 삭제)
+     *
+     * @param userId 로그아웃할 사용자 PK
      */
     @Override
     public void logout(Long userId) {

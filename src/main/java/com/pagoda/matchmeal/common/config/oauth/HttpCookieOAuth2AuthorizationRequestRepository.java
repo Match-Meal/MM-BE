@@ -8,12 +8,23 @@ import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequ
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
+/**
+ * OAuth2 인증 요청(Authorization Request)을 쿠키에 저장/검색하는 저장소
+ * - 세션을 사용하지 않는 Stateless 환경(REST API)에서 OAuth2 흐름을 유지하기 위함
+ * - 인증 요청 정보와 리다이렉트 URI를 쿠키에 임시 저장
+ */
 @Component
 public class HttpCookieOAuth2AuthorizationRequestRepository implements AuthorizationRequestRepository<OAuth2AuthorizationRequest> {
     public static final String OAUTH2_AUTHORIZATION_REQUEST_COOKIE_NAME = "oauth2_auth_request";
     public static final String REDIRECT_URI_PARAM_COOKIE_NAME = "redirect_uri";
     private static final int cookieExpireSeconds = 180;
 
+    /**
+     * 쿠키에서 인증 요청 정보 로드
+     *
+     * @param request HttpServletRequest
+     * @return 복원된 OAuth2AuthorizationRequest 객체 (없으면 null)
+     */
     @Override
     public OAuth2AuthorizationRequest loadAuthorizationRequest(HttpServletRequest request) {
         return CookieUtils.getCookie(request, OAUTH2_AUTHORIZATION_REQUEST_COOKIE_NAME)
@@ -21,6 +32,14 @@ public class HttpCookieOAuth2AuthorizationRequestRepository implements Authoriza
                 .orElse(null);
     }
 
+    /**
+     * 인증 요청 정보를 쿠키에 저장
+     * 인증 후 돌아갈 redirect_uri도 함께 쿠키에 저장함
+     *
+     * @param authorizationRequest 저장할 인증 요청 정보
+     * @param request              HttpServletRequest
+     * @param response             HttpServletResponse
+     */
     @Override
     public void saveAuthorizationRequest(OAuth2AuthorizationRequest authorizationRequest, HttpServletRequest request, HttpServletResponse response) {
         if (authorizationRequest == null) {
@@ -35,6 +54,14 @@ public class HttpCookieOAuth2AuthorizationRequestRepository implements Authoriza
         }
     }
 
+    /**
+     * 인증 요청 정보를 쿠키에서 제거하고 반환
+     * (인증 완료 후 정리 작업 시 호출됨)
+     *
+     * @param request  HttpServletRequest
+     * @param response HttpServletResponse
+     * @return 삭제 전 로드한 OAuth2AuthorizationRequest
+     */
     @Override
     public OAuth2AuthorizationRequest removeAuthorizationRequest(HttpServletRequest request, HttpServletResponse response) {
         OAuth2AuthorizationRequest authorizationRequest = this.loadAuthorizationRequest(request);
@@ -42,6 +69,12 @@ public class HttpCookieOAuth2AuthorizationRequestRepository implements Authoriza
         return authorizationRequest;
     }
 
+    /**
+     * 인증 관련 쿠키 일괄 삭제 헬퍼 메서드
+     *
+     * @param request  HttpServletRequest
+     * @param response HttpServletResponse
+     */
     public void removeAuthorizationRequestCookies(HttpServletRequest request, HttpServletResponse response) {
         CookieUtils.deleteCookie(request, response, OAUTH2_AUTHORIZATION_REQUEST_COOKIE_NAME);
         CookieUtils.deleteCookie(request, response, REDIRECT_URI_PARAM_COOKIE_NAME);

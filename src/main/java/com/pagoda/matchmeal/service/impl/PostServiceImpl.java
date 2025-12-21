@@ -24,6 +24,9 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * 게시글 비즈니스 로직 구현체
+ */
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -33,6 +36,14 @@ public class PostServiceImpl implements PostService {
     private final S3Service s3Service;
     private final CommentService commentService;
 
+    /**
+     * 게시글 작성
+     *
+     * @param userId         작성자 PK
+     * @param postRequestDto 게시글 제목, 내용, 카테고리 정보 DTO
+     * @param files          첨부할 이미지/동영상 파일 리스트 (없으면 null)
+     * @return 생성된 게시글 ID (postId)
+     */
     @Override
     @Transactional
     public Long writePost(Long userId, PostRequestDto postRequestDto, List<MultipartFile> files) {
@@ -54,20 +65,25 @@ public class PostServiceImpl implements PostService {
         return post.getPostId();
     }
 
+    /**
+     * 게시글 목록 조회 (검색 및 페이징)
+     *
+     * @param userId     요청자 ID (권한 체크용)
+     * @param keyword    검색어 (제목 or 내용)
+     * @param searchType 검색 타입 (title, content, all)
+     * @param category   카테고리 필터
+     * @param startDate  조회 시작 날짜 (YYYY-MM-DD)
+     * @param endDate    조회 종료 날짜 (YYYY-MM-DD, 내부적으로 +1일 처리됨)
+     * @param sortType   정렬 기준 (latest, views, likes 등)
+     * @param pageable   페이징 정보 (page, size)
+     * @return 페이징된 게시글 목록 응답 DTO
+     */
     @Override
     public PageInfoResponseDto<PostDetailResponseDto> getPost(Long userId, String keyword, String searchType, String category, LocalDate startDate, LocalDate endDate, String sortType, Pageable pageable) {
-
         validateUser(userId);
 
-        LocalDateTime startDateTime = (startDate != null)
-                ? startDate.atStartOfDay()
-                : null;
-
-        // endDate가 있으면 "다음 날 00:00:00"으로 설정 (+1 Day)
-        // 예: 12일 검색 -> 13일 00:00:00 미만으로 조회해야 12일 데이터가 모두 포함됨
-        LocalDateTime endDateTime = (endDate != null)
-                ? endDate.atStartOfDay().plusDays(1)
-                : null;
+        LocalDateTime startDateTime = (startDate != null) ? startDate.atStartOfDay() : null;
+        LocalDateTime endDateTime = (endDate != null) ? endDate.atStartOfDay().plusDays(1) : null;
 
         PostSearchCond cond = PostSearchCond.builder()
                 .userId(userId)
@@ -82,34 +98,46 @@ public class PostServiceImpl implements PostService {
                 .build();
 
         List<PostDetailResponseDto> posts = postMapper.getPosts(cond);
-
         int totalPosts = postMapper.countPosts(cond);
 
         return PageInfoResponseDto.of(pageable, posts, totalPosts);
     }
 
+    /**
+     * 게시글 상세 조회
+     *
+     * @param userId 요청자 ID
+     * @param postId 조회할 게시글 ID
+     * @return 게시글 상세 내용 및 댓글 목록 포함 DTO
+     */
     @Override
     public PostDetailResponseDto getPostDetail(Long userId, Long postId) {
         validateUser(userId);
         PostDetailResponseDto postDetail = postMapper.getPostByPostId(postId);
-        
+
         if (postDetail == null) {
             throw new CustomException(ErrorResponseCode.POST_NOT_FOUND);
         }
 
         List<CommentResponseDto> comments = commentService.getComments(userId, postId);
-
         postDetail.setComments(comments);
 
         return postDetail;
     }
 
+    /**
+     * 게시글 수정
+     *
+     * @param userId         요청자 ID (작성자 본인 확인용)
+     * @param postId         수정할 게시글 ID
+     * @param postRequestDto 수정될 내용 DTO (삭제할 파일 ID 목록 포함)
+     * @param files          새로 추가할 첨부 파일 리스트
+     * @return 수정된 게시글 ID
+     */
     @Override
     @Transactional
     public Long updatePost(Long userId, Long postId, PostRequestDto postRequestDto, List<MultipartFile> files) {
-
         validateUser(userId);
-
         validatePostOwner(userId, postId);
 
         Post updateParam = Post.builder()
@@ -125,129 +153,105 @@ public class PostServiceImpl implements PostService {
             throw new CustomException(ErrorResponseCode.POST_NOT_FOUND);
         }
 
-        // 2. 기존 파일 삭제 요청 처리 (선택적 삭제)
         List<Long> deleteFileIds = postRequestDto.getDeleteFileIds();
-
         if (deleteFileIds != null && !deleteFileIds.isEmpty()) {
-            // 2-1. 삭제할 파일 정보 조회 (S3 키를 알기 위해)
-            // (주의: MyBatis XML에서 WHERE file_id IN (...) 쿼리 필요)
             List<PostFile> filesToDelete = postMapper.getPostFilesByFileIds(deleteFileIds);
-
-            // 2-2. 본인 게시글의 파일이 맞는지 검증 (보안상 권장)
-            // 조회된 파일들이 현재 postId에 속하는지 확인하는 로직 추가 권장
-
-            // 2-3. S3에서 물리적 삭제
             deleteS3Files(filesToDelete);
-
-            // 2-4. DB에서 데이터 삭제
             postMapper.deletePostFilesByFileIds(deleteFileIds);
         }
 
-        // 3. 새 파일 추가 (기존 파일은 건드리지 않음 - Append 방식)
         if (files != null && !files.isEmpty()) {
-            // 3-1. 새 파일 업로드 및 DB 저장
             savePostFiles(postId, files);
         }
 
         return postId;
     }
 
+    /**
+     * 게시글 삭제
+     *
+     * @param userId 요청자 ID (작성자 본인 확인용)
+     * @param postId 삭제할 게시글 ID
+     */
     @Override
     @Transactional
     public void deletePost(Long userId, Long postId) {
-
         validateUser(userId);
-
-        // 1. 게시글 상세 조회
         validatePostOwner(userId, postId);
 
-        // 1. 삭제 전 기존 파일 조회
         List<PostFile> attachedFiles = postMapper.getPostFilesByPostId(postId);
 
-        // 2. 게시글 Soft Delete (DB) - Mapper 파라미터 순서 주의(@Param 확인 완료)
         postMapper.deletePost(userId, postId);
-
-        // 3. 파일 S3 삭제 (게시글이 성공적으로 안 보이면 파일도 날림)
-        // 트랜잭션이 롤백되면 이 로직은 실행되지 않거나, 실행되더라도 DB는 원복됨
-        // (주의: S3 삭제는 롤백이 안 되므로, 보통 가장 마지막에 수행하거나 이벤트로 분리하기도 함. 여기선 직관적으로 구현)
         deleteS3Files(attachedFiles);
 
-        // 4. (선택) 파일 메타데이터도 DB에서 지워줄 것인가?
-        // 게시글이 soft delete라 살아있다면 파일 정보도 남겨둘 수 있지만,
-        // "S3에서 지웠다"는 건 복구 불가를 의미하므로 DB에서도 지우는 게 깔끔함.
         if (attachedFiles != null && !attachedFiles.isEmpty()) {
             postMapper.deletePostFilesByPostId(postId);
         }
     }
 
+    /**
+     * 조회수 증가
+     *
+     * @param postId 대상 게시글 ID
+     */
     @Override
     @Transactional
     public void increaseViewCount(Long postId) {
         postMapper.increaseViewCount(postId);
     }
 
+    /**
+     * 좋아요 토글 (등록/취소)
+     *
+     * @param userId 좋아요 누른 사용자 ID
+     * @param postId 대상 게시글 ID
+     * @return true(좋아요 등록됨), false(좋아요 취소됨)
+     */
     @Override
     @Transactional
     public boolean toggleLike(Long userId, Long postId) {
-
         validateUser(userId);
 
-        // 1. 게시글 존재 확인 (없으면 에러)
-        // (간단히 카운트만 세거나, 기존 메서드 재활용)
         if (postMapper.getPostByPostId(postId) == null) {
             throw new CustomException(ErrorResponseCode.POST_NOT_FOUND);
         }
 
-        // 2. 이미 좋아요를 눌렀는지 확인
         boolean isLiked = postMapper.existsLike(userId, postId);
 
         if (isLiked) {
-            // 이미 눌렀으면 -> 취소 (삭제)
             postMapper.deleteLike(userId, postId);
-            return false; // 결과: 좋아요 안 함 상태
+            return false;
         } else {
-            // 안 눌렀으면 -> 등록
             postMapper.insertLike(userId, postId);
-            return true; // 결과: 좋아요 함 상태
+            return true;
         }
     }
 
+    // --- Helper Methods ---
 
     private void savePostFiles(Long postId, List<MultipartFile> files) {
-        // 업로드된 파일 정보를 담을 리스트 생성
         List<PostFile> postFileList = new ArrayList<>();
-
         for (MultipartFile file : files) {
-            if (file.isEmpty()) continue; // 빈 파일은 스킵
+            if (file.isEmpty()) continue;
 
-            // S3 업로드
             String fileUrl = s3Service.uploadFile(file, "post");
-
-            // 파일 타입 결정
             String contentType = file.getContentType();
             String fileType = (contentType != null && contentType.startsWith("video")) ? "VIDEO" : "IMAGE";
 
-            // 엔티티 생성 후 리스트에 추가
             PostFile postFile = PostFile.builder()
                     .postId(postId)
                     .fileUrl(fileUrl)
                     .fileType(fileType)
                     .build();
-
             postFileList.add(postFile);
         }
-
-        // DB에 일괄 저장 (Mapper의 <foreach> 기능 활용)
         if (!postFileList.isEmpty()) {
             postMapper.savePostFiles(postFileList);
         }
     }
 
-
-    // S3 파일 삭제 공통 로직
     private void deleteS3Files(List<PostFile> files) {
         if (files == null || files.isEmpty()) return;
-
         for (PostFile file : files) {
             s3Service.deleteFile(file.getFileUrl());
         }
@@ -260,21 +264,13 @@ public class PostServiceImpl implements PostService {
     }
 
     private void validatePostOwner(Long userId, Long postId) {
-        // 1. 게시글 상세 조회
         PostDetailResponseDto postDetail = postMapper.getPostByPostId(postId);
-
         if (postDetail == null) {
             throw new CustomException(ErrorResponseCode.POST_NOT_FOUND);
         }
-
-        // [수정] 작성자 정보가 없거나(탈퇴한 회원), 작성자 ID가 요청한 유저와 다를 경우
-        // postDetail.getUser()가 null일 수도 있고, getUser().getUserId()가 null일 수도 있음
         if (postDetail.getUser() == null || postDetail.getUser().getUserId() == null) {
-            // 작성자가 없는 글은 수정/삭제 불가 -> 권한 없음 처리
             throw new CustomException(ErrorResponseCode.UNAUTHORIZED);
         }
-
-        // 3. 작성자 본인 확인 (권한 체크)
         if (!postDetail.getUser().getUserId().equals(userId)) {
             throw new CustomException(ErrorResponseCode.UNAUTHORIZED);
         }
