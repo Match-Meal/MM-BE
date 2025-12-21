@@ -58,7 +58,6 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
         } catch (CustomException e) {
             // 탈퇴 대기 유저 발생 시
             if (e.getCode() == ErrorResponseCode.USER_WITHDRAWN_WAITING) {
-                // 여기서 socialId, email 등을 담아서 던집니다.
                 throw new WithdrawnUserException(socialId, email, registrationId);
             }
             throw new OAuth2AuthenticationException(new OAuth2Error("SERVER_ERROR"), e);

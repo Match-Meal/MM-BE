@@ -2,6 +2,7 @@ package com.pagoda.matchmeal.common.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.pagoda.matchmeal.common.config.jwt.JwtAuthenticationFilter;
+import com.pagoda.matchmeal.common.config.oauth.HttpCookieOAuth2AuthorizationRequestRepository;
 import com.pagoda.matchmeal.common.config.oauth.OAuth2FailureHandler;
 import com.pagoda.matchmeal.common.config.oauth.OAuth2SuccessHandler;
 import com.pagoda.matchmeal.service.CustomOAuth2UserService;
@@ -40,6 +41,8 @@ public class SecurityConfig {
     @Value("${cors.url}")
     private String CORS_ALLOWED_ORIGIN_URL;
 
+    private final HttpCookieOAuth2AuthorizationRequestRepository cookieOAuth2AuthorizationRequestRepository;
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http, JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
         http
@@ -57,13 +60,20 @@ public class SecurityConfig {
                         .requestMatchers("/user/reactivate").hasRole("WITHDRAWN") // 임시 토큰 가진 사람만 접근 가능
                         .requestMatchers("/user/**").hasRole("USER") // 일반 유저
                         .requestMatchers("/auth/**").permitAll()
-                        .requestMatchers("/", "/css/**", "/images/**", "/js/**", "/login/**").permitAll()
+                        .requestMatchers("/", "/css/**", "/images/**", "/js/**", "/login/**","/favicon.ico", "/error").permitAll()
                         .requestMatchers("/h2-console/**", "/test/**").permitAll()
                         .anyRequest().authenticated()
+                )
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint(unauthorizedEntryPoint())
+                        .accessDeniedHandler(accessDeniedHandler())
                 )
 
                 // OAuth2 로그인 설정
                 .oauth2Login(oauth2 -> oauth2
+                        .authorizationEndpoint(authorization -> authorization
+                                .authorizationRequestRepository(cookieOAuth2AuthorizationRequestRepository)
+                        )
                         // 로그인 성공
                         .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
                         // 성공 후 핸들러
