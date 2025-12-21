@@ -104,6 +104,12 @@ public class FoodServiceImpl implements FoodService {
             throw new CustomException(ErrorResponseCode.FOOD_NOT_FOUND);
         }
 
+        if (food.getUserId() != null) {
+            if (!food.getUserId().equals(userId)) {
+                throw new CustomException(ErrorResponseCode.UNAUTHORIZED);
+            }
+        }
+
         // isMine 세팅 (프론트엔드 편의성)
         boolean isMine = food.getUserId() != null && food.getUserId().equals(userId);
         food.setMine(isMine);
