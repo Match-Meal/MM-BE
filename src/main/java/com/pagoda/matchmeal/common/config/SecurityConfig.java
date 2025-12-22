@@ -70,6 +70,11 @@ public class SecurityConfig {
                         .requestMatchers("/user/**").hasRole("USER") // 일반 유저
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/css/**", "/images/**", "/js/**", "/login/**", "/favicon.ico", "/error").permitAll()
+                        .requestMatchers(
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html"
+                        ).permitAll()
                         .requestMatchers("/h2-console/**", "/test/**").permitAll()
                         .anyRequest().authenticated()
                 )
