@@ -4,19 +4,17 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Getter;
 
-// 메뉴 추천 요청
+import java.util.List;
+
 @Getter
 @Builder
-public class AiRecommendRequestDto {
+public class AiMealPlanRequestDto {
     @JsonProperty("user_profile")
     private AiUserProfileDto userProfile;
 
-    @JsonProperty("current_intake")
-    private AiIntakeSummaryDto currentIntake;
-
-    @JsonProperty("meal_type")
-    private String mealType;
+    @JsonProperty("period_info")
+    private AiPeriodInfoDto periodInfo;
 
     @JsonProperty("flavors")
-    private java.util.List<String> flavors;
+    private List<String> flavors;
 }
