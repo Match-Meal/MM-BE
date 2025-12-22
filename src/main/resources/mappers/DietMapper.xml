@@ -165,6 +165,7 @@
 
         FROM diet_records d  WHERE d.user_id = #{userId}
                                AND d.eat_date BETWEEN #{startDate} AND #{endDate}
+                               AND d.deleted_at IS NULL
         ORDER BY d.eat_date DESC, d.eat_time DESC
     </select>
 

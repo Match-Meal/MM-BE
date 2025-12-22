@@ -352,6 +352,9 @@ public class DietServiceImpl implements DietService {
             throw new CustomException(ErrorResponseCode.UNAUTHORIZED);
         }
         dietMapper.deleteDietByDietId(dietId);
+
+        // [챌린지 반영] 식단 삭제 후 진척도 재계산 (롤백 등)
+        challengeService.recalculateChallengeProgress(userId, diet.getEatDate());
     }
 
     @Override

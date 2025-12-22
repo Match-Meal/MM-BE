@@ -66,10 +66,11 @@ public class SecurityConfig {
 
                 // URL 권한 설정
                 .authorizeHttpRequests((auth) -> auth
-                        .requestMatchers("/user/reactivate").hasRole("WITHDRAWN") // 임시 토큰 가진 사람만 접근 가능
-                        .requestMatchers("/user/**").hasAnyRole("USER", "SUBSCRIBER") // 일반 유저 및 구독자
-                        .requestMatchers("/ai/**").hasRole("SUBSCRIBER") // ★ AI 기능은 구독자만 접근 가능
-                        .requestMatchers("/payment/**").hasAnyRole("USER", "SUBSCRIBER") // 결제 관련 접근 허용
+                        .requestMatchers("/user/reactivate").hasAnyRole("WITHDRAWN", "ADMIN") // 임시 토큰 가진 사람만 접근 가능 (관리자 포함)
+                        .requestMatchers("/user/**").hasAnyRole("USER", "SUBSCRIBER", "ADMIN") // 일반 유저 및 구독자 + 관리자
+                        .requestMatchers("/challenge/**", "/diet/**", "/community/**").hasAnyRole("USER", "SUBSCRIBER", "ADMIN") // [추가] 챌린지, 식단, 커뮤니티 접근 제한 + 관리자
+                        .requestMatchers("/ai/**").hasAnyRole("SUBSCRIBER", "ADMIN") // ★ AI 기능은 구독자만 접근 가능 + 관리자
+                        .requestMatchers("/payment/**").hasAnyRole("USER", "SUBSCRIBER", "ADMIN") // 결제 관련 접근 허용 + 관리자
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/css/**", "/images/**", "/js/**", "/login/**", "/favicon.ico", "/error").permitAll()
                         .requestMatchers(
