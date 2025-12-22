@@ -53,4 +53,6 @@ public interface FollowMapper {
      * @param viewerId 현재 목록을 보는 사람 (맞팔 여부 확인용)
      */
     List<FollowListDto> getFollowings(@Param("targetId") Long targetId, @Param("viewerId") Long viewerId);
+
+    List<Long> findFollowerIds(Long userId);
 }
