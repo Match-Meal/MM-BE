@@ -66,4 +66,9 @@ public interface UserMapper {
      * 특정 회원 영구 삭제 (관리자용/즉시삭제)
      */
     void hardDeleteUserById(Long userId);
+
+    /**
+     * 유저 권한 업그레이드
+     */
+    void updateUserRole(User user);
 }

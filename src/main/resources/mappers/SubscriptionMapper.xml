@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pagoda.matchmeal.mapper.SubscriptionMapper">
+
+    <insert id="insertSubscription" useGeneratedKeys="true" keyProperty="subscriptionId">
+        INSERT INTO user_subscriptions (
+            user_id,
+            sid,
+            cid,
+            tid,
+            partner_order_id,
+            item_name,
+            total_amount,
+            status,
+            last_approved_at,
+            next_billing_date,
+            created_at,
+            updated_at
+        ) VALUES (
+            #{userId},
+            #{sid},
+            #{cid},
+            #{tid},
+            #{partnerOrderId},
+            #{itemName},
+            #{amount},
+            #{status},
+            #{lastApprovedAt},
+            #{nextBillingAt},
+            NOW(),
+            NOW()
+        )
+    </insert>
+
+    <select id="findActiveSubscriptionByUserId" resultType="com.pagoda.matchmeal.model.entity.Subscription">
+        SELECT
+            subscription_id   AS subscriptionId,
+            user_id           AS userId,
+            sid,
+            tid,
+            partner_order_id  AS partnerOrderId,
+            item_name         AS itemName,
+            total_amount      AS amount,
+            status,
+            last_approved_at  AS lastApprovedAt,
+            next_billing_date AS nextBillingAt
+        FROM user_subscriptions
+        WHERE user_id = #{userId}
+          AND status = 'ACTIVE'
+        ORDER BY created_at DESC
+            LIMIT 1
+    </select>
+
+    <select id="findValidSubscriptionByUserId" resultType="com.pagoda.matchmeal.model.entity.Subscription">
+        SELECT
+            subscription_id   AS subscriptionId,
+            user_id           AS userId,
+            sid,
+            tid,
+            partner_order_id  AS partnerOrderId,
+            item_name         AS itemName,
+            total_amount      AS amount,
+            status,
+            last_approved_at  AS lastApprovedAt,
+            next_billing_date AS nextBillingAt
+        FROM user_subscriptions
+        WHERE user_id = #{userId}
+          AND status IN ('ACTIVE', 'CANCELED')
+        ORDER BY created_at DESC
+            LIMIT 1
+    </select>
+
+    <update id="updateNextBilling">
+        UPDATE user_subscriptions
+        SET
+            tid = #{tid},
+            last_approved_at = #{lastApprovedAt},
+            next_billing_date = #{nextBillingAt},
+            updated_at = NOW()
+        WHERE subscription_id = #{subscriptionId}
+          AND status = 'ACTIVE'
+    </update>
+
+    <select id="findSubscriptionsToBill" resultType="com.pagoda.matchmeal.model.entity.Subscription">
+        SELECT
+            subscription_id   AS subscriptionId,
+            user_id           AS userId,
+            sid,
+            tid,
+            partner_order_id  AS partnerOrderId,
+            item_name         AS itemName,
+            total_amount      AS amount,
+            status,
+            last_approved_at  AS lastApprovedAt,
+            next_billing_date AS nextBillingAt
+        FROM user_subscriptions
+        WHERE status = 'ACTIVE'                -- 1. 활성화된 구독만 대상
+          AND next_billing_date &lt;= #{today}  -- 2. 결제 예정일이 오늘이거나 이미 지난 경우
+        ORDER BY next_billing_date ASC         -- 3. 오래된 순서부터 정렬
+    </select>
+
+    <update id="updateSubscriptionStatus">
+        UPDATE user_subscriptions
+        SET
+            status = #{status},
+            updated_at = NOW()
+        WHERE subscription_id = #{subscriptionId}
+    </update>
+</mapper>
