@@ -68,6 +68,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests((auth) -> auth
                         .requestMatchers("/user/reactivate").hasRole("WITHDRAWN") // 임시 토큰 가진 사람만 접근 가능
                         .requestMatchers("/user/**").hasAnyRole("USER", "SUBSCRIBER") // 일반 유저 및 구독자
+                        .requestMatchers("/challenge/**", "/diet/**", "/community/**").hasAnyRole("USER", "SUBSCRIBER") // [추가] 챌린지, 식단, 커뮤니티 접근 제한
                         .requestMatchers("/ai/**").hasRole("SUBSCRIBER") // ★ AI 기능은 구독자만 접근 가능
                         .requestMatchers("/payment/**").hasAnyRole("USER", "SUBSCRIBER") // 결제 관련 접근 허용
                         .requestMatchers("/auth/**").permitAll()

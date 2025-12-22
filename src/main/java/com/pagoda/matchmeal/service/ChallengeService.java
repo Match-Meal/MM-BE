@@ -46,6 +46,11 @@ public interface ChallengeService {
     void updateChallengeProgress(Long userId, Diet diet, List<DietDetail> detail);
 
     /**
+     * 특정 날짜의 챌린지 진척도 재계산 (삭제/수정 시 사용)
+     */
+    void recalculateChallengeProgress(Long userId, LocalDate date);
+
+    /**
      * 내 챌린지 전체 조회 (진척도, 스트릭 포함)
      */
     List<ChallengeResponseDto> getAllChallenges(Long userId);
