@@ -13,6 +13,7 @@ public class Subscription {
     private Long subscriptionId;
     private Long userId;
     private String sid;            // 카카오페이 정기 결제 키
+    private String cid;            // 가맹점 코드 (TCSUBSCRIP)
     private String tid;            // 결제 고유 번호
     private String partnerOrderId;  // 가맹점 주문번호
     private String itemName;        // 상품명

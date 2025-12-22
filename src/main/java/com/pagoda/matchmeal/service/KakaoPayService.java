@@ -45,9 +45,9 @@ public class KakaoPayService {
         params.put("quantity", 1);
         params.put("total_amount", 9900);
         params.put("tax_free_amount", 0);
-        params.put("approval_url", "http://localhost:8080/payment/success?userId=" + userId);
-        params.put("cancel_url", "http://localhost:8080/payment/cancel");
-        params.put("fail_url", "http://localhost:8080/payment/fail");
+        params.put("approval_url", "http://localhost:5173/payment/success?userId=" + userId);
+        params.put("cancel_url", "http://localhost:5173/subscription");
+        params.put("fail_url", "http://localhost:5173/subscription");
 
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(params, getHeaders());
 
@@ -89,6 +89,7 @@ public class KakaoPayService {
             Subscription sub = Subscription.builder()
                     .userId(userId)
                     .sid(response.getSid())
+                    .cid("TCSUBSCRIP") // CID 설정 추가
                     .tid(response.getTid())
                     .partnerOrderId(response.getPartner_order_id())
                     .itemName(response.getItem_name())
@@ -155,27 +156,29 @@ public class KakaoPayService {
         Subscription sub = subscriptionMapper.findActiveSubscriptionByUserId(userId);
         if (sub == null) throw new CustomException(ErrorResponseCode.SUBSCRIPTION_NOT_FOUND);
 
-        // 2. 카카오페이 정기결제 비활성화(Inactive) API 호출
-        Map<String, Object> params = new HashMap<>();
-        params.put("cid", "TCSUBSCRIP");
-        params.put("sid", sub.getSid());
+        // 2. 카카오페이 API 호출 제거 (SID 살려두기 위함 - 재구독 시 그대로 사용)
+        // 나중에 완전히 만료되면 그때 Inactive 호출하거나, 그냥 스케줄러에서 요청 안하면 됨.
 
-        HttpEntity<Map<String, Object>> request = new HttpEntity<>(params, getHeaders());
-
-        // 카카오 서버에 비활성화 요청 (응답은 성공 여부만 확인)
-        restTemplate.postForObject(
-                "https://open-api.kakaopay.com/online/v1/payment/manage/subscription/inactive",
-                request, Map.class);
-
-        // 3. DB 상태 변경: 구독을 INACTIVE로 변경
-        sub.setStatus("INACTIVE");
+        // 3. DB 상태 변경: 구독을 CANCELED로 변경 (다음 결제일까지 이용 가능)
+        sub.setStatus("CANCELED");
         subscriptionMapper.updateSubscriptionStatus(sub);
+    }
 
-        // 4. 유저 권한을 다시 ROLE_USER로 변경
-        User user = userMapper.findById(userId)
-                .orElseThrow(() -> new CustomException(ErrorResponseCode.USER_NOT_FOUND));
-        user.setRole(UserRole.ROLE_USER);
-        userMapper.updateUserRole(user);
+    /**
+     * 6. 구독 재활성화 (Reactivate)
+     * - 해지 신청했으나 아직 만료되지 않은 유저가 다시 구독 유지할 때
+     */
+    @Transactional
+    public void reactivateSubscription(Long userId) {
+        Subscription sub = subscriptionMapper.findValidSubscriptionByUserId(userId);
+        // CANCELED 상태이고, 아직 기간이 남은 경우에만 가능
+        if (sub == null || !"CANCELED".equals(sub.getStatus())) {
+             throw new CustomException(ErrorResponseCode.INVALID_REQUEST);
+        }
+
+        // 상태를 다시 ACTIVE로 복구
+        sub.setStatus("ACTIVE");
+        subscriptionMapper.updateSubscriptionStatus(sub);
     }
 
     /**
@@ -191,5 +194,25 @@ public class KakaoPayService {
             user.setRole(UserRole.ROLE_USER);
             userMapper.updateUserRole(user);
         }
+    }
+
+    /**
+     * 내 구독 정보 조회
+     */
+    public com.pagoda.matchmeal.model.dto.response.SubscriptionResponseDto getMySubscription(Long userId) {
+        Subscription subscription = subscriptionMapper.findValidSubscriptionByUserId(userId);
+
+        if (subscription == null) {
+            return com.pagoda.matchmeal.model.dto.response.SubscriptionResponseDto.builder()
+                    .status("INACTIVE")
+                    .build();
+        }
+
+        return com.pagoda.matchmeal.model.dto.response.SubscriptionResponseDto.builder()
+                .status(subscription.getStatus())
+                .nextBillingDate(subscription.getNextBillingAt().toLocalDate())
+                .itemName(subscription.getItemName())
+                .amount(subscription.getAmount())
+                .build();
     }
 }

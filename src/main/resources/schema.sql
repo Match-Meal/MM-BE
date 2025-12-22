@@ -306,11 +306,15 @@ CREATE TABLE user_subscriptions (
                                     user_id           BIGINT NOT NULL,
                                     sid               VARCHAR(100) NOT NULL, -- 정기 결제 고유번호 (SID)
                                     cid               VARCHAR(20) NOT NULL,  -- 가맹점 코드 (TCSUBSCRIP)
+                                    tid               VARCHAR(100),          -- [추가] 결제 고유 번호 (결제 승인 후 저장)
+                                    partner_order_id  VARCHAR(100),          -- [추가] 가맹점 주문번호
                                     item_name         VARCHAR(100),          -- 상품명
                                     total_amount      INT NOT NULL,          -- 결제 금액
                                     status            VARCHAR(20) DEFAULT 'ACTIVE', -- ACTIVE, INACTIVE
+                                    last_approved_at  DATETIME,              -- [추가] 마지막 결제 승인 시각
                                     next_billing_date DATE,                  -- 다음 결제 예정일
                                     created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                                    updated_at        TIMESTAMP,             -- [추가] 정보 수정 시각
 
     -- [핵심] 유저 탈퇴 시 구독 정보도 삭제 (결제 보안 및 데이터 정합성)
                                     CONSTRAINT fk_sub_user FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE

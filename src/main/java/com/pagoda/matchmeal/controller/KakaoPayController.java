@@ -29,10 +29,22 @@ public class KakaoPayController {
         return ApiResponseUtil.success("구독이 완료되었습니다!");
     }
 
+    @GetMapping("/my-subscription")
+    public CommonResponse<com.pagoda.matchmeal.model.dto.response.SubscriptionResponseDto> getMySubscription(@AuthenticationPrincipal UserDto userDto) {
+        return ApiResponseUtil.success(kakaoPayService.getMySubscription(userDto.getId()));
+    }
+
     // 3. 구독 해지 요청
     @PostMapping("/cancel")
     public CommonResponse<String> cancel(@AuthenticationPrincipal UserDto userDto) {
         kakaoPayService.cancelSubscription(userDto.getId());
         return ApiResponseUtil.success("정기 구독이 성공적으로 해지되었습니다.");
+    }
+
+    // 4. 구독 재활성화 요청
+    @PostMapping("/reactivate")
+    public CommonResponse<String> reactivate(@AuthenticationPrincipal UserDto userDto) {
+        kakaoPayService.reactivateSubscription(userDto.getId());
+        return ApiResponseUtil.success("구독이 다시 활성화되었습니다. 예정된 날짜에 결제됩니다.");
     }
 }

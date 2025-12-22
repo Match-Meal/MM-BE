@@ -16,6 +16,7 @@ public interface SubscriptionMapper {
 
     void insertSubscription(Subscription subscription);
     Subscription findActiveSubscriptionByUserId(Long userId);
+    Subscription findValidSubscriptionByUserId(Long userId);
     void updateNextBilling(Subscription subscription);
 
     void updateSubscriptionStatus(Subscription subscription);

@@ -67,7 +67,9 @@ public class SecurityConfig {
                 // URL 권한 설정
                 .authorizeHttpRequests((auth) -> auth
                         .requestMatchers("/user/reactivate").hasRole("WITHDRAWN") // 임시 토큰 가진 사람만 접근 가능
-                        .requestMatchers("/user/**").hasRole("USER") // 일반 유저
+                        .requestMatchers("/user/**").hasAnyRole("USER", "SUBSCRIBER") // 일반 유저 및 구독자
+                        .requestMatchers("/ai/**").hasRole("SUBSCRIBER") // ★ AI 기능은 구독자만 접근 가능
+                        .requestMatchers("/payment/**").hasAnyRole("USER", "SUBSCRIBER") // 결제 관련 접근 허용
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/css/**", "/images/**", "/js/**", "/login/**", "/favicon.ico", "/error").permitAll()
                         .requestMatchers(
