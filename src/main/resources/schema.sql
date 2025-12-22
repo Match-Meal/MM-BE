@@ -15,6 +15,9 @@ DROP TABLE IF EXISTS diet_details;
 DROP TABLE IF EXISTS diet_records;
 DROP TABLE IF EXISTS foods;
 
+DROP TABLE IF EXISTS notifications;
+DROP TABLE IF EXISTS user_subscriptions;
+
 DROP TABLE IF EXISTS follows;
 DROP TABLE IF EXISTS users;
 
@@ -297,8 +300,6 @@ CREATE INDEX idx_noti_receiver_read ON notifications (receiver_id, is_read);
 
 
 -- 11. 정기 결제 정보 테이블 (기존 테이블 수정 버전)
--- 테이블이 이미 존재할 경우를 대비해 DROP 후 재생성 로직 권장
-DROP TABLE IF EXISTS user_subscriptions;
 
 CREATE TABLE user_subscriptions (
                                     subscription_id   BIGINT AUTO_INCREMENT PRIMARY KEY,

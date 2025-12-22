@@ -21,6 +21,10 @@ public enum ErrorResponseCode {
     ALREADY_USER_DELETE(HttpStatus.BAD_REQUEST, "이미 탈퇴처리된 회원입니다."),
     USER_WITHDRAWN_WAITING(HttpStatus.BAD_REQUEST, "탈퇴한 회원입니다. 복구 또는 재가입을 선택해주세요."),
 
+    //---------------------------- 구독 에러코드----------------------------
+    SUBSCRIPTION_NOT_FOUND(HttpStatus.NOT_FOUND, "구독을 찾을 수 없습니다."),
+    PAYMENT_TID_NOT_FOUND(HttpStatus.NOT_FOUND, "TID를 찾을 수 없습니다."),
+
     //----------------------------식단 에러코드----------------------------
     DIET_NOT_FOUND(HttpStatus.NOT_FOUND, "식단 데이터를 찾을 수 없습니다."),
 

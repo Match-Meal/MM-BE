@@ -85,4 +85,13 @@
         WHERE user_id = #{userId}
     </delete>
 
+    <update id="updateUserRole">
+        UPDATE users
+        SET
+            role = #{role},
+            updated_at = NOW()
+        WHERE user_id = #{userId}
+          AND deleted_at IS NULL
+    </update>
+
 </mapper>
