@@ -21,8 +21,11 @@ import org.springframework.web.reactive.function.client.WebClient;
 
 import java.time.LocalDate;
 import java.time.Period;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -95,7 +98,7 @@ public class AiServiceImpl implements AiService {
 
     @Override
     @Transactional
-    public String getMenuRecommendation(Long userId, String mealType) {
+    public String getMenuRecommendation(Long userId, String mealType, List<String> flavors) {
         User user = getUserOrThrow(userId);
         LocalDate today = LocalDate.now();
 
@@ -116,10 +119,11 @@ public class AiServiceImpl implements AiService {
                         .sugar(curSug)
                         .build())
                 .mealType(mealType)
+                .flavors(flavors) // 취향 추가
                 .build();
 
         // 4. FastAPI 호출
-        String aiResponse = callFastApi("ai/recommend", request);
+        String aiResponse = callFastApi("/ai/recommend", request);
 
         // 5. 결과 저장
         saveAiLog(userId, today, AiType.RECOMMENDATION, mealType + " 추천", aiResponse);
@@ -144,6 +148,71 @@ public class AiServiceImpl implements AiService {
                 .createdAt(log.getCreatedAt())
                 .build()
         ).collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public String chatWithAi(Long userId, String message) {
+        User user = getUserOrThrow(userId);
+
+        // 1. 히스토리 조회 (최근 10개만 사용하거나 전체 사용)
+        List<AiChatbot> logs = aiChatbotMapper.selectHistoryByUserId(userId);
+
+        // FastAPI ChatRequest용 히스토리 포맷으로 변환
+        // (날짜순 정렬 보장)
+        List<Map<String, String>> history = logs.stream()
+                .sorted(Comparator.comparing(AiChatbot::getCreatedAt))
+                .flatMap(log -> Stream.of(
+                        // 사용자 질문
+                        Map.of("role", "user", "content", log.getUserQuestion()),
+                        // AI 답변
+                        Map.of("role", "assistant", "content", log.getAiResponse())
+                ))
+                .collect(Collectors.toList());
+
+        // 2. 요청 DTO 생성
+        AiChatRequestDto request = AiChatRequestDto.builder()
+                .userProfile(buildUserProfile(user))
+                .history(history)
+                .message(message)
+                .build();
+
+        // 3. FastAPI 호출
+        String aiResponse = callFastApi("/ai/chat", request);
+
+        // 4. 로그 저장
+        saveAiLog(userId, LocalDate.now(), AiType.CHAT, message, aiResponse);
+
+        return aiResponse;
+    }
+
+    @Override
+    @Transactional
+    public String getPeriodMealPlan(Long userId, LocalDate startDate, LocalDate endDate, List<String> flavors) {
+        User user = getUserOrThrow(userId);
+
+        long totalDays = java.time.temporal.ChronoUnit.DAYS.between(startDate, endDate) + 1;
+
+        // 1. 요청 DTO 생성
+        AiMealPlanRequestDto request = AiMealPlanRequestDto.builder()
+                .userProfile(buildUserProfile(user))
+                .periodInfo(AiPeriodInfoDto.builder()
+                        .startDate(startDate.toString())
+                        .endDate(endDate.toString())
+                        .totalDays(totalDays)
+                        .recordedMeals(0) // 식단 추천에는 기록된 끼니 수 불필요
+                        .build())
+                .flavors(flavors)
+                .build();
+
+        // 2. FastAPI 호출
+        String aiResponse = callFastApi("/ai/meal-plan", request);
+
+        // 3. 로그 저장
+        saveAiLog(userId, startDate, AiType.RECOMMENDATION,
+                String.format("%s~%s 식단 추천", startDate, endDate), aiResponse);
+
+        return aiResponse;
     }
 
     // Helper Methods
@@ -171,6 +240,8 @@ public class AiServiceImpl implements AiService {
                 .gender(user.getGender() != null ? user.getGender().name() : "UNKNOWN")
                 .bmi(Math.round(bmi * 10) / 10.0)
                 .bmiStatus(bmiStatus)
+                .heightCm(user.getHeightCm())
+                .weightKg(user.getWeightKg())
                 .allergies(user.getAllergies())
                 .diseases(user.getDiseases())
                 .build();

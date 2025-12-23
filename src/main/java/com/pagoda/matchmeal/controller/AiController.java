@@ -8,9 +8,10 @@ import com.pagoda.matchmeal.model.dto.response.AiChatbotResponseDto;
 import com.pagoda.matchmeal.service.AiService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.stereotype.Controller;
+
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -31,12 +32,35 @@ public class AiController {
         return ApiResponseUtil.success(result);
     }
 
+    // [New] 기간별 식단 추천 (피드백 후속)
+    @PostMapping("/meal-plan")
+    public CommonResponse<String> periodMealPlan(@AuthenticationPrincipal UserDto userDto,
+                                                 @RequestBody com.pagoda.matchmeal.model.dto.request.PeriodMealPlanRequestDto req) {
+        // flavors는 선택 사항
+        List<String> flavors = req.getFlavors() != null ? req.getFlavors() : Collections.emptyList();
+        
+        String result = aiService.getPeriodMealPlan(userDto.getId(), req.getStartDate(), req.getEndDate(), flavors);
+        return ApiResponseUtil.success(result);
+    }
+
+    // 메뉴 추천 (DTO로 식사타입 받기)
     // 메뉴 추천 (DTO로 식사타입 받기)
     @PostMapping("/recommend")
     public CommonResponse<String> recommend(@AuthenticationPrincipal UserDto userDto,
-                                            @RequestBody Map<String, String> body) {
-        String mealType = body.getOrDefault("mealType", "식사");
-        String result = aiService.getMenuRecommendation(userDto.getId(), mealType);
+                                            @RequestBody Map<String, Object> body) {
+        String mealType = (String) body.getOrDefault("mealType", "식사");
+        List<String> flavors = (List<String>) body.getOrDefault("flavors", Collections.emptyList());
+        
+        String result = aiService.getMenuRecommendation(userDto.getId(), mealType, flavors);
+        return ApiResponseUtil.success(result);
+    }
+
+    // 일반 대화
+    @PostMapping("/chat")
+    public CommonResponse<String> chat(@AuthenticationPrincipal UserDto userDto,
+                                       @RequestBody Map<String, String> body) {
+        String message = body.get("message");
+        String result = aiService.chatWithAi(userDto.getId(), message);
         return ApiResponseUtil.success(result);
     }
 
