@@ -119,6 +119,7 @@ CREATE TABLE diet_details (
 
                               CONSTRAINT fk_diet_details_diet FOREIGN KEY (diet_id) REFERENCES diet_records (diet_id) ON DELETE CASCADE
 );
+CREATE INDEX idx_diet_detail_food_name ON diet_details(food_name);
 
 -- 5. 챌린지 (방장이 나가도 방은 유지 - SET NULL)
 CREATE TABLE challenges (

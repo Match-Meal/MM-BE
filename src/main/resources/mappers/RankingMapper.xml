@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.pagoda.matchmeal.mapper.RankingMapper">
+    <select id="getRanking" resultType="com.pagoda.matchmeal.model.dto.RankingDto">
+        SELECT
+        dd.food_name AS foodName,
+        COUNT(*) AS eatCount
+        FROM diet_details dd
+        INNER JOIN diet_records dr ON dd.diet_id = dr.diet_id
+        WHERE dr.eat_date >= DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+        AND dr.deleted_at IS NULL
+        <if test="mealType != null and mealType != 'ALL'">
+            AND dr.meal_type = #{mealType}
+        </if>
+        GROUP BY dd.food_name
+        ORDER BY eatCount DESC
+        LIMIT 10
+    </select>
+</mapper>
