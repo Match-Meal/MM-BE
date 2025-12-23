@@ -62,9 +62,9 @@ public class NotificationScheduler {
             String message;
             if (user.getDDay() == 0) {
                 message = "💳 정기 결제일입니다. 결제 수단을 확인해주세요.";
-            } else {
+            } else if (user.getDDay() == 7 ||  user.getDDay() == 3 ||   user.getDDay() == 1) {
                 message = "💳 정기 결제일이 " + user.getDDay() + "일 남았습니다.";
-            }
+            } else continue;
 
             notificationService.sendToUser(
                     user.getUserId(),

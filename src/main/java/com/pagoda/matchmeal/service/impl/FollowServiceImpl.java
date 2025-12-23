@@ -70,7 +70,7 @@ public class FollowServiceImpl implements FollowService {
                 NotificationType.FOLLOW,
                 followerName + "님이 회원님을 팔로우하기 시작했습니다.",
                 followerId.intValue(),  // 클릭 시 상대방 프로필로 이동
-                "/users/" + followerId
+                "/user/" + followerId
         );
 
         return FollowResponseDto.builder()
