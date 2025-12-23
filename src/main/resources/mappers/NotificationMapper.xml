@@ -65,6 +65,5 @@
         DELETE
         FROM notifications
         WHERE receiver_id = #{receiverId}
-          AND is_read = 1
     </delete>
 </mapper>
