@@ -1,5 +1,6 @@
 package com.pagoda.matchmeal.mapper;
 
+import com.pagoda.matchmeal.model.dto.SubscriptionAlertDto;
 import com.pagoda.matchmeal.model.entity.Subscription;
 import org.apache.ibatis.annotations.Mapper;
 
@@ -15,9 +16,14 @@ public interface SubscriptionMapper {
     List<Subscription> findSubscriptionsToBill(LocalDate today);
 
     void insertSubscription(Subscription subscription);
+
     Subscription findActiveSubscriptionByUserId(Long userId);
+
     Subscription findValidSubscriptionByUserId(Long userId);
+
     void updateNextBilling(Subscription subscription);
 
     void updateSubscriptionStatus(Subscription subscription);
+
+    List<SubscriptionAlertDto> findUsersWithUpcomingPayment();
 }

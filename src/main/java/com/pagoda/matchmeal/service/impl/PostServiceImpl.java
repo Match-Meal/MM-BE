@@ -3,14 +3,20 @@ package com.pagoda.matchmeal.service.impl;
 import com.pagoda.matchmeal.common.exception.CustomException;
 import com.pagoda.matchmeal.common.exception.ErrorResponseCode;
 import com.pagoda.matchmeal.common.response.PageInfoResponseDto;
+import com.pagoda.matchmeal.mapper.FollowMapper;
 import com.pagoda.matchmeal.mapper.PostMapper;
+import com.pagoda.matchmeal.mapper.UserMapper;
 import com.pagoda.matchmeal.model.dto.PostSearchCond;
 import com.pagoda.matchmeal.model.dto.request.PostRequestDto;
 import com.pagoda.matchmeal.model.dto.response.CommentResponseDto;
 import com.pagoda.matchmeal.model.dto.response.PostDetailResponseDto;
 import com.pagoda.matchmeal.model.entity.Post;
 import com.pagoda.matchmeal.model.entity.PostFile;
+import com.pagoda.matchmeal.model.entity.User;
+import com.pagoda.matchmeal.model.enums.NotificationType;
+import com.pagoda.matchmeal.model.enums.PostCategory;
 import com.pagoda.matchmeal.service.CommentService;
+import com.pagoda.matchmeal.service.NotificationService;
 import com.pagoda.matchmeal.service.PostService;
 import com.pagoda.matchmeal.service.S3Service;
 import lombok.RequiredArgsConstructor;
@@ -33,8 +39,11 @@ import java.util.List;
 public class PostServiceImpl implements PostService {
 
     private final PostMapper postMapper;
+    private final UserMapper userMapper;
+    private final FollowMapper followMapper;
     private final S3Service s3Service;
     private final CommentService commentService;
+    private final NotificationService notificationService;
 
     /**
      * 게시글 작성
@@ -56,11 +65,39 @@ public class PostServiceImpl implements PostService {
                 .content(postRequestDto.getContent())
                 .build();
 
+
         postMapper.savePost(post);
 
         if (files != null && !files.isEmpty()) {
             savePostFiles(post.getPostId(), files);
         }
+
+        // 공지사항 알림
+        if (post.getCategory() == PostCategory.NOTICE) {
+            notificationService.sendToTopic(
+                    NotificationType.NOTICE,
+                    "📢 [공지] " + post.getTitle(),
+                    "/community/" + post.getPostId()
+            );
+        }
+        // 일반 게시글일 경우: 나를 팔로우한 사람들에게 알림 발송
+        else {
+            String writerUser = userMapper.findById(userId).orElseThrow(() -> new CustomException(ErrorResponseCode.USER_NOT_FOUND)).getUserName();
+
+            List<Long> followerIds = followMapper.findFollowerIds(userId);
+
+            for (Long followerId : followerIds) {
+                notificationService.sendToUser(
+                        followerId,
+                        userId,
+                        NotificationType.FOLLOWING_POST,
+                        writerUser + "님이 새 게시물을 올렸습니다: " + post.getTitle(),
+                        post.getPostId().intValue(),
+                        "/community/" + post.getPostId()
+                );
+            }
+        }
+
 
         return post.getPostId();
     }
@@ -212,17 +249,31 @@ public class PostServiceImpl implements PostService {
     public boolean toggleLike(Long userId, Long postId) {
         validateUser(userId);
 
-        if (postMapper.getPostByPostId(postId) == null) {
+        PostDetailResponseDto post = postMapper.getPostByPostId(postId);
+        if (post == null) {
             throw new CustomException(ErrorResponseCode.POST_NOT_FOUND);
         }
 
         boolean isLiked = postMapper.existsLike(userId, postId);
+
 
         if (isLiked) {
             postMapper.deleteLike(userId, postId);
             return false;
         } else {
             postMapper.insertLike(userId, postId);
+            if (!post.getUser().getUserId().equals(userId)) {
+                User likeUser = userMapper.findById(userId).orElseThrow(() -> new CustomException(ErrorResponseCode.USER_NOT_FOUND));// 좋아요 누른 사람 이름
+
+                notificationService.sendToUser(
+                        post.getUser().getUserId(), // 받는 사람 (글 작성자)
+                        userId,                           // 보낸 사람 (좋아요 누른 사람)
+                        NotificationType.POST_LIKE,
+                        likeUser.getUserName() + "님이 회원님의 게시글을 좋아합니다.",
+                        postId.intValue(),
+                        "/community/" + postId
+                );
+            }
             return true;
         }
     }

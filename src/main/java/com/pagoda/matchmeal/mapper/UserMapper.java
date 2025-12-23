@@ -5,6 +5,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -71,4 +72,6 @@ public interface UserMapper {
      * 유저 권한 업그레이드
      */
     void updateUserRole(User user);
+
+    List<Long> findAllActiveUserIds();
 }

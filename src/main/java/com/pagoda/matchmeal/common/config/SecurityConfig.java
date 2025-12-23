@@ -72,7 +72,7 @@ public class SecurityConfig {
                         .requestMatchers("/ai/**").hasAnyRole("SUBSCRIBER", "ADMIN") // ★ AI 기능은 구독자만 접근 가능 + 관리자
                         .requestMatchers("/payment/**").hasAnyRole("USER", "SUBSCRIBER", "ADMIN") // 결제 관련 접근 허용 + 관리자
                         .requestMatchers("/auth/**").permitAll()
-                        .requestMatchers("/css/**", "/images/**", "/js/**", "/login/**", "/favicon.ico", "/error").permitAll()
+                        .requestMatchers("/css/**", "/images/**", "/js/**", "/login/**", "/favicon.ico", "/error", "/ws-stomp/**").permitAll()
                         .requestMatchers(
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",

@@ -4,6 +4,7 @@ import com.pagoda.matchmeal.common.exception.CustomException;
 import com.pagoda.matchmeal.common.exception.ErrorResponseCode;
 import com.pagoda.matchmeal.mapper.ChallengeMapper;
 import com.pagoda.matchmeal.mapper.DietMapper;
+import com.pagoda.matchmeal.mapper.UserMapper;
 import com.pagoda.matchmeal.model.dto.ChallengeSearchCondition;
 import com.pagoda.matchmeal.model.dto.request.ChallengeCreateRequestDto;
 import com.pagoda.matchmeal.model.dto.response.*;
@@ -12,8 +13,10 @@ import com.pagoda.matchmeal.model.entity.ChallengeInvitation;
 import com.pagoda.matchmeal.model.entity.Diet;
 import com.pagoda.matchmeal.model.entity.DietDetail;
 import com.pagoda.matchmeal.model.enums.ChallengeType;
+import com.pagoda.matchmeal.model.enums.NotificationType;
 import com.pagoda.matchmeal.service.ChallengeService;
 import com.pagoda.matchmeal.service.FollowService;
+import com.pagoda.matchmeal.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,6 +38,8 @@ public class ChallengeServiceImpl implements ChallengeService {
     private final ChallengeMapper challengeMapper;
     private final FollowService followService;
     private final DietMapper dietMapper;
+    private final UserMapper userMapper;
+    private final NotificationService notificationService;
 
     /**
      * 챌린지 생성
@@ -149,6 +154,19 @@ public class ChallengeServiceImpl implements ChallengeService {
             throw new CustomException(ErrorResponseCode.ALREADY_INVITED);
         }
         challengeMapper.insertInvitation(challengeId, inviterId, targetUserId);
+
+        String inviterName = userMapper.findById(inviterId).orElseThrow(() -> new CustomException(ErrorResponseCode.USER_NOT_FOUND)).getUserName();
+
+        String challengeTitle = challengeMapper.findById(challengeId).getTitle();
+
+        notificationService.sendToUser(
+                targetUserId,
+                inviterId,
+                NotificationType.CHALLENGE_INVITE,
+                inviterName + "님이 [" + challengeTitle + "] 챌린지에 초대했습니다.",
+                challengeId.intValue(),
+                "/challenges/" + challengeId
+        );
     }
 
     /**
@@ -306,7 +324,7 @@ public class ChallengeServiceImpl implements ChallengeService {
             // Rollback
             int newCurrentCount = Math.max(0, uc.getCurrentCount() - 1);
             int newCurrentStreak = Math.max(0, uc.getCurrentStreak() - 1);
-            
+
             // Fix: If rolling back "today", lastSuccessDate check (alreadySucceededToday) relies on this NOT being today.
             // If streak is preserved (was > 1, now > 0), previous success was yesterday.
             // If streak broken (now 0), we set to null to safely clear "today" status.
