@@ -245,6 +245,13 @@ public class DietServiceImpl implements DietService {
     public void updateDiet(Long userId, Long dietId, DietRequestDto dietRequestDto, MultipartFile file) {
         // 1. 기존 식단 조회
         DietResponseDto existingDiet = dietMapper.findDietByDietId(dietId); // (null 체크 및 권한 체크 필수)
+        if (existingDiet == null) {
+            throw new CustomException(ErrorResponseCode.DIET_NOT_FOUND);
+        }
+        // 권한 체크 (내 식단인지)
+        if (!existingDiet.getUserId().equals(userId)) {
+            throw new CustomException(ErrorResponseCode.UNAUTHORIZED);
+        }
 
         String newImgUrl = existingDiet.getDietImgUrl();
 
@@ -271,53 +278,81 @@ public class DietServiceImpl implements DietService {
         // 2. 새로운 음식 리스트 재계산 (Create 로직과 동일)
         for (DietRequestDto.DietDetailRequestDto item : dietRequestDto.getFoods()) {
 
-            // 음식 정보 가져오기 (기존 조회 or 신규 생성 로직 재사용 권장)
-            // 여기선 심플하게 조회만 구현
-            Food food = foodMapper.findById(item.getFoodId());
-            if (food == null) throw new IllegalArgumentException("음식 정보 없음 ID=" + item.getFoodId());
+            Long finalFoodId = null;
+            String finalFoodName = item.getFoodName();
 
-            // 비율 및 스냅샷 계산
-            double ratio = (food.getServingSize() > 0) ? item.getQuantity() / food.getServingSize() : 1.0;
+            double snapCal, snapCarbo, snapProtein, snapFat, snapSugars, snapSodium;
 
-            double cal = food.getCalories() * ratio;
-            double carbo = food.getCarbohydrate() * ratio;
-            double protein = food.getProtein() * ratio;
-            double fat = food.getFat() * ratio;
-            double sugars = food.getSugars() * ratio;
-            double sodium = food.getSodium() * ratio;
+            // ==========================================================
+            // CASE 1: 기존 음식 DB에서 선택한 경우 (ID가 있음)
+            // ==========================================================
+            if (item.getFoodId() != null) {
+                Food food = foodMapper.findById(item.getFoodId());
+                if (food == null) throw new IllegalArgumentException("음식 정보 없음 ID=" + item.getFoodId());
 
+                finalFoodId = food.getFoodId();
+                finalFoodName = food.getFoodName();
+
+                // 비율 계산
+                double ratio = (food.getServingSize() > 0) ? item.getQuantity() / food.getServingSize() : 1.0;
+
+                snapCal = food.getCalories() * ratio;
+                snapCarbo = food.getCarbohydrate() * ratio;
+                snapProtein = food.getProtein() * ratio;
+                snapFat = food.getFat() * ratio;
+                snapSugars = food.getSugars() * ratio;
+                snapSodium = food.getSodium() * ratio;
+            }
+            // ==========================================================
+            // CASE 2: 직접 입력한 경우 (ID 없음) - ★ 이 부분이 추가되어야 함
+            // ==========================================================
+            else {
+                // 직접 입력값 그대로 사용
+                snapCal = item.getCalories();
+                snapCarbo = item.getCarbohydrate();
+                snapProtein = item.getProtein();
+                snapFat = item.getFat();
+                snapSugars = item.getSugars();
+                snapSodium = item.getSodium();
+
+                // 수정 시에도 "이 음식 저장할래요" 옵션이 있다면 여기서 foodService.addFood 호출 가능
+                // (일단 로직 복잡도를 낮추기 위해 수정 시에는 DB 저장을 안 한다고 가정하거나,
+                //  필요하다면 recordDiet의 로직을 그대로 가져오시면 됩니다.)
+            }
+
+            // 공통: 상세 객체 생성
             DietDetail detail = DietDetail.builder()
-                    .dietId(dietId) // 기존 식단 ID 유지
-                    .foodId(food.getFoodId())
-                    .foodName(food.getFoodName())
+                    .dietId(dietId)
+                    .foodId(finalFoodId) // 직접 입력이면 null 들어감
+                    .foodName(finalFoodName)
                     .quantity(item.getQuantity())
                     .unit(item.getUnit())
-                    .calories(cal)
-                    .carbohydrate(carbo)
-                    .protein(protein)
-                    .fat(fat)
-                    .sugars(sugars)
-                    .sodium(sodium)
+                    .calories(snapCal)
+                    .carbohydrate(snapCarbo)
+                    .protein(snapProtein)
+                    .fat(snapFat)
+                    .sugars(snapSugars)
+                    .sodium(snapSodium)
                     .build();
 
             newDetails.add(detail);
 
             // 합계 누적
-            totalCal += cal;
-            totalCarbohydrate += carbo;
-            totalProtein += protein;
-            totalFat += fat;
-            totalSugars += sugars;
-            totalSodium += sodium;
+            totalCal += snapCal;
+            totalCarbohydrate += snapCarbo;
+            totalProtein += snapProtein;
+            totalFat += snapFat;
+            totalSugars += snapSugars;
+            totalSodium += snapSodium;
         }
 
-        // 3. 부모(Diet) 정보 업데이트
+        // 5. 부모(Diet) 정보 업데이트
         Diet dietUpdate = Diet.builder()
                 .dietId(dietId)
                 .eatTime(dietRequestDto.getEatTime())
                 .mealType(dietRequestDto.getMealType())
                 .memo(dietRequestDto.getMemo())
-                .dietImgUrl(newImgUrl) // 이미지 수정 로직이 있다면 추가
+                .dietImgUrl(newImgUrl)
                 .totalCalories(totalCal)
                 .totalCarbohydrate(totalCarbohydrate)
                 .totalProtein(totalProtein)
@@ -328,10 +363,9 @@ public class DietServiceImpl implements DietService {
 
         dietMapper.updateDiet(dietUpdate);
 
-        // 4. 기존 상세(Details) 모두 삭제
+        // 6. 기존 상세(Details) 삭제 후 재생성 (Delete -> Insert)
         dietMapper.deleteDietDetailByDietId(dietId);
 
-        // 5. 새로운 상세(Details) 대량 등록
         if (!newDetails.isEmpty()) {
             dietMapper.insertDietDetails(newDetails);
         }

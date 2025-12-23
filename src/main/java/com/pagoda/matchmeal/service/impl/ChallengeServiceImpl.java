@@ -165,7 +165,7 @@ public class ChallengeServiceImpl implements ChallengeService {
                 NotificationType.CHALLENGE_INVITE,
                 inviterName + "님이 [" + challengeTitle + "] 챌린지에 초대했습니다.",
                 challengeId.intValue(),
-                "/challenges/" + challengeId
+                "/challenge/" + challengeId
         );
     }
 
