@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.pagoda.matchmeal.mapper.UserBadgeMapper">
+
+    <!-- ResultMap for mapping associations if needed, but flat mapping is simple enough for now -->
+    <!-- Assuming Badge is fetched separately or using join. Let's start with basic selects -->
+    
+    <resultMap id="UserBadgeResultMap" type="com.pagoda.matchmeal.model.entity.UserBadge">
+        <id property="userBadgeId" column="user_badge_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="currentValue" column="current_value"/>
+        <result property="isAcquired" column="is_acquired"/>
+        <result property="acquiredAt" column="acquired_at"/>
+        
+        <!-- Badge Association -->
+        <association property="badge" javaType="com.pagoda.matchmeal.model.entity.Badge">
+            <id property="badgeId" column="badge_id"/>
+            <result property="category" column="category"/>
+            <result property="subCategory" column="sub_category"/>
+            <result property="name" column="name"/>
+            <result property="description" column="description"/>
+            <result property="targetValue" column="target_value"/>
+            <result property="imageUrl" column="image_url"/>
+            <result property="grayImageUrl" column="gray_image_url"/>
+            <result property="tier" column="tier"/>
+        </association>
+    </resultMap>
+
+    <select id="findAllByUserId" resultMap="UserBadgeResultMap">
+        SELECT 
+            ub.*,
+            b.badge_id, b.category, b.sub_category, b.name, b.description, 
+            b.target_value, b.image_url, b.gray_image_url, b.tier
+        FROM user_badges ub
+        JOIN badges b ON ub.badge_id = b.badge_id
+        WHERE ub.user_id = #{userId}
+    </select>
+
+    <select id="findByUserIdAndBadgeId" resultMap="UserBadgeResultMap">
+        SELECT 
+            ub.*,
+            b.badge_id, b.category, b.sub_category, b.name, b.description, 
+            b.target_value, b.image_url, b.gray_image_url, b.tier
+        FROM user_badges ub
+        JOIN badges b ON ub.badge_id = b.badge_id
+        WHERE ub.user_id = #{userId} AND ub.badge_id = #{badgeId}
+    </select>
+
+    <insert id="save" useGeneratedKeys="true" keyProperty="userBadgeId">
+        INSERT INTO user_badges (user_id, badge_id, current_value, is_acquired, acquired_at)
+        VALUES (#{userId}, #{badge.badgeId}, #{currentValue}, #{isAcquired}, #{acquiredAt})
+    </insert>
+
+    <update id="update">
+        UPDATE user_badges
+        SET current_value = #{currentValue},
+            is_acquired = #{isAcquired},
+            acquired_at = #{acquiredAt}
+        WHERE user_badge_id = #{userBadgeId}
+    </update>
+    
+    <select id="existsByUserIdAndBadgeId" resultType="boolean">
+        SELECT EXISTS(SELECT 1 FROM user_badges WHERE user_id = #{userId} AND badge_id = #{badgeId})
+    </select>
+
+</mapper>
