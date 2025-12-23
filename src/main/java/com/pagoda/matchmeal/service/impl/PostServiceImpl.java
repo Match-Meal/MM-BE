@@ -74,11 +74,19 @@ public class PostServiceImpl implements PostService {
 
         // 공지사항 알림
         if (post.getCategory() == PostCategory.NOTICE) {
-            notificationService.sendToTopic(
-                    NotificationType.NOTICE,
-                    "📢 [공지] " + post.getTitle(),
-                    "/community/" + post.getPostId()
-            );
+            List<Long> allActiveUserIds = userMapper.findAllActiveUserIds();
+
+            for (Long activeUserId : allActiveUserIds) {
+                notificationService.sendToUser(
+                        activeUserId,
+                        userId,
+                        NotificationType.NOTICE,
+                        "📢 [공지] " + post.getTitle(),
+                        post.getPostId().intValue(),
+                        "/community/" + post.getPostId()
+                );
+            }
+
         }
         // 일반 게시글일 경우: 나를 팔로우한 사람들에게 알림 발송
         else {
