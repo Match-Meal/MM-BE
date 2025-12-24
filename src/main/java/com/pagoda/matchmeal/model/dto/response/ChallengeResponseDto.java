@@ -43,4 +43,8 @@ public class ChallengeResponseDto {
     private LocalDate lastSuccessDate;
 
     private List<ChallengeParticipantDto> participants;
+
+    @JsonProperty("isPublic")
+    private boolean isPublic; // 공개여부
+    private String invitationCode; // 초대 코드
 }
