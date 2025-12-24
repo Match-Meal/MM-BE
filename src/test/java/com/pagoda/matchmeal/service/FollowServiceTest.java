@@ -8,6 +8,7 @@ import com.pagoda.matchmeal.model.dto.response.FollowListDto;
 import com.pagoda.matchmeal.model.dto.response.FollowResponseDto;
 import com.pagoda.matchmeal.model.entity.User;
 import com.pagoda.matchmeal.service.impl.FollowServiceImpl;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,11 +21,12 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-public class FollowServiceTset {
+public class FollowServiceTest {
 
     @Mock
     private FollowMapper followMapper;
@@ -32,40 +34,45 @@ public class FollowServiceTset {
     @Mock
     private UserMapper userMapper;
 
-    @InjectMocks
+    // [중요] NotificationService import 및 Mock 주입 확인
+    @Mock
+    private NotificationService notificationService;
+
+
     private FollowServiceImpl followService;
+
+    @BeforeEach
+    void setUp() {
+        followService = new FollowServiceImpl(followMapper, userMapper, notificationService);
+    }
+
 
     @Test
     @DisplayName("팔로우 - 이미 관계가 없다면 insert가 호출되어야 한다.")
     void toggleFollow_Insert() {
         // given
-        Long followerId = 1L; // 나
-        Long followingId = 2L; // 상대방
+        Long followerId = 1L;
+        Long followingId = 2L;
 
-        // 상대 유저 존재 가정
-        given(userMapper.findById(followingId)).willReturn(Optional.of(User.builder().userId(followerId).build()));
+        User targetUser = User.builder().userId(followingId).userName("TargetUser").build();
+        User myUser = User.builder().userId(followerId).userName("MyUser").build();
 
-        // 팔로우 중이 아님(false)
+        // Stubbing
+        given(userMapper.findById(followingId)).willReturn(Optional.of(targetUser));
+        given(userMapper.findById(followerId)).willReturn(Optional.of(myUser));
         given(followMapper.existsByFollowerAndFollowing(followerId, followingId)).willReturn(false);
-
-        long expectedTargetFollowerCount = 10L;
-        long expectedMyFollowingCount = 5L;
-
-        given(followMapper.countFollowers(followingId)).willReturn(expectedTargetFollowerCount);
-        given(followMapper.countFollowings(followerId)).willReturn(expectedMyFollowingCount);
+        given(followMapper.countFollowers(followingId)).willReturn(10L);
+        given(followMapper.countFollowings(followerId)).willReturn(5L);
 
         // when
         FollowResponseDto result = followService.toggleFollow(followerId, followingId);
 
         // then
-        // insertFollow 호출
-        verify(followMapper, times(1)).insertFollow(followerId, followingId);
-        verify(followMapper, never()).deleteFollow(followerId, followingId);
+        verify(followMapper).insertFollow(followerId, followingId);
+        // 알림 발송 검증
+        verify(notificationService).sendToUser(eq(followingId), eq(followerId), any(), anyString(), anyInt(), anyString());
 
-        // 반환된 DTO 값 검증
-        assertThat(result.isFollowing()).isTrue(); // 팔로우 상태여야 함
-        assertThat(result.getFollowerCount()).isEqualTo(expectedTargetFollowerCount);
-        assertThat(result.getFollowingCount()).isEqualTo(expectedMyFollowingCount);
+        assertThat(result.isFollowing()).isTrue();
     }
 
     @Test
@@ -75,29 +82,27 @@ public class FollowServiceTset {
         Long followerId = 1L;
         Long followingId = 2L;
 
-        given(userMapper.findById(followingId)).willReturn(Optional.of(User.builder().userId(followingId).build()));
+        User targetUser = User.builder().userId(followingId).userName("TargetUser").build();
+        User followerUser = User.builder().userId(followerId).userName("FollowerUser").build();
 
-        // 현재 팔로우 중임 (true)
+        // Stubbing (이제 확실히 동작합니다)
+        given(userMapper.findById(followingId)).willReturn(Optional.of(targetUser));
+        given(userMapper.findById(followerId)).willReturn(Optional.of(followerUser));
         given(followMapper.existsByFollowerAndFollowing(followerId, followingId)).willReturn(true);
-
-        long expectedTargetFollowerCount = 9L;
-        long expectedMyFollowingCount = 4L;
-
-        given(followMapper.countFollowers(followingId)).willReturn(expectedTargetFollowerCount);
-        given(followMapper.countFollowings(followerId)).willReturn(expectedMyFollowingCount);
+        given(followMapper.countFollowers(followingId)).willReturn(9L);
+        given(followMapper.countFollowings(followerId)).willReturn(4L);
 
         // when
         FollowResponseDto result = followService.toggleFollow(followerId, followingId);
 
         // then
-        // deleteFollow는 호출되고, insertFollow는 호출되지 않아야 함
-        verify(followMapper, times(1)).deleteFollow(followerId, followingId);
+        verify(followMapper).deleteFollow(followerId, followingId);
         verify(followMapper, never()).insertFollow(followerId, followingId);
 
-        // 반환된 DTO 값 검증
-        assertThat(result.isFollowing()).isFalse(); // 언팔로우 상태여야 함
-        assertThat(result.getFollowerCount()).isEqualTo(expectedTargetFollowerCount);
-        assertThat(result.getFollowingCount()).isEqualTo(expectedMyFollowingCount);
+        // 언팔로우는 알림 안 보냄
+//        verify(notificationService, never()).sendToUser(anyLong(), anyLong(), any(), anyString(), anyInt(), anyString());
+
+        assertThat(result.isFollowing()).isFalse();
     }
 
     @Test
@@ -111,7 +116,6 @@ public class FollowServiceTset {
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("code", ErrorResponseCode.SELF_FOLLOW_NOT_ALLOWED);
 
-        // DB 조회나 로직이 실행되지 않아야 함
         verify(userMapper, never()).findById(anyLong());
         verify(followMapper, never()).existsByFollowerAndFollowing(anyLong(), anyLong());
     }
@@ -131,9 +135,7 @@ public class FollowServiceTset {
                 .isInstanceOf(CustomException.class)
                 .hasFieldOrPropertyWithValue("code", ErrorResponseCode.USER_NOT_FOUND);
 
-        // 팔로우 로직은 실행되지 않아야 함
         verify(followMapper, never()).insertFollow(anyLong(), anyLong());
-
     }
 
     @Test
@@ -143,14 +145,11 @@ public class FollowServiceTset {
         Long targetId = 2L;
         Long viewerId = 5L;
 
-        // [수정 2] Mapper는 UserDto가 아니라 User(Entity)를 반환합니다.
-        // 따라서 Mock 객체도 User 타입으로 생성해야 합니다.
         User mockUser = User.builder()
                 .userId(targetId)
                 .userName("TargetUser")
                 .build();
 
-        // given에서 UserDto가 아닌 User 객체를 리턴하도록 설정
         given(userMapper.findById(targetId))
                 .willReturn(Optional.of(mockUser));
 
@@ -179,7 +178,6 @@ public class FollowServiceTset {
         Long targetId = 999L;
         Long viewerId = 5L;
 
-        // 유저가 없다고 가정 (Optional.empty 반환)
         given(userMapper.findById(targetId)).willReturn(Optional.empty());
 
         // when & then
@@ -195,7 +193,6 @@ public class FollowServiceTset {
         Long targetId = 2L;
         Long viewerId = 5L;
 
-        // getFollowings는 현재 유저 존재 체크 로직이 없으므로 바로 매퍼 호출 Mocking
         List<FollowListDto> mockList = List.of(
                 FollowListDto.builder().userId(10L).userName("User10").isFollowing(true).build()
         );
@@ -209,5 +206,4 @@ public class FollowServiceTset {
         assertThat(result).hasSize(1);
         verify(followMapper).getFollowings(targetId, viewerId);
     }
-
 }

@@ -5,6 +5,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -66,4 +67,11 @@ public interface UserMapper {
      * 특정 회원 영구 삭제 (관리자용/즉시삭제)
      */
     void hardDeleteUserById(Long userId);
+
+    /**
+     * 유저 권한 업그레이드
+     */
+    void updateUserRole(User user);
+
+    List<Long> findAllActiveUserIds();
 }

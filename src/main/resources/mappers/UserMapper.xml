@@ -61,7 +61,7 @@
     <update id="softDeleteUser">
         UPDATE users
         SET deleted_at = NOW(),
-            status = 'INACTIVE',
+            status     = 'INACTIVE',
             updated_at = NOW()
         WHERE user_id = #{userId}
     </update>
@@ -69,20 +69,36 @@
     <update id="restoreUser">
         UPDATE users
         SET deleted_at = NULL,
-            status = 'ACTIVE',
+            status     = 'ACTIVE',
             updated_at = NOW()
         WHERE user_id = #{userId}
     </update>
 
     <delete id="hardDeleteExpiredUsers">
-        DELETE FROM users
+        DELETE
+        FROM users
         WHERE deleted_at IS NOT NULL
           AND deleted_at &lt; #{thresholdDate}
     </delete>
 
     <delete id="hardDeleteUserById">
-        DELETE FROM users
+        DELETE
+        FROM users
         WHERE user_id = #{userId}
     </delete>
+
+    <update id="updateUserRole">
+        UPDATE users
+        SET role       = #{role},
+            updated_at = NOW()
+        WHERE user_id = #{userId}
+          AND deleted_at IS NULL
+    </update>
+
+    <select id="findAllActiveUserIds" resultType="long">
+        SELECT user_id
+        FROM users
+        WHERE status = 'ACTIVE'
+    </select>
 
 </mapper>

@@ -15,6 +15,9 @@ DROP TABLE IF EXISTS diet_details;
 DROP TABLE IF EXISTS diet_records;
 DROP TABLE IF EXISTS foods;
 
+DROP TABLE IF EXISTS notifications;
+DROP TABLE IF EXISTS user_subscriptions;
+
 DROP TABLE IF EXISTS follows;
 DROP TABLE IF EXISTS users;
 
@@ -116,6 +119,7 @@ CREATE TABLE diet_details (
 
                               CONSTRAINT fk_diet_details_diet FOREIGN KEY (diet_id) REFERENCES diet_records (diet_id) ON DELETE CASCADE
 );
+CREATE INDEX idx_diet_detail_food_name ON diet_details(food_name);
 
 -- 5. 챌린지 (방장이 나가도 방은 유지 - SET NULL)
 CREATE TABLE challenges (
@@ -297,19 +301,21 @@ CREATE INDEX idx_noti_receiver_read ON notifications (receiver_id, is_read);
 
 
 -- 11. 정기 결제 정보 테이블 (기존 테이블 수정 버전)
--- 테이블이 이미 존재할 경우를 대비해 DROP 후 재생성 로직 권장
-DROP TABLE IF EXISTS user_subscriptions;
 
 CREATE TABLE user_subscriptions (
                                     subscription_id   BIGINT AUTO_INCREMENT PRIMARY KEY,
                                     user_id           BIGINT NOT NULL,
                                     sid               VARCHAR(100) NOT NULL, -- 정기 결제 고유번호 (SID)
                                     cid               VARCHAR(20) NOT NULL,  -- 가맹점 코드 (TCSUBSCRIP)
+                                    tid               VARCHAR(100),          -- [추가] 결제 고유 번호 (결제 승인 후 저장)
+                                    partner_order_id  VARCHAR(100),          -- [추가] 가맹점 주문번호
                                     item_name         VARCHAR(100),          -- 상품명
                                     total_amount      INT NOT NULL,          -- 결제 금액
                                     status            VARCHAR(20) DEFAULT 'ACTIVE', -- ACTIVE, INACTIVE
+                                    last_approved_at  DATETIME,              -- [추가] 마지막 결제 승인 시각
                                     next_billing_date DATE,                  -- 다음 결제 예정일
                                     created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                                    updated_at        TIMESTAMP,             -- [추가] 정보 수정 시각
 
     -- [핵심] 유저 탈퇴 시 구독 정보도 삭제 (결제 보안 및 데이터 정합성)
                                     CONSTRAINT fk_sub_user FOREIGN KEY (user_id) REFERENCES users (user_id) ON DELETE CASCADE

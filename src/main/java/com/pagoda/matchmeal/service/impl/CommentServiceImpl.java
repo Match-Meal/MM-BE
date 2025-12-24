@@ -4,11 +4,15 @@ import com.pagoda.matchmeal.common.exception.CustomException;
 import com.pagoda.matchmeal.common.exception.ErrorResponseCode;
 import com.pagoda.matchmeal.mapper.CommentMapper;
 import com.pagoda.matchmeal.mapper.PostMapper;
+import com.pagoda.matchmeal.mapper.UserMapper;
 import com.pagoda.matchmeal.model.dto.request.CommentRequestDto;
 import com.pagoda.matchmeal.model.dto.response.CommentResponseDto;
 import com.pagoda.matchmeal.model.dto.response.PostDetailResponseDto;
 import com.pagoda.matchmeal.model.entity.Comment;
+import com.pagoda.matchmeal.model.entity.User;
+import com.pagoda.matchmeal.model.enums.NotificationType;
 import com.pagoda.matchmeal.service.CommentService;
+import com.pagoda.matchmeal.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +34,8 @@ public class CommentServiceImpl implements CommentService {
 
     private final CommentMapper commentMapper;
     private final PostMapper postMapper;
+    private final UserMapper userMapper;
+    private final NotificationService notificationService;
 
     /**
      * 댓글 작성
@@ -44,9 +50,15 @@ public class CommentServiceImpl implements CommentService {
     @Transactional
     public Long writeComment(Long userId, Long postId, CommentRequestDto commentRequestDto) {
         validateUser(userId);
-        existingPost(postId);
+
+        PostDetailResponseDto post = postMapper.getPostByPostId(postId);
+        if (post == null) {
+            throw new CustomException(ErrorResponseCode.POST_NOT_FOUND);
+        }
 
         Long parentCommentId = commentRequestDto.getParentCommentId();
+        Long parentCommentAuthorId = null;
+
         if (parentCommentId != null) {
             CommentResponseDto parent = commentMapper.findByCommentId(parentCommentId);
             if (parent == null) {
@@ -56,6 +68,7 @@ public class CommentServiceImpl implements CommentService {
             if (parent.getParentCommentId() != null) {
                 parentCommentId = parent.getParentCommentId();
             }
+            parentCommentAuthorId = parent.getUser().getUserId();
         }
 
         Comment comment = Comment.builder()
@@ -66,6 +79,38 @@ public class CommentServiceImpl implements CommentService {
                 .build();
 
         commentMapper.save(comment);
+
+        // 0. 댓글 작성자 정보 조회 (알림 메시지용)
+        User commenter = userMapper.findById(userId)
+                .orElseThrow(() -> new CustomException(ErrorResponseCode.USER_NOT_FOUND));
+
+        // 1. 게시글 작성자에게 알림 (내 글에 내가 댓글 단 경우는 제외)
+        if (!post.getUser().getUserId().equals(userId)) {
+            notificationService.sendToUser(
+                    post.getUser().getUserId(), // 수신자: 글 작성자
+                    userId,                         // 발신자: 댓글 작성자
+                    NotificationType.COMMENT,
+                    commenter.getUserName() + "님이 댓글을 남겼습니다.",
+                    postId.intValue(),              // relatedId
+                    "/community/" + postId          // 이동 경로
+            );
+        }
+
+        // 2. (대댓글인 경우) 원댓글 작성자에게 알림
+        // 조건: 대댓글이어야 함 && 내 댓글에 내가 대댓글 단 경우 제외 && 원댓글 작성자가 글 작성자와 다를 경우(중복 알림 방지)
+        if (parentCommentAuthorId != null
+                && !parentCommentAuthorId.equals(userId)
+                && !parentCommentAuthorId.equals(post.getUser().getUserId())) {
+
+            notificationService.sendToUser(
+                    parentCommentAuthorId,          // 수신자: 원댓글 작성자
+                    userId,                         // 발신자: 대댓글 작성자
+                    NotificationType.COMMENT,
+                    commenter.getUserName() + "님이 대댓글을 남겼습니다.",
+                    postId.intValue(),
+                    "/community/" + postId
+            );
+        }
         return comment.getCommentId();
     }
 

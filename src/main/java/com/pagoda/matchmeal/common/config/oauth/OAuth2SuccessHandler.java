@@ -85,9 +85,9 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         log.info("로그인 성공. Redis 저장 완료. UserID: {}", userId);
 
         // 개발용
-        System.out.println("=========================================");
-        System.out.println("TEST ACCESS TOKEN: " + accessToken);
-        System.out.println("=========================================");
+//        System.out.println("=========================================");
+//        System.out.println("TEST ACCESS TOKEN: " + accessToken);
+//        System.out.println("=========================================");
 
         // redirect
         String targetUrl = UriComponentsBuilder.fromUriString(corsUrl + "/oauth/callback")

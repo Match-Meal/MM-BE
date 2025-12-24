@@ -4,6 +4,7 @@ import com.pagoda.matchmeal.common.exception.CustomException;
 import com.pagoda.matchmeal.common.exception.ErrorResponseCode;
 import com.pagoda.matchmeal.mapper.ChallengeMapper;
 import com.pagoda.matchmeal.mapper.DietMapper;
+import com.pagoda.matchmeal.mapper.UserMapper;
 import com.pagoda.matchmeal.model.dto.ChallengeSearchCondition;
 import com.pagoda.matchmeal.model.dto.request.ChallengeCreateRequestDto;
 import com.pagoda.matchmeal.model.dto.response.*;
@@ -12,8 +13,10 @@ import com.pagoda.matchmeal.model.entity.ChallengeInvitation;
 import com.pagoda.matchmeal.model.entity.Diet;
 import com.pagoda.matchmeal.model.entity.DietDetail;
 import com.pagoda.matchmeal.model.enums.ChallengeType;
+import com.pagoda.matchmeal.model.enums.NotificationType;
 import com.pagoda.matchmeal.service.ChallengeService;
 import com.pagoda.matchmeal.service.FollowService;
+import com.pagoda.matchmeal.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,6 +38,8 @@ public class ChallengeServiceImpl implements ChallengeService {
     private final ChallengeMapper challengeMapper;
     private final FollowService followService;
     private final DietMapper dietMapper;
+    private final UserMapper userMapper;
+    private final NotificationService notificationService;
 
     /**
      * 챌린지 생성
@@ -149,6 +154,19 @@ public class ChallengeServiceImpl implements ChallengeService {
             throw new CustomException(ErrorResponseCode.ALREADY_INVITED);
         }
         challengeMapper.insertInvitation(challengeId, inviterId, targetUserId);
+
+        String inviterName = userMapper.findById(inviterId).orElseThrow(() -> new CustomException(ErrorResponseCode.USER_NOT_FOUND)).getUserName();
+
+        String challengeTitle = challengeMapper.findById(challengeId).getTitle();
+
+        notificationService.sendToUser(
+                targetUserId,
+                inviterId,
+                NotificationType.CHALLENGE_INVITE,
+                inviterName + "님이 [" + challengeTitle + "] 챌린지에 초대했습니다.",
+                challengeId.intValue(),
+                "/challenge/" + challengeId
+        );
     }
 
     /**
@@ -195,6 +213,63 @@ public class ChallengeServiceImpl implements ChallengeService {
                 // 이전에 성공했으나 이번 기록으로 인해 실패하게 된 경우 (예: 폭식으로 칼로리 초과) -> 성공 취소
                 if (alreadySucceededToday && uc.getType() == ChallengeType.CALORIE_LIMIT) {
                     updateUserChallengeStatus(uc, today, false);
+                }
+            }
+        }
+    }
+
+    /**
+     * 식단 삭제/수정 시 해당 날짜의 진척도를 재계산
+     */
+    @Override
+    @Transactional
+    public void recalculateChallengeProgress(Long userId, LocalDate date) {
+        // 1. 해당 유저의 진행 중인 챌린지 조회
+        List<ActiveChallengeDto> activeChallenges = challengeMapper.findActiveChallengesByUserId(userId);
+        if (activeChallenges.isEmpty()) return;
+
+        // 2. 해당 날짜의 식단 전체 조회하여 칼로리 재계산
+        List<DietResponseDto> dailyDiets = dietMapper.findAllByDate(userId, date.toString());
+        double dailyTotalCalories = dailyDiets.stream().mapToDouble(DietResponseDto::getTotalCalories).sum();
+
+        // 3. 기록형/타임어택 여부 체크를 위해 가장 마지막 식사 시간 조회 (필요 시)
+        // (삭제 시에는 남아있는 식단 중 조건에 맞는게 있는지 확인해야 함)
+        // 로직 재활용을 위해 processChallengeUpdate 로직과 유사하게 수행
+
+        for (ActiveChallengeDto uc : activeChallenges) {
+            if (date.isBefore(uc.getStartDate()) || date.isAfter(uc.getEndDate())) continue;
+
+            boolean isConditionMet = false;
+
+            // 이미 성공 처리된 상태인지 확인
+            boolean alreadySucceededToday = uc.getLastSuccessDate() != null && uc.getLastSuccessDate().equals(date);
+
+            switch (uc.getType()) {
+                case RECORD_FREQUENCY: // 기록형: 식단이 하나라도 있으면 성공
+                    if (!dailyDiets.isEmpty()) isConditionMet = true;
+                    break;
+                case CALORIE_LIMIT: // 칼로리형: 누적 칼로리가 목표치 이하 & 식단이 하나라도 있어야 함(0칼로리 성공 악용 방지?)
+                    // 보통 식단이 없으면 성공으로 치지 않음 -> 식단이 적어도 1개 존재해야 함
+                    if (!dailyDiets.isEmpty() && dailyTotalCalories <= uc.getTargetValue()) isConditionMet = true;
+                    break;
+                case TIME_RANGE: // 타임어택: 목표 시간 이전에 먹은 식단이 하나라도 있으면 성공
+                    for (DietResponseDto d : dailyDiets) {
+                        if (d.getEatTime().getHour() < uc.getTargetValue()) {
+                            isConditionMet = true;
+                            break;
+                        }
+                    }
+                    break;
+            }
+
+            if (isConditionMet) {
+                if (!alreadySucceededToday) {
+                    updateUserChallengeStatus(uc, date, true);
+                }
+            } else {
+                // 조건을 만족하지 못하는데, 오늘 이미 성공으로 기록되어 있다면 -> 취소(Rollback) 필요
+                if (alreadySucceededToday) {
+                    updateUserChallengeStatus(uc, date, false);
                 }
             }
         }
@@ -249,7 +324,11 @@ public class ChallengeServiceImpl implements ChallengeService {
             // Rollback
             int newCurrentCount = Math.max(0, uc.getCurrentCount() - 1);
             int newCurrentStreak = Math.max(0, uc.getCurrentStreak() - 1);
-            LocalDate rollbackDate = (newCurrentStreak > 0) ? uc.getLastSuccessDate() : null;
+
+            // Fix: If rolling back "today", lastSuccessDate check (alreadySucceededToday) relies on this NOT being today.
+            // If streak is preserved (was > 1, now > 0), previous success was yesterday.
+            // If streak broken (now 0), we set to null to safely clear "today" status.
+            LocalDate rollbackDate = (newCurrentStreak > 0) ? today.minusDays(1) : null;
 
             uc.setCurrentCount(newCurrentCount);
             uc.setCurrentStreak(newCurrentStreak);

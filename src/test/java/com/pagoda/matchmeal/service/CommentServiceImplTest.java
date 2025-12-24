@@ -4,11 +4,13 @@ import com.pagoda.matchmeal.common.exception.CustomException;
 import com.pagoda.matchmeal.common.exception.ErrorResponseCode;
 import com.pagoda.matchmeal.mapper.CommentMapper;
 import com.pagoda.matchmeal.mapper.PostMapper;
+import com.pagoda.matchmeal.mapper.UserMapper;
 import com.pagoda.matchmeal.model.dto.UserSimpleDto;
 import com.pagoda.matchmeal.model.dto.request.CommentRequestDto;
 import com.pagoda.matchmeal.model.dto.response.CommentResponseDto;
 import com.pagoda.matchmeal.model.dto.response.PostDetailResponseDto;
 import com.pagoda.matchmeal.model.entity.Comment;
+import com.pagoda.matchmeal.model.entity.User;
 import com.pagoda.matchmeal.service.impl.CommentServiceImpl;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,6 +22,7 @@ import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -39,6 +42,12 @@ class CommentServiceImplTest {
     @Mock
     private PostMapper postMapper;
 
+    @Mock
+    private UserMapper userMapper;
+
+    @Mock
+    private NotificationService notificationService;
+
     private final Long USER_ID = 1L;
     private final Long POST_ID = 100L;
 
@@ -49,10 +58,20 @@ class CommentServiceImplTest {
         CommentRequestDto dto = new CommentRequestDto();
         dto.setContent("댓글");
 
-        // 게시글 존재 확인 Mock
-        given(postMapper.getPostByPostId(POST_ID)).willReturn(new PostDetailResponseDto());
+        // 1. 게시글 작성자 정보 설정
+        UserSimpleDto postOwner = new UserSimpleDto();
+        ReflectionTestUtils.setField(postOwner, "userId", 999L); // 글 작성자 ID
 
-        // ID 생성 흉내
+        PostDetailResponseDto postDto = new PostDetailResponseDto();
+        ReflectionTestUtils.setField(postDto, "user", postOwner);
+
+        given(postMapper.getPostByPostId(POST_ID)).willReturn(postDto);
+
+        // 2. 댓글 작성자 정보 설정
+        User commenter = User.builder().userId(USER_ID).userName("TestUser").build();
+        given(userMapper.findById(USER_ID)).willReturn(Optional.of(commenter));
+
+        // 3. ID 생성 흉내
         doAnswer(invocation -> {
             Comment c = invocation.getArgument(0);
             ReflectionTestUtils.setField(c, "commentId", 10L);
@@ -70,30 +89,51 @@ class CommentServiceImplTest {
     @DisplayName("댓글 작성 - 대댓글 (깊이 제한 로직 확인)")
     void writeComment_Reply_DepthLimit() {
         // given
-        // 1. 할아버지 댓글 (ID: 10)
+        // 1. 게시글 정보 설정
+        UserSimpleDto postOwner = new UserSimpleDto();
+        ReflectionTestUtils.setField(postOwner, "userId", 999L);
+        PostDetailResponseDto postDto = new PostDetailResponseDto();
+        ReflectionTestUtils.setField(postDto, "user", postOwner);
+
+        given(postMapper.getPostByPostId(POST_ID)).willReturn(postDto);
+
+        // 2. 댓글 작성자 정보 설정
+        User commenter = User.builder().userId(USER_ID).userName("ReplyUser").build();
+        given(userMapper.findById(USER_ID)).willReturn(Optional.of(commenter));
+
+        // [해결 1] 할아버지 댓글 (ID: 10) - UserSimpleDto 객체 생성 후 주입
         CommentResponseDto grandParent = new CommentResponseDto();
         ReflectionTestUtils.setField(grandParent, "commentId", 10L);
 
-        // 2. 부모 댓글 (ID: 20, parentId: 10) -> 이미 대댓글인 상태
+        // userId 필드가 없으므로 UserSimpleDto를 만들어 user 필드에 넣어야 함
+        UserSimpleDto grandParentOwner = new UserSimpleDto();
+        ReflectionTestUtils.setField(grandParentOwner, "userId", 888L);
+        ReflectionTestUtils.setField(grandParent, "user", grandParentOwner);
+
+
+        // [해결 1] 부모 댓글 (ID: 20) - UserSimpleDto 객체 생성 후 주입
         CommentResponseDto parent = new CommentResponseDto();
         ReflectionTestUtils.setField(parent, "commentId", 20L);
         ReflectionTestUtils.setField(parent, "parentCommentId", 10L);
 
-        // 3. 요청 DTO (부모(20)에게 답글을 달려고 함)
+        UserSimpleDto parentOwner = new UserSimpleDto();
+        ReflectionTestUtils.setField(parentOwner, "userId", 777L);
+        ReflectionTestUtils.setField(parent, "user", parentOwner);
+
+        // 요청 DTO
         CommentRequestDto dto = new CommentRequestDto();
         dto.setContent("손자댓글 시도");
         dto.setParentCommentId(20L);
 
-        given(postMapper.getPostByPostId(POST_ID)).willReturn(new PostDetailResponseDto());
-        given(commentMapper.findByCommentId(20L)).willReturn(parent); // 부모 조회
+        // 부모 조회 시 parent 객체 반환
+        given(commentMapper.findByCommentId(20L)).willReturn(parent);
 
         // when
         commentService.writeComment(USER_ID, POST_ID, dto);
 
         // then
-        // ★ 핵심: 저장되는 Comment의 parentId가 20(부모)이 아니라 10(할아버지)으로 바뀌었는지 검증
         verify(commentMapper).save(argThat(comment ->
-                comment.getParentCommentId().equals(10L)
+                comment.getParentCommentId() != null && comment.getParentCommentId().equals(10L)
         ));
     }
 

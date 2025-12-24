@@ -14,6 +14,10 @@ public class AiUserProfileDto {
     private double bmi;
     @JsonProperty("bmi_status")
     private String bmiStatus;
+    @JsonProperty("height_cm")
+    private Double heightCm;
+    @JsonProperty("weight_kg")
+    private Double weightKg;
     private String allergies;
     private String diseases;
 }

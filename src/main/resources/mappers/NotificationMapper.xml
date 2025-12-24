@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.pagoda.matchmeal.mapper.NotificationMapper">
+    <insert id="save" parameterType="com.pagoda.matchmeal.model.dto.NotificationDto"
+            useGeneratedKeys="true" keyProperty="notificationId">
+        INSERT INTO notifications (receiver_id,
+                                   sender_id,
+                                   notification_type,
+                                   content,
+                                   related_id,
+                                   related_url,
+                                   is_read,
+                                   created_at)
+        VALUES (#{receiverId},
+                #{senderId},
+                #{notificationType}, #{content},
+                #{relatedId},
+                #{relatedUrl},
+                0, NOW())
+    </insert>
+
+    <select id="findByReceiverId" resultType="com.pagoda.matchmeal.model.dto.NotificationDto">
+        SELECT n.notification_id   AS notificationId,
+               n.receiver_id       AS receiverId,
+               n.sender_id         AS senderId,
+               n.notification_type AS notificationType,
+               n.content           AS content,
+               n.related_id        AS relatedId,
+               n.related_url       AS relatedUrl,
+               n.is_read           AS isRead,
+               n.created_at        AS createdAt,
+
+               -- 보낸 사람 정보 (JOIN)
+               u.user_name         AS senderName,
+               u.profile_image     AS senderProfileImage
+        FROM notifications n
+                 LEFT JOIN users u ON n.sender_id = u.user_id
+        WHERE n.receiver_id = #{receiverId}
+        ORDER BY n.created_at DESC LIMIT 50
+    </select>
+
+    <update id="markAsRead">
+        UPDATE notifications
+        SET is_read = 1
+        WHERE notification_id = #{notificationId}
+    </update>
+
+    <select id="countUnread" resultType="int">
+        SELECT COUNT(*)
+        FROM notifications
+        WHERE receiver_id = #{receiverId}
+          AND is_read = 0
+    </select>
+
+    <delete id="deleteOldNotifications">
+        DELETE
+        FROM notifications
+        WHERE is_read = 1
+          AND created_at &lt; DATE_SUB(NOW(), INTERVAL #{days} DAY)
+    </delete>
+
+    <delete id="deleteAllByReceiverId">
+        DELETE
+        FROM notifications
+        WHERE receiver_id = #{receiverId}
+    </delete>
+</mapper>

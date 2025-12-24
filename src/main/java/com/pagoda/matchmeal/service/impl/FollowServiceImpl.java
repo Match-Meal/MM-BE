@@ -6,7 +6,9 @@ import com.pagoda.matchmeal.mapper.FollowMapper;
 import com.pagoda.matchmeal.mapper.UserMapper;
 import com.pagoda.matchmeal.model.dto.response.FollowListDto;
 import com.pagoda.matchmeal.model.dto.response.FollowResponseDto;
+import com.pagoda.matchmeal.model.enums.NotificationType;
 import com.pagoda.matchmeal.service.FollowService;
+import com.pagoda.matchmeal.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +27,7 @@ public class FollowServiceImpl implements FollowService {
 
     private final FollowMapper followMapper;
     private final UserMapper userMapper;
+    private final NotificationService notificationService;
 
     /**
      * 팔로우 토글(이미 팔로우 중이면 취소, 아니면 팔로우
@@ -58,6 +61,17 @@ public class FollowServiceImpl implements FollowService {
         // 갱신된 카운트 조회
         Long targetFollowerCount = followMapper.countFollowers(followingId);
         Long myFollowingCount = followMapper.countFollowings(followerId);
+
+        String followerName = userMapper.findById(followerId).orElseThrow(() -> new CustomException(ErrorResponseCode.USER_NOT_FOUND)).getUserName();
+
+        notificationService.sendToUser(
+                followingId,            // 받는 사람 (팔로우 당한 사람)
+                followerId,             // 보낸 사람 (나)
+                NotificationType.FOLLOW,
+                followerName + "님이 회원님을 팔로우하기 시작했습니다.",
+                followerId.intValue(),  // 클릭 시 상대방 프로필로 이동
+                "/user/" + followerId
+        );
 
         return FollowResponseDto.builder()
                 .isFollowing(currentStatus)
